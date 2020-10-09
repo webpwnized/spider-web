@@ -10,7 +10,7 @@ import argparse
 import sys
 
 
-l_version = '0.0.1'
+l_version = '0.0.2'
 
 
 def print_example_usage():
@@ -19,24 +19,35 @@ def print_example_usage():
     Get Help
     --------------------------------
     spider-web -h
+    spider-web --help
+    
     spider-web -u
+    spider-web --usage
+    
     spider-web -e
+    spider-web --examples
 
     --------------------------------
     Test Connectivity
     --------------------------------
     spider-web -t
+    spider-web --test
 
     --------------------------------
-    Get a JSON Web Token (JWT)
+    Fetch Account Information
     --------------------------------
-    spider-web -a
+    spider-web -ga
+    spider-web --get-account
 
+    spider-web -gl
+    spider-web --get-license
     """)
 
 def run_main_program():
     LINES_BEFORE = 1
     LINES_AFTER = 1
+
+    l_api: API = None
 
     Printer.verbose = Parser.verbose
     Printer.debug = Parser.debug
@@ -55,7 +66,7 @@ def run_main_program():
         print_example_usage()
         exit(0)
 
-    if Parser.test_connectivity or Parser.authenticate:
+    if Parser.test_connectivity or Parser.get_account or Parser.get_license:
         l_api = API(p_parser=Parser)
     else:
         lArgParser.print_usage()
@@ -65,10 +76,13 @@ def run_main_program():
         l_api.test_connectivity()
         exit(0)
 
-    if Parser.authenticate:
-        l_api.test_authentication()
+    if Parser.get_account:
+        l_api.get_account()
         exit(0)
 
+    if Parser.get_license:
+        l_api.get_license()
+        exit(0)
 
 if __name__ == '__main__':
     lArgParser = argparse.ArgumentParser(description="""
@@ -81,7 +95,7 @@ if __name__ == '__main__':
       | |                                          
       |_|                                          
 
- Automated NetSparker analysis - Fortuna Fortis Paratus
+ Automated NetSparker Analysis - Fortuna Fortis Paratus
  Version: {}
 """.format(l_version), formatter_class=RawTextHelpFormatter)
     lArgParser.add_argument('-v', '--verbose',
@@ -108,8 +122,13 @@ if __name__ == '__main__':
     l_utilities_group.add_argument('-t', '--test',
                                   help='Test connectivity to API and exit',
                                   action='store_true')
-    l_utilities_group.add_argument('-a', '--authenticate',
-                                  help='Exchange a refresh token for an access token and exit',
+
+    l_account_group = lArgParser.add_argument_group(title="Account Endpoint", description=None)
+    l_account_group.add_argument('-ga', '--get-account',
+                                 help='Get account information and exit',
+                                 action='store_true')
+    l_account_group.add_argument('-gl', '--get-license',
+                                  help='Get license information and exit',
                                   action='store_true')
 
     Parser.parse_configuration(p_args=lArgParser.parse_args(), p_config=__config)
