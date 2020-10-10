@@ -2,7 +2,7 @@
 
 ### Usage
 
-    usage: spider-web [-h] [-v] [-d] [-o {JSON,CSV}] [-e] [-u] [-t] [-ga] [-gl]
+    usage: spider-web [-h] [-v] [-d] [-o {JSON,CSV}] [-e] [-u] [-t] [-ga] [-gl] [-aga] [-ps PAGE_SIZE]
 
 ### Options
 
@@ -22,6 +22,13 @@
       -ga, --get-account    Get account information and exit
       -gl, --get-license    Get license information and exit
 
+    Agents Endpoint:
+      -aga, --get-agents    List agents and exit
+    
+    Agents Endpoint Options:
+      -ps PAGE_SIZE, --page-size PAGE_SIZE
+                            The page size can be any value between 1 and 200
+
 ### Examples
 
 #### Get Help
@@ -38,9 +45,13 @@
     spider-web -t
     spider-web --test
 
-#### Fetch Account Information
+#### Get Account Information
     spider-web -ga
     spider-web --get-account
 
     spider-web -gl
     spider-web --get-license
+
+#### Get Agent Information
+    spider-web -aga
+    spider-web --get-agents

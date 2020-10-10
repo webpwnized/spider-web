@@ -65,6 +65,8 @@ class API:
     __cACCOUNT_LICENSE_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "account/license")
     __cACCOUNT_ME_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "account/me")
 
+    __cAGENTS_LIST_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "agents/list")
+
     __m_script_directory: str = os.path.dirname(__file__)
 
     __m_verbose: bool = False
@@ -399,32 +401,6 @@ class API:
         except Exception as e:
             self.__mPrinter.print("Connection test failed. Unable to connect to API. {0}".format(str(e)), Level.ERROR)
 
-    def __parse_account_information(self, l_data: list) -> list:
-        l_list: list = []
-        try:
-            for l_item in l_data:
-                l_tuple = (l_item['severity'] or 'None', l_item['categoryName'] or 'None', l_item['fullNameSingular'], l_item['exposureType'])
-                if Parser.verbose:
-                    l_tuple = l_tuple + (','.join(l_item['sortableFields']),)
-
-                if Parser.exposure_severity:
-                    if l_item['severity'] == Parser.exposure_severity.value:
-                        l_list.append(l_tuple)
-                else:
-                    l_list.append(l_tuple)
-
-            l_list.sort(key=lambda t: (t[0], t[1]))
-
-            l_header = ("Severity", "Category", "Exposure", "Type")
-            if Parser.verbose:
-                l_header = l_header + ("Sortable Fields",)
-            l_records = [l_header]
-            l_records.extend(l_list)
-
-            return l_records
-        except Exception as e:
-            self.__mPrinter.print("__parse_exposure_types() - {0}".format(str(e)), Level.ERROR)
-
     def get_account(self) -> None:
         try:
             self.__mPrinter.print("Fetching account information", Level.INFO)
@@ -488,3 +464,41 @@ class API:
 
         except Exception as e:
             self.__mPrinter.print("get_license() - {0}".format(str(e)), Level.ERROR)
+
+    def get_agents(self) -> None:
+        try:
+            self.__mPrinter.print("Fetching agent information", Level.INFO)
+
+            l_base_url = "{0}?pageSize={1}".format(
+                self.__cAGENTS_LIST_URL,
+                Parser.page_size
+            )
+            l_http_response = self.__connect_to_api(l_base_url)
+
+            self.__mPrinter.print("Fetched agent information", Level.SUCCESS)
+            self.__mPrinter.print("Parsing agent information", Level.INFO)
+            l_json = json.loads(l_http_response.text)
+            l_number_agents: list = l_json["TotalItemCount"]
+            self.__mPrinter.print("Found {} agents".format(l_number_agents), Level.INFO)
+
+            if self.__m_output_format == OutputFormat.JSON.value:
+                print(l_json)
+
+            elif self.__m_output_format == OutputFormat.CSV.value:
+                l_list: list = l_json["List"]
+
+                #TODO: Need agents to test with
+                for l_agent in l_list:
+                    print("Needs Update?, Name, IP address, Status, Version, Last Heartbeat, Auto Update?, "
+                          "Launched, VDB Version, Operating System, Framework, Architecture, Has Waiting Command, "
+                          "ID")
+                    print("{},{},{},{},{},{},{},{},{},{},{},{},{},{}".format(
+                        l_agent["IsAgentNeedsUpdate"], l_agent["Name"], l_agent["IpAddress"],
+                        l_agent["State"], l_agent["Version"], l_agent["Heartbeat"],
+                        l_agent["AutoUpdateEnabled"], l_agent["Launched"], l_agent["VdbVersion"],
+                        "{} {}".format(l_agent["OsDescription"],l_agent["OsArchitecture"]),
+                        l_agent["FrameworkDescription"], l_agent["ProcessArchitecture"],
+                        l_agent["HasWaitingCommand"], l_agent["Id"]
+                    ))
+        except Exception as e:
+            self.__mPrinter.print("get_agents() - {0}".format(str(e)), Level.ERROR)

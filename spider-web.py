@@ -10,7 +10,7 @@ import argparse
 import sys
 
 
-l_version = '0.0.2'
+l_version = '0.0.3'
 
 
 def print_example_usage():
@@ -34,13 +34,19 @@ def print_example_usage():
     spider-web --test
 
     --------------------------------
-    Fetch Account Information
+    Get Account Information
     --------------------------------
     spider-web -ga
     spider-web --get-account
 
     spider-web -gl
     spider-web --get-license
+    
+    --------------------------------
+    Get Agent Information
+    --------------------------------
+    spider-web -aga -ps 200
+    spider-web --get-agents --page-size 200
     """)
 
 def run_main_program():
@@ -66,7 +72,7 @@ def run_main_program():
         print_example_usage()
         exit(0)
 
-    if Parser.test_connectivity or Parser.get_account or Parser.get_license:
+    if Parser.test_connectivity or Parser.get_account or Parser.get_license or Parser.get_agents:
         l_api = API(p_parser=Parser)
     else:
         lArgParser.print_usage()
@@ -82,6 +88,10 @@ def run_main_program():
 
     if Parser.get_license:
         l_api.get_license()
+        exit(0)
+
+    if Parser.get_agents:
+        l_api.get_agents()
         exit(0)
 
 if __name__ == '__main__':
@@ -130,6 +140,18 @@ if __name__ == '__main__':
     l_account_group.add_argument('-gl', '--get-license',
                                   help='Get license information and exit',
                                   action='store_true')
+
+    l_account_group = lArgParser.add_argument_group(title="Agents Endpoint", description=None)
+    l_account_group.add_argument('-aga', '--get-agents',
+                                 help='List agents and exit',
+                                 action='store_true')
+
+    l_account_group = lArgParser.add_argument_group(title="Agents Endpoint Options", description=None)
+    l_account_group.add_argument('-ps', '--page-size',
+                                 help='The page size can be any value between 1 and 200',
+                                 type=int,
+                                 default=200,
+                                 action='store')
 
     Parser.parse_configuration(p_args=lArgParser.parse_args(), p_config=__config)
     run_main_program()

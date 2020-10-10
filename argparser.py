@@ -52,4 +52,7 @@ class Parser:
         Parser.get_account = p_args.get_account
         Parser.get_license = p_args.get_license
 
+        Parser.get_agents = p_args.get_agents
+        Parser.page_size = p_args.page_size
+
         Parser.output_format = p_args.output_format.value.upper() if hasattr(p_args.output_format, 'value') else None
