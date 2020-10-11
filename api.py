@@ -67,6 +67,10 @@ class API:
 
     __cAGENTS_LIST_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "agents/list")
 
+    __cTEAM_MEMBER_LIST_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "teammembers/list")
+
+    __cWEBSITE_GROUPS_LIST_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "websitegroups/list")
+
     __m_script_directory: str = os.path.dirname(__file__)
 
     __m_verbose: bool = False
@@ -469,9 +473,9 @@ class API:
         try:
             self.__mPrinter.print("Fetching agent information", Level.INFO)
 
-            l_base_url = "{0}?pageSize={1}".format(
+            l_base_url = "{0}?page={1}&pageSize={2}".format(
                 self.__cAGENTS_LIST_URL,
-                Parser.page_size
+                Parser.page_number, Parser.page_size
             )
             l_http_response = self.__connect_to_api(l_base_url)
 
@@ -488,10 +492,10 @@ class API:
                 l_list: list = l_json["List"]
 
                 #TODO: Need agents to test with
+                print("Needs Update?, Name, IP address, Status, Version, Last Heartbeat, Auto Update?, "
+                      "Launched, VDB Version, Operating System, Framework, Architecture, Has Waiting Command, "
+                      "ID")
                 for l_agent in l_list:
-                    print("Needs Update?, Name, IP address, Status, Version, Last Heartbeat, Auto Update?, "
-                          "Launched, VDB Version, Operating System, Framework, Architecture, Has Waiting Command, "
-                          "ID")
                     print("{},{},{},{},{},{},{},{},{},{},{},{},{},{}".format(
                         l_agent["IsAgentNeedsUpdate"], l_agent["Name"], l_agent["IpAddress"],
                         l_agent["State"], l_agent["Version"], l_agent["Heartbeat"],
@@ -502,3 +506,71 @@ class API:
                     ))
         except Exception as e:
             self.__mPrinter.print("get_agents() - {0}".format(str(e)), Level.ERROR)
+
+    def get_team_members(self) -> None:
+        try:
+            self.__mPrinter.print("Fetching team member information", Level.INFO)
+
+            l_base_url = "{0}?page={1}&pageSize={2}".format(
+                self.__cTEAM_MEMBER_LIST_URL,
+                Parser.page_number, Parser.page_size
+            )
+            l_http_response = self.__connect_to_api(l_base_url)
+
+            self.__mPrinter.print("Fetched team member information", Level.SUCCESS)
+            self.__mPrinter.print("Parsing team member information", Level.INFO)
+            l_json = json.loads(l_http_response.text)
+            l_number_agents: list = l_json["TotalItemCount"]
+            self.__mPrinter.print("Found {} team members".format(l_number_agents), Level.INFO)
+
+            if self.__m_output_format == OutputFormat.JSON.value:
+                print(l_json)
+
+            elif self.__m_output_format == OutputFormat.CSV.value:
+                l_list: list = l_json["List"]
+
+                print("Name, Email, Enabled?, Manage Apps?, Manage Issues?, Manage Issues (Restricted)?, "
+                      "Manage Team?, Manage Websites?, Start Scan?, View Reports?, API Access?, 2FA?, "
+                      "Groups")
+                for l_user in l_list:
+                    l_groups:str = ",".join(l_user["SelectedGroups"])
+                    print("{},{},{},{},{},{},{},{},{},{},{},{},{}".format(
+                        l_user["Name"], l_user["Email"], l_user["UserState"],
+                        l_user["CanManageApplication"], l_user["CanManageIssues"], l_user["CanManageIssuesAsRestricted"],
+                        l_user["CanManageTeam"], l_user["CanManageWebsites"], l_user["CanStartScan"],
+                        l_user["CanViewScanReports"], l_user["IsApiAccessEnabled"], l_user["IsTwoFactorAuthenticationEnabled"],
+                        l_groups
+                    ))
+        except Exception as e:
+            self.__mPrinter.print("get_team_members() - {0}".format(str(e)), Level.ERROR)
+
+    def get_website_groups(self) -> None:
+        try:
+            self.__mPrinter.print("Fetching website groups information", Level.INFO)
+
+            l_base_url = "{0}?page={1}&pageSize={2}".format(
+                self.__cWEBSITE_GROUPS_LIST_URL,
+                Parser.page_number, Parser.page_size
+            )
+            l_http_response = self.__connect_to_api(l_base_url)
+
+            self.__mPrinter.print("Fetched website groups information", Level.SUCCESS)
+            self.__mPrinter.print("Parsing website groups information", Level.INFO)
+            l_json = json.loads(l_http_response.text)
+            l_number_agents: list = l_json["TotalItemCount"]
+            self.__mPrinter.print("Found {} website groups".format(l_number_agents), Level.INFO)
+
+            if self.__m_output_format == OutputFormat.JSON.value:
+                print(l_json)
+
+            elif self.__m_output_format == OutputFormat.CSV.value:
+                l_list: list = l_json["List"]
+
+                print("Name, Number Websites")
+                for l_group in l_list:
+                    print("{},{}".format(
+                        l_group["Name"], l_group["TotalWebsites"]
+                    ))
+        except Exception as e:
+            self.__mPrinter.print("get_website_groups() - {0}".format(str(e)), Level.ERROR)
+

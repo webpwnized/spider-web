@@ -49,10 +49,21 @@ class Parser:
         Parser.show_usage = p_args.usage
         Parser.test_connectivity = p_args.test
 
+        # Universal options
+        Parser.page_number = p_args.page_number
+        Parser.page_size = p_args.page_size
+
+        # Account
         Parser.get_account = p_args.get_account
         Parser.get_license = p_args.get_license
 
+        #Agents
         Parser.get_agents = p_args.get_agents
-        Parser.page_size = p_args.page_size
+
+        #Team Members
+        Parser.get_team_members = p_args.get_team_members
+
+        #Website Groups
+        Parser.get_website_groups = p_args.get_website_groups
 
         Parser.output_format = p_args.output_format.value.upper() if hasattr(p_args.output_format, 'value') else None

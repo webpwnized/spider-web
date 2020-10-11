@@ -10,7 +10,7 @@ import argparse
 import sys
 
 
-l_version = '0.0.3'
+l_version = '0.0.4'
 
 
 def print_example_usage():
@@ -45,8 +45,20 @@ def print_example_usage():
     --------------------------------
     Get Agent Information
     --------------------------------
-    spider-web -aga -ps 200
-    spider-web --get-agents --page-size 200
+    spider-web -aga -pn 1 -ps 200
+    spider-web --get-agents --page-number 1 --page-size 200
+
+    --------------------------------
+    Get Team Member Information
+    --------------------------------
+    spider-web -tmgtm -pn 1 -ps 200
+    spider-web --get-team-members --page-number 1 --page-size 200
+
+    --------------------------------
+    Get Website Groups Information
+    --------------------------------
+    spider-web -wggwg -pn 1 -ps 200
+    spider-web --get-website-groups --page-number 1 --page-size 200
     """)
 
 def run_main_program():
@@ -72,7 +84,8 @@ def run_main_program():
         print_example_usage()
         exit(0)
 
-    if Parser.test_connectivity or Parser.get_account or Parser.get_license or Parser.get_agents:
+    if Parser.test_connectivity or Parser.get_account or Parser.get_license or Parser.get_agents or \
+            Parser.get_team_members or Parser.get_website_groups:
         l_api = API(p_parser=Parser)
     else:
         lArgParser.print_usage()
@@ -92,6 +105,14 @@ def run_main_program():
 
     if Parser.get_agents:
         l_api.get_agents()
+        exit(0)
+
+    if Parser.get_team_members:
+        l_api.get_team_members()
+        exit(0)
+
+    if Parser.get_website_groups:
+        l_api.get_website_groups()
         exit(0)
 
 if __name__ == '__main__':
@@ -133,6 +154,18 @@ if __name__ == '__main__':
                                   help='Test connectivity to API and exit',
                                   action='store_true')
 
+    l_universal_endpoint_group = lArgParser.add_argument_group(title="Universal Endpoint Options", description=None)
+    l_universal_endpoint_group.add_argument('-pn', '--page-number',
+                                 help='The page index',
+                                 type=int,
+                                 default=1,
+                                 action='store')
+    l_universal_endpoint_group.add_argument('-ps', '--page-size',
+                                 help='The page size can be any value between 1 and 200',
+                                 type=int,
+                                 default=200,
+                                 action='store')
+
     l_account_group = lArgParser.add_argument_group(title="Account Endpoint", description=None)
     l_account_group.add_argument('-ga', '--get-account',
                                  help='Get account information and exit',
@@ -143,15 +176,18 @@ if __name__ == '__main__':
 
     l_account_group = lArgParser.add_argument_group(title="Agents Endpoint", description=None)
     l_account_group.add_argument('-aga', '--get-agents',
-                                 help='List agents and exit',
+                                 help='List agents and exit. Output fetched in pages.',
                                  action='store_true')
 
-    l_account_group = lArgParser.add_argument_group(title="Agents Endpoint Options", description=None)
-    l_account_group.add_argument('-ps', '--page-size',
-                                 help='The page size can be any value between 1 and 200',
-                                 type=int,
-                                 default=200,
-                                 action='store')
+    l_account_group = lArgParser.add_argument_group(title="Team Member Endpoint", description=None)
+    l_account_group.add_argument('-tmgtm', '--get-team-members',
+                                 help='List users and exit Output fetched in pages.',
+                                 action='store_true')
+
+    l_account_group = lArgParser.add_argument_group(title="Website Groups Endpoint", description=None)
+    l_account_group.add_argument('-wggwg', '--get-website-groups',
+                                 help='List website groups and exit Output fetched in pages.',
+                                 action='store_true')
 
     Parser.parse_configuration(p_args=lArgParser.parse_args(), p_config=__config)
     run_main_program()
