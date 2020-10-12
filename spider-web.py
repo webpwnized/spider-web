@@ -10,7 +10,7 @@ import argparse
 import sys
 
 
-l_version = '0.0.5'
+l_version = '0.0.6'
 
 
 def print_example_usage():
@@ -68,6 +68,9 @@ def print_example_usage():
     --------------------------------
     spider-web -wggwg -pn 1 -ps 200
     spider-web --get-website-groups --page-number 1 --page-size 200
+
+    spider-web -wgupwg -if groups.csv
+    spider-web --upload-website-groups --input-file groups.csv
     """)
 
 def run_main_program():
@@ -94,8 +97,8 @@ def run_main_program():
         exit(0)
 
     if Parser.test_connectivity or Parser.get_account or Parser.get_license or Parser.get_agents or \
-            Parser.get_team_members or Parser.get_website_groups or Parser.get_discovered_services or \
-            Parser.download_discovered_services:
+        Parser.get_team_members or Parser.get_website_groups or Parser.get_discovered_services or \
+        Parser.download_discovered_services or Parser.get_website_groups or Parser.upload_website_groups:
         l_api = API(p_parser=Parser)
     else:
         lArgParser.print_usage()
@@ -123,6 +126,14 @@ def run_main_program():
 
     if Parser.get_website_groups:
         l_api.get_website_groups()
+        exit(0)
+
+    if Parser.upload_website_groups:
+        if not Parser.input_filename:
+            lArgParser.print_usage()
+            Printer.print("Required argument --input-file not provided", Level.ERROR, Force.FORCE, LINES_BEFORE, LINES_AFTER)
+            exit(0)
+        l_api.upload_website_groups()
         exit(0)
 
     if Parser.get_discovered_services:
@@ -184,6 +195,20 @@ if __name__ == '__main__':
                                  type=int,
                                  default=200,
                                  action='store')
+    l_universal_endpoint_group.add_argument('-if', '--input-filename',
+                                help='Input filename. File must be propely formatted.',
+                                type=str,
+                                action='store')
+    l_universal_endpoint_group.add_argument('-of', '--output-filename',
+                                help='Output filename. Default is netsparker.csv',
+                                default='netsparker.csv',
+                                type=str,
+                                action='store')
+    l_universal_endpoint_group.add_argument('-os', '--output-separator',
+                                help='Output separator for downloaded CSV files. Default is comma. Choices are {}'.format([i.value for i in CSVSeparatorFormat]),
+                                default='Comma',
+                                type=str,
+                                action='store')
 
     l_account_group = lArgParser.add_argument_group(title="Account Endpoint", description=None)
     l_account_group.add_argument('-ga', '--get-account',
@@ -206,16 +231,6 @@ if __name__ == '__main__':
                                  help='Download discovered services and exit',
                                  action='store_true')
 
-    l_discovery_options_group = lArgParser.add_argument_group(title="Discovery Endpoint Options", description=None)
-    l_discovery_options_group.add_argument('-of', '--output-filename',
-        help='Output filename. Default is netsparker.csv',
-        type=str,
-        action='store')
-    l_discovery_options_group.add_argument('-os', '--output-separator',
-        help='Output separator for downloaded CSV files. Default is comma. Choices are {}'.format([i.value for i in CSVSeparatorFormat]),
-        type=str,
-        action='store')
-
     l_team_member_group = lArgParser.add_argument_group(title="Team Member Endpoint", description=None)
     l_team_member_group.add_argument('-tmgtm', '--get-team-members',
                                  help='List users and exit Output fetched in pages.',
@@ -223,7 +238,10 @@ if __name__ == '__main__':
 
     l_website_groups_group = lArgParser.add_argument_group(title="Website Groups Endpoint", description=None)
     l_website_groups_group.add_argument('-wggwg', '--get-website-groups',
-                                 help='List website groups and exit Output fetched in pages.',
+                                 help='List website groups and exit. Output fetched in pages.',
+                                 action='store_true')
+    l_website_groups_group.add_argument('-wgupwg', '--upload-website-groups',
+                                 help='Create website groups and exit. Requires properly formatted input file.',
                                  action='store_true')
 
     Parser.parse_configuration(p_args=lArgParser.parse_args(), p_config=__config)

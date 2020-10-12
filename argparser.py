@@ -52,6 +52,7 @@ class Parser:
         # Universal options
         Parser.page_number = p_args.page_number
         Parser.page_size = p_args.page_size
+        Parser.input_filename = p_args.input_filename
 
         # Account
         Parser.get_account = p_args.get_account
@@ -63,13 +64,14 @@ class Parser:
         # Discovered Services
         Parser.get_discovered_services = p_args.get_discovered_services
         Parser.download_discovered_services = p_args.download_discovered_services
-        Parser.output_filename = p_args.output_filename or "netsparker.csv"
-        Parser.output_separator = p_args.output_separator or "Comma"
+        Parser.output_filename = p_args.output_filename
+        Parser.output_separator = p_args.output_separator
 
         #Team Members
         Parser.get_team_members = p_args.get_team_members
 
         #Website Groups
         Parser.get_website_groups = p_args.get_website_groups
+        Parser.upload_website_groups = p_args.upload_website_groups
 
         Parser.output_format = p_args.output_format.value.upper() if hasattr(p_args.output_format, 'value') else None

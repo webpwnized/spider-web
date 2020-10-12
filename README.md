@@ -2,9 +2,9 @@
 
 ### Usage
 
-    usage: spider-web [-h] [-v] [-d] [-o {JSON,CSV}] [-e] [-u] [-t] [-pn PAGE_NUMBER] [-ps PAGE_SIZE] [-ga] [-gl] [-aga] [-dsgds] [-dsdds]
-                      [-of OUTPUT_FILENAME] [-os OUTPUT_SEPARATOR] [-tmgtm] [-wggwg]
-                  
+    usage: spider-web [-h] [-v] [-d] [-o {JSON,CSV}] [-e] [-u] [-t] [-pn PAGE_NUMBER] [-ps PAGE_SIZE] [-if INPUT_FILENAME]
+                      [-of OUTPUT_FILENAME] [-os OUTPUT_SEPARATOR] [-ga] [-gl] [-aga] [-dsgds] [-dsdds] [-tmgtm] [-wggwg] [-wgupwg]       
+
 ### Options
 
     optional arguments:
@@ -24,7 +24,13 @@
                             The page index
       -ps PAGE_SIZE, --page-size PAGE_SIZE
                             The page size can be any value between 1 and 200
-    
+      -if INPUT_FILENAME, --input-filename INPUT_FILENAME
+                        Input filename. File must be propely formatted.
+      -of OUTPUT_FILENAME, --output-filename OUTPUT_FILENAME
+                            Output filename. Default is netsparker.csv
+      -os OUTPUT_SEPARATOR, --output-separator OUTPUT_SEPARATOR
+                            Output separator for downloaded CSV files. Default is comma. Choices are ['Comma', 'Semicolon', 'Pipe', 'Tab']
+
     Account Endpoint:
       -ga, --get-account    Get account information and exit
       -gl, --get-license    Get license information and exit
@@ -38,12 +44,6 @@
       -dsdds, --download-discovered-services
                             Download discovered services and exit
     
-    Discovery Endpoint Options:
-      -of OUTPUT_FILENAME, --output-filename OUTPUT_FILENAME
-                            Output filename. Default is netsparker.csv
-      -os OUTPUT_SEPARATOR, --output-separator OUTPUT_SEPARATOR
-                            Output separator for downloaded CSV files. Default is comma. Choices are ['Comma', 'Semicolon', 'Pipe', 'Tab']
-    
     Team Member Endpoint:
       -tmgtm, --get-team-members
                             List users and exit Output fetched in pages.
@@ -51,7 +51,9 @@
     Website Groups Endpoint:
       -wggwg, --get-website-groups
                             List website groups and exit Output fetched in pages.
-
+      -wgupwg, --upload-website-groups
+                        Create website groups and exit. Requires properly formatted input file.
+                        
 ### Examples
 
 #### Get Help
@@ -93,3 +95,6 @@
 #### Get Website Groups Information
     spider-web -wggwg -pn 1 -ps 200
     spider-web --get-website-groups --page-number 1 --page-size 200
+    
+    spider-web -wgupwg -if groups.csv
+    spider-web --upload-website-groups --input-file groups.csv

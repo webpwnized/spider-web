@@ -62,6 +62,30 @@ class CSVSeparatorFormat(Enum):
         return self.value
 
 
+class HTTPMethod(Enum):
+    GET="GET"
+    POST="POST"
+    HEAD="HEAD"
+    PUT="PUT"
+    DELETE="DEELTE"
+    CONNECT="CONNECT"
+    OPTIONS="OPTIONS"
+    TRACE="TRACE"
+    PATCH="PATCH"
+
+    def __str__(self):
+        return self.value
+
+class FileMode(Enum):
+    READ='r'
+    READ_BYTES='rb'
+    WRITE='w'
+    WRITE_BYTES='wb'
+
+    def __str__(self):
+        return self.value
+
+
 class API:
 
     # ---------------------------------
@@ -85,6 +109,7 @@ class API:
     __cTEAM_MEMBER_LIST_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "teammembers/list")
 
     __cWEBSITE_GROUPS_LIST_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "websitegroups/list")
+    __cWEBSITE_GROUPS_UPLOAD_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "websitegroups/new")
 
     __cDISOCOVERED_SERVICES_LIST_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "discovery/list")
     __cDISOCOVERED_SERVICES_DOWNLOAD_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "discovery/export")
@@ -285,7 +310,7 @@ class API:
             l_file = "{}/{}".format(self.script_directory, self.api_key_file)
             self.__mPrinter.print("Parsing API credentials from {}".format(l_file), Level.INFO)
 
-            with open(l_file) as l_key_file:
+            with open(l_file, FileMode.READ.value) as l_key_file:
                 l_json_data = json.load(l_key_file)
                 if self.api_credential_format == ApiCredentialFormat.REFRESH_TOKEN.value:
                     self.__mPrinter.print("Parsing refresh token from {}".format(l_file), Level.INFO)
@@ -318,7 +343,7 @@ class API:
         except Exception as e:
             self.__mPrinter.print("__get_access_token() - {0}".format(str(e)), Level.ERROR)
 
-    def __connect_to_api(self, p_url: str) -> requests.Response:
+    def __connect_to_api(self, p_url: str, p_method: str=HTTPMethod.GET.value, p_data: str=None, p_json: str=None) -> requests.Response:
         l_authentication_header: str = ""
         try:
             self.__mPrinter.print("Connecting to API", Level.INFO)
@@ -336,13 +361,16 @@ class API:
                 self.__ACCEPT_HEADER: self.__ACCEPT_CSV_VALUE if self.__m_accept_header == OutputFormat.CSV.value else self.__ACCEPT_JSON_VALUE
             }
 
-            l_http_response = self.__call_api(p_url, l_headers)
+            if p_method == HTTPMethod.POST.value and p_json:
+                l_headers["Content-Type"]="text/json"
+
+            l_http_response = self.__call_api(p_url=p_url, p_headers=l_headers, p_method=p_method, p_data=p_data, p_json=p_json)
             self.__mPrinter.print("Connected to API", Level.SUCCESS)
             return l_http_response
         except Exception as e:
             self.__mPrinter.print("__connect_to_api() - {0}".format(str(e)), Level.ERROR)
 
-    def __call_api(self, p_url: str, p_headers: dict):
+    def __call_api(self, p_url: str, p_headers: dict, p_method: str=HTTPMethod.GET.value, p_data: str=None, p_json: str=None):
         try:
             l_proxies: dict = {}
             if self.__m_use_proxy:
@@ -353,17 +381,16 @@ class API:
                 Printer.print("Headers: {}".format(p_headers), Level.DEBUG)
                 Printer.print("Proxy: {}".format(l_proxies), Level.DEBUG)
                 Printer.print("Verify certificate: {}".format(self.__m_verify_https_certificate), Level.DEBUG)
-            l_http_response = requests.get(url=p_url, headers=p_headers, proxies=l_proxies, timeout=self.__m_api_connection_timeout, verify=self.__m_verify_https_certificate)
-            if l_http_response.status_code != 200:
-                l_status_code = str(l_http_response.status_code)
-                l_detail = ""
-                l_error_message =""
-                if "detail" in l_http_response.text:
-                    l_detail = " - {}".format(json.loads(l_http_response.text)["detail"])
-                if "errorMessages" in l_http_response.text:
-                    l_error_messages = json.loads(l_http_response.text)["errorMessages"][0]
-                    l_error_message = " - {}:{}".format(l_error_messages["code"],l_error_messages["message"])
-                l_message = "Call to API returned status {}{}{}".format(l_status_code, l_detail, l_error_message)
+
+            if p_method == HTTPMethod.GET.value:
+                l_http_response = requests.get(url=p_url, headers=p_headers, proxies=l_proxies, timeout=self.__m_api_connection_timeout, verify=self.__m_verify_https_certificate)
+            elif p_method == HTTPMethod.POST.value:
+                #Note: data takes precedence over json unless data=None
+                l_http_response = requests.post(url=p_url, headers=p_headers, data=p_data, json=p_json, proxies=l_proxies, timeout=self.__m_api_connection_timeout, verify=self.__m_verify_https_certificate)
+
+            if l_http_response.status_code not in [200, 201]:
+                l_error_message ="{} {} - {}".format(l_http_response.status_code, l_http_response.reason, l_http_response.text)
+                l_message = "Call to API returned status {}".format(l_error_message)
                 raise ValueError(l_message)
             self.__mPrinter.print("Connected to API", Level.SUCCESS)
             return l_http_response
@@ -629,7 +656,7 @@ class API:
                 self.__cWEBSITE_GROUPS_LIST_URL,
                 Parser.page_number, Parser.page_size
             )
-            l_http_response = self.__connect_to_api(l_base_url)
+            l_http_response = self.__connect_to_api(p_url=l_base_url)
 
             self.__mPrinter.print("Fetched website groups information", Level.SUCCESS)
             self.__mPrinter.print("Parsing website groups information", Level.INFO)
@@ -649,6 +676,21 @@ class API:
 
         except Exception as e:
             self.__mPrinter.print("get_website_groups() - {0}".format(str(e)), Level.ERROR)
+
+    def upload_website_groups(self) -> None:
+        try:
+            self.__mPrinter.print("Opening file {}".format(Parser.input_filename), Level.INFO)
+            l_input_file = open(Parser.input_filename,FileMode.READ.value).read().split('\n')
+            for l_line in l_input_file:
+                if l_line:
+                    self.__mPrinter.print("Uploading website group {}".format(l_line), Level.INFO)
+                    l_json=json.loads('{"Name": "'+l_line+'"}')
+                    l_http_response = self.__connect_to_api(p_url=self.__cWEBSITE_GROUPS_UPLOAD_URL,
+                                                            p_method=HTTPMethod.POST.value,
+                                                            p_data=None, p_json=l_json)
+                    self.__mPrinter.print("Uploaded website group {}".format(l_line), Level.INFO)
+        except Exception as e:
+            self.__mPrinter.print("upload_website_groups() - {0}".format(str(e)), Level.ERROR)
 
     def get_discovered_services(self) -> None:
         try:
@@ -682,7 +724,7 @@ class API:
 
             self.__mPrinter.print("Fetched discovered services information", Level.SUCCESS)
             self.__mPrinter.print("Writing issues to file {}".format(Parser.output_filename), Level.INFO)
-            open(Parser.output_filename, 'w').write(l_http_response.text)
+            open(Parser.output_filename, FileMode.WRITE.value).write(l_http_response.text)
             self.__mPrinter.print("Wrote issues to file {}".format(Parser.output_filename), Level.SUCCESS)
 
         except Exception as e:
