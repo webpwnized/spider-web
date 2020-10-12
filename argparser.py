@@ -60,6 +60,12 @@ class Parser:
         #Agents
         Parser.get_agents = p_args.get_agents
 
+        # Discovered Services
+        Parser.get_discovered_services = p_args.get_discovered_services
+        Parser.download_discovered_services = p_args.download_discovered_services
+        Parser.output_filename = p_args.output_filename or "netsparker.csv"
+        Parser.output_separator = p_args.output_separator or "Comma"
+
         #Team Members
         Parser.get_team_members = p_args.get_team_members
 

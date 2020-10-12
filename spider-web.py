@@ -2,7 +2,7 @@
 
 from printer import Printer, Level, Force
 from argparser import Parser
-from api import API, OutputFormat
+from api import API, OutputFormat, CSVSeparatorFormat
 import config as __config
 
 from argparse import RawTextHelpFormatter
@@ -10,7 +10,7 @@ import argparse
 import sys
 
 
-l_version = '0.0.4'
+l_version = '0.0.5'
 
 
 def print_example_usage():
@@ -49,6 +49,15 @@ def print_example_usage():
     spider-web --get-agents --page-number 1 --page-size 200
 
     --------------------------------
+    Get Discovered Services Information
+    --------------------------------
+    spider-web -dgds -pn 1 -ps 200
+    spider-web --get-discovered-services --page-number 1 --page-size 200
+
+    spider-web -ddds -of netsparker.csv -os Comma
+    spider-web --download-discovered-services --output-filename netsparker.csv --output-separator Comma
+
+    --------------------------------
     Get Team Member Information
     --------------------------------
     spider-web -tmgtm -pn 1 -ps 200
@@ -85,7 +94,8 @@ def run_main_program():
         exit(0)
 
     if Parser.test_connectivity or Parser.get_account or Parser.get_license or Parser.get_agents or \
-            Parser.get_team_members or Parser.get_website_groups:
+            Parser.get_team_members or Parser.get_website_groups or Parser.get_discovered_services or \
+            Parser.download_discovered_services:
         l_api = API(p_parser=Parser)
     else:
         lArgParser.print_usage()
@@ -114,6 +124,15 @@ def run_main_program():
     if Parser.get_website_groups:
         l_api.get_website_groups()
         exit(0)
+
+    if Parser.get_discovered_services:
+        l_api.get_discovered_services()
+        exit(0)
+
+    if Parser.download_discovered_services:
+        l_api.download_discovered_services()
+        exit(0)
+
 
 if __name__ == '__main__':
     lArgParser = argparse.ArgumentParser(description="""
@@ -174,18 +193,36 @@ if __name__ == '__main__':
                                   help='Get license information and exit',
                                   action='store_true')
 
-    l_account_group = lArgParser.add_argument_group(title="Agents Endpoint", description=None)
-    l_account_group.add_argument('-aga', '--get-agents',
+    l_agents_group = lArgParser.add_argument_group(title="Agents Endpoint", description=None)
+    l_agents_group.add_argument('-aga', '--get-agents',
                                  help='List agents and exit. Output fetched in pages.',
                                  action='store_true')
 
-    l_account_group = lArgParser.add_argument_group(title="Team Member Endpoint", description=None)
-    l_account_group.add_argument('-tmgtm', '--get-team-members',
+    l_discovery_group = lArgParser.add_argument_group(title="Discovery Endpoint", description=None)
+    l_discovery_group.add_argument('-dsgds', '--get-discovered-services',
+                                 help='List discovered services and exit. Output fetched in pages.',
+                                 action='store_true')
+    l_discovery_group.add_argument('-dsdds', '--download-discovered-services',
+                                 help='Download discovered services and exit',
+                                 action='store_true')
+
+    l_discovery_options_group = lArgParser.add_argument_group(title="Discovery Endpoint Options", description=None)
+    l_discovery_options_group.add_argument('-of', '--output-filename',
+        help='Output filename. Default is netsparker.csv',
+        type=str,
+        action='store')
+    l_discovery_options_group.add_argument('-os', '--output-separator',
+        help='Output separator for downloaded CSV files. Default is comma. Choices are {}'.format([i.value for i in CSVSeparatorFormat]),
+        type=str,
+        action='store')
+
+    l_team_member_group = lArgParser.add_argument_group(title="Team Member Endpoint", description=None)
+    l_team_member_group.add_argument('-tmgtm', '--get-team-members',
                                  help='List users and exit Output fetched in pages.',
                                  action='store_true')
 
-    l_account_group = lArgParser.add_argument_group(title="Website Groups Endpoint", description=None)
-    l_account_group.add_argument('-wggwg', '--get-website-groups',
+    l_website_groups_group = lArgParser.add_argument_group(title="Website Groups Endpoint", description=None)
+    l_website_groups_group.add_argument('-wggwg', '--get-website-groups',
                                  help='List website groups and exit Output fetched in pages.',
                                  action='store_true')
 
