@@ -2,6 +2,7 @@ from printer import Printer, Level
 from argparser import Parser
 from enum import Enum
 from database import SQLite
+from requests.packages.urllib3.exceptions import InsecureRequestWarning
 
 import re
 import json
@@ -9,6 +10,9 @@ import getpass
 import requests
 import os
 import base64
+
+# Disable warning about insecure proxy when proxy enabled
+requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
 
 class Override(Enum):
