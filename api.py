@@ -1,4 +1,4 @@
-from printer import Printer, Level
+from printer import Printer, Level, Force
 from argparser import Parser
 from enum import Enum
 from database import SQLite
@@ -10,6 +10,7 @@ import getpass
 import requests
 import os
 import base64
+import csv
 
 # Disable warning about insecure proxy when proxy enabled
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
@@ -76,6 +77,7 @@ class HTTPMethod(Enum):
     def __str__(self):
         return self.value
 
+
 class FileMode(Enum):
     READ='r'
     READ_BYTES='rb'
@@ -108,11 +110,14 @@ class API:
 
     __cTEAM_MEMBER_LIST_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "teammembers/list")
 
-    __cWEBSITE_GROUPS_LIST_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "websitegroups/list")
-    __cWEBSITE_GROUPS_UPLOAD_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "websitegroups/new")
-
     __cDISOCOVERED_SERVICES_LIST_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "discovery/list")
     __cDISOCOVERED_SERVICES_DOWNLOAD_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "discovery/export")
+
+    __cWEBSITES_LIST_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "websites/list")
+    __cWEBSITES_UPLOAD_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "websites/new")
+
+    __cWEBSITE_GROUPS_LIST_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "websitegroups/list")
+    __cWEBSITE_GROUPS_UPLOAD_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "websitegroups/new")
 
     __m_script_directory: str = os.path.dirname(__file__)
 
@@ -371,8 +376,8 @@ class API:
             self.__mPrinter.print("__connect_to_api() - {0}".format(str(e)), Level.ERROR)
 
     def __call_api(self, p_url: str, p_headers: dict, p_method: str=HTTPMethod.GET.value, p_data: str=None, p_json: str=None):
+        l_proxies: dict = {}
         try:
-            l_proxies: dict = {}
             if self.__m_use_proxy:
                 self.__mPrinter.print("Using upstream proxy", Level.INFO)
                 l_proxies = self.__get_proxies()
@@ -382,11 +387,16 @@ class API:
                 Printer.print("Proxy: {}".format(l_proxies), Level.DEBUG)
                 Printer.print("Verify certificate: {}".format(self.__m_verify_https_certificate), Level.DEBUG)
 
-            if p_method == HTTPMethod.GET.value:
-                l_http_response = requests.get(url=p_url, headers=p_headers, proxies=l_proxies, timeout=self.__m_api_connection_timeout, verify=self.__m_verify_https_certificate)
-            elif p_method == HTTPMethod.POST.value:
-                #Note: data takes precedence over json unless data=None
-                l_http_response = requests.post(url=p_url, headers=p_headers, data=p_data, json=p_json, proxies=l_proxies, timeout=self.__m_api_connection_timeout, verify=self.__m_verify_https_certificate)
+            try:
+                if p_method == HTTPMethod.GET.value:
+                    l_http_response = requests.get(url=p_url, headers=p_headers, proxies=l_proxies, timeout=self.__m_api_connection_timeout, verify=self.__m_verify_https_certificate)
+                elif p_method == HTTPMethod.POST.value:
+                    #Note: data takes precedence over json unless data=None
+                    l_http_response = requests.post(url=p_url, headers=p_headers, data=p_data, json=p_json, proxies=l_proxies, timeout=self.__m_api_connection_timeout, verify=self.__m_verify_https_certificate)
+            except Exception as lRequestError:
+                exit("Fatal - Cannot connect to API. Check connectivity to {}. {}".format(
+                    self.__cBASE_URL,
+                    'Upstream proxy is enabled in config.py. Ensure proxy settings are correct.' if self.__m_use_proxy else 'The proxy is not enabled. Should it be?'))
 
             if l_http_response.status_code not in [200, 201]:
                 l_error_message ="{} {} - {}".format(l_http_response.status_code, l_http_response.reason, l_http_response.text)
@@ -394,11 +404,8 @@ class API:
                 raise ValueError(l_message)
             self.__mPrinter.print("Connected to API", Level.SUCCESS)
             return l_http_response
-        except Exception as lRequestError:
-            self.__mPrinter.print("Cannot connect to API: {} {}".format(type(lRequestError).__name__, lRequestError), Level.ERROR)
-            exit("Fatal Cannot connect to API. Check connectivity to {}. {}".format(
-                    self.__cBASE_URL,
-                    'Upstream proxy is enabled in config.py. Ensure proxy settings are correct.' if self.__m_use_proxy else 'The proxy is not enabled. Should it be?'))
+        except Exception as e:
+            self.__mPrinter.print("__call_api() - {0}".format(str(e)), Level.ERROR)
 
     def __get_proxies(self):
         try:
@@ -661,8 +668,8 @@ class API:
             self.__mPrinter.print("Fetched website groups information", Level.SUCCESS)
             self.__mPrinter.print("Parsing website groups information", Level.INFO)
             l_json = json.loads(l_http_response.text)
-            l_number_agents: list = l_json["TotalItemCount"]
-            self.__mPrinter.print("Found {} website groups".format(l_number_agents), Level.INFO)
+            l_number_groups: list = l_json["TotalItemCount"]
+            self.__mPrinter.print("Found {} website groups".format(l_number_groups), Level.INFO)
 
             if self.__m_output_format == OutputFormat.JSON.value:
                 self.__print_json(l_json)
@@ -729,3 +736,82 @@ class API:
 
         except Exception as e:
             self.__mPrinter.print("download_discovered_services() - {0}".format(str(e)), Level.ERROR)
+
+    def __print_websites_csv(self, p_json):
+        try:
+            l_list: list = p_json["List"]
+            for l_site in l_list:
+                l_groups: list = l_site["Groups"]
+                l_groups_string: str = ""
+                for l_group in l_groups:
+                    l_groups_string = "{},{}".format(l_groups_string, l_group["Name"])
+                print("{},{},{},{},{},{}".format(
+                    l_site["Name"], l_site["RootUrl"], l_site["TechnicalContactEmail"],
+                    l_site["IsVerified"], l_site["AgentMode"], l_groups_string[1:]
+                ))
+        except Exception as e:
+            self.__mPrinter.print("__print_websites_csv() - {0}".format(str(e)), Level.ERROR)
+
+    def get_websites(self) -> None:
+        try:
+            self.__mPrinter.print("Fetching website information", Level.INFO)
+
+            l_base_url = "{0}?page={1}&pageSize={2}".format(
+                self.__cWEBSITES_LIST_URL,
+                Parser.page_number, Parser.page_size
+            )
+            l_http_response = self.__connect_to_api(p_url=l_base_url)
+
+            self.__mPrinter.print("Fetched website information", Level.SUCCESS)
+            self.__mPrinter.print("Parsing website information", Level.INFO)
+            l_json = json.loads(l_http_response.text)
+            l_number_sites: list = l_json["TotalItemCount"]
+            self.__mPrinter.print("Found {} websites".format(l_number_sites), Level.INFO)
+
+            if self.__m_output_format == OutputFormat.JSON.value:
+                self.__print_json(l_json)
+            elif self.__m_output_format == OutputFormat.CSV.value:
+                print("Name, URL, Technical Contact, Verified?, Agent, Groups")
+                self.__print_websites_csv(l_json)
+
+            l_next_page = l_json["HasNextPage"]
+            if l_next_page:
+                self.__get_next_page(l_base_url, l_json, self.__print_websites_csv)
+
+        except Exception as e:
+            self.__mPrinter.print("get_websites() - {0}".format(str(e)), Level.ERROR)
+
+    def upload_websites(self) -> None:
+        # PRECONDITION: The website is in at least one website group
+        NAME=0
+        URL=1
+        GROUPS=2
+        try:
+            self.__mPrinter.print("Opening file {}".format(Parser.input_filename), Level.INFO)
+            with open(Parser.input_filename) as l_input_file:
+                l_csv_reader = csv.reader(l_input_file)
+
+                for l_row in l_csv_reader:
+                    if l_row:
+                        l_name: str = l_row[NAME]
+                        l_url: str = l_row[URL]
+                        l_groups: list = l_row[GROUPS].split("|")
+                        l_groups_string = ', '.join('"{0}"'.format(g) for g in l_groups)
+                        l_agent_mode: str = "Cloud" if "Segment: Externally Vendor Hosted" in l_groups else "Internal"
+                        self.__mPrinter.print("Uploading website {}".format(l_name), Level.INFO)
+
+                        l_json_string: str = \
+                            '{"AgentMode": "'+l_agent_mode+'","RootUrl": "'+l_url+'","Groups": ['+\
+                            l_groups_string+'],"LicenseType":"Subscription", "Name": "'+l_name+'"}'
+                        l_json=json.loads(l_json_string)
+                        l_http_response = self.__connect_to_api(p_url=self.__cWEBSITES_UPLOAD_URL,
+                                                               p_method=HTTPMethod.POST.value,
+                                                               p_data=None, p_json=l_json)
+
+                        if l_http_response:
+                            self.__mPrinter.print("Uploaded website {0}".format(l_name), Level.INFO, Force.FORCE)
+                        else:
+                            self.__mPrinter.print("Unable to upload website {}".format(l_name), Level.ERROR)
+
+        except Exception as e:
+                    self.__mPrinter.print("upload_websites() - {0}".format(l_name, str(e)), Level.ERROR)

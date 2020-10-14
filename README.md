@@ -3,8 +3,8 @@
 ### Usage
 
     usage: spider-web [-h] [-v] [-d] [-o {JSON,CSV}] [-e] [-u] [-t] [-pn PAGE_NUMBER] [-ps PAGE_SIZE] [-if INPUT_FILENAME]
-                      [-of OUTPUT_FILENAME] [-os OUTPUT_SEPARATOR] [-ga] [-gl] [-aga] [-dsgds] [-dsdds] [-tmgtm] [-wggwg] [-wgupwg]       
-
+                      [-of OUTPUT_FILENAME] [-os OUTPUT_SEPARATOR] [-ga] [-gl] [-aga] [-dsgds] [-dsdds] [-tmgtm] [-wgw] [-wupw] [-wggwg]
+                      [-wgupwg]
 ### Options
 
     optional arguments:
@@ -48,12 +48,17 @@
       -tmgtm, --get-team-members
                             List users and exit Output fetched in pages.
     
+    Website Endpoint:
+      -wgw, --get-websites  List websites and exit. Output fetched in pages.
+      -wupw, --upload-websites
+                            Create websites and exit. Requires properly formatted input file.
+    
     Website Groups Endpoint:
       -wggwg, --get-website-groups
-                            List website groups and exit Output fetched in pages.
+                            List website groups and exit. Output fetched in pages.
       -wgupwg, --upload-website-groups
-                        Create website groups and exit. Requires properly formatted input file.
-                        
+                            Create website groups and exit. Requires properly formatted input file.
+         
 ### Examples
 
 #### Get Help
@@ -92,9 +97,16 @@
     spider-web -tmgtm -pn 1 -ps 200
     spider-web --get-team-members --page-number 1 --page-size 200
 
+#### Get Website Information
+    spider-web -wgw -pn 1 -ps 200
+    spider-web --get-websites --page-number 1 --page-size 200
+
+    spider-web -wupw -if groups.csv
+    spider-web --upload-websites --input-file websites.csv
+    
 #### Get Website Groups Information
     spider-web -wggwg -pn 1 -ps 200
     spider-web --get-website-groups --page-number 1 --page-size 200
-    
+
     spider-web -wgupwg -if groups.csv
     spider-web --upload-website-groups --input-file groups.csv

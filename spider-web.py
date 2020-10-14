@@ -10,7 +10,7 @@ import argparse
 import sys
 
 
-l_version = '0.0.6'
+l_version = '0.0.7'
 
 
 def print_example_usage():
@@ -64,6 +64,15 @@ def print_example_usage():
     spider-web --get-team-members --page-number 1 --page-size 200
 
     --------------------------------
+    Get Website Information
+    --------------------------------
+    spider-web -wgw -pn 1 -ps 200
+    spider-web --get-websites --page-number 1 --page-size 200
+
+    spider-web -wupw -if groups.csv
+    spider-web --upload-websites --input-file websites.csv
+    
+    --------------------------------
     Get Website Groups Information
     --------------------------------
     spider-web -wggwg -pn 1 -ps 200
@@ -71,7 +80,7 @@ def print_example_usage():
 
     spider-web -wgupwg -if groups.csv
     spider-web --upload-website-groups --input-file groups.csv
-    """)
+""")
 
 def run_main_program():
     LINES_BEFORE = 1
@@ -98,7 +107,8 @@ def run_main_program():
 
     if Parser.test_connectivity or Parser.get_account or Parser.get_license or Parser.get_agents or \
         Parser.get_team_members or Parser.get_website_groups or Parser.get_discovered_services or \
-        Parser.download_discovered_services or Parser.get_website_groups or Parser.upload_website_groups:
+        Parser.download_discovered_services or Parser.get_website_groups or Parser.upload_website_groups or \
+        Parser.get_websites or Parser.upload_websites:
         l_api = API(p_parser=Parser)
     else:
         lArgParser.print_usage()
@@ -144,6 +154,17 @@ def run_main_program():
         l_api.download_discovered_services()
         exit(0)
 
+    if Parser.get_websites:
+        l_api.get_websites()
+        exit(0)
+
+    if Parser.upload_websites:
+        if not Parser.input_filename:
+            lArgParser.print_usage()
+            Printer.print("Required argument --input-file not provided", Level.ERROR, Force.FORCE, LINES_BEFORE, LINES_AFTER)
+            exit(0)
+        l_api.upload_websites()
+        exit(0)
 
 if __name__ == '__main__':
     lArgParser = argparse.ArgumentParser(description="""
@@ -234,6 +255,14 @@ if __name__ == '__main__':
     l_team_member_group = lArgParser.add_argument_group(title="Team Member Endpoint", description=None)
     l_team_member_group.add_argument('-tmgtm', '--get-team-members',
                                  help='List users and exit Output fetched in pages.',
+                                 action='store_true')
+
+    l_website_groups_group = lArgParser.add_argument_group(title="Website Endpoint", description=None)
+    l_website_groups_group.add_argument('-wgw', '--get-websites',
+                                 help='List websites and exit. Output fetched in pages.',
+                                 action='store_true')
+    l_website_groups_group.add_argument('-wupw', '--upload-websites',
+                                 help='Create websites and exit. Requires properly formatted input file.',
                                  action='store_true')
 
     l_website_groups_group = lArgParser.add_argument_group(title="Website Groups Endpoint", description=None)

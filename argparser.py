@@ -70,6 +70,10 @@ class Parser:
         #Team Members
         Parser.get_team_members = p_args.get_team_members
 
+        # Websites
+        Parser.get_websites = p_args.get_websites
+        Parser.upload_websites = p_args.upload_websites
+
         #Website Groups
         Parser.get_website_groups = p_args.get_website_groups
         Parser.upload_website_groups = p_args.upload_website_groups
