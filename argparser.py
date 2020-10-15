@@ -78,4 +78,13 @@ class Parser:
         Parser.get_website_groups = p_args.get_website_groups
         Parser.upload_website_groups = p_args.upload_website_groups
 
+        #Vulnerabilities
+        Parser.get_vulnerability_templates = p_args.get_vulnerability_templates
+        Parser.get_vulnerability_template = p_args.get_vulnerability_template
+        Parser.get_vulnerability_types = p_args.get_vulnerability_types
+
+        #Vulnerabilities Options
+        Parser.report_policy_id = p_args.report_policy_id or ""
+        Parser.vulnerability_type = p_args.vulnerability_type
+
         Parser.output_format = p_args.output_format.value.upper() if hasattr(p_args.output_format, 'value') else None

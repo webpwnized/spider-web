@@ -10,7 +10,7 @@ import argparse
 import sys
 
 
-l_version = '0.0.7'
+l_version = '0.0.8'
 
 
 def print_example_usage():
@@ -80,6 +80,18 @@ def print_example_usage():
 
     spider-web -wgupwg -if groups.csv
     spider-web --upload-website-groups --input-file groups.csv
+    
+    ----------------------------------------------------------------
+    Get Vulnerability Template Information
+    ----------------------------------------------------------------
+    spider-web -vgvtemps -rpi 074018e9-02d3-4e47-a937-6f7684e814da
+    spider-web --get-vulnerability-templates --report-policy-id 074018e9-02d3-4e47-a937-6f7684e814da
+
+    spider-web -vgvtemp -vt Xss -rpi 074018e9-02d3-4e47-a937-6f7684e814da
+    spider-web --get-vulnerability-template --vulnerability-type Xss --report-policy-id 074018e9-02d3-4e47-a937-6f7684e814da
+
+    spider-web -vgvtypes
+    spider-web --get-vulnerability-types   
 """)
 
 def run_main_program():
@@ -108,7 +120,8 @@ def run_main_program():
     if Parser.test_connectivity or Parser.get_account or Parser.get_license or Parser.get_agents or \
         Parser.get_team_members or Parser.get_website_groups or Parser.get_discovered_services or \
         Parser.download_discovered_services or Parser.get_website_groups or Parser.upload_website_groups or \
-        Parser.get_websites or Parser.upload_websites:
+        Parser.get_websites or Parser.upload_websites or Parser.get_vulnerability_templates or Parser.get_vulnerability_template or \
+        Parser.get_vulnerability_types:
         l_api = API(p_parser=Parser)
     else:
         lArgParser.print_usage()
@@ -164,6 +177,23 @@ def run_main_program():
             Printer.print("Required argument --input-file not provided", Level.ERROR, Force.FORCE, LINES_BEFORE, LINES_AFTER)
             exit(0)
         l_api.upload_websites()
+        exit(0)
+
+    if Parser.get_vulnerability_templates:
+        l_api.get_vulnerability_templates()
+        exit(0)
+
+    if Parser.get_vulnerability_template:
+        if not Parser.vulnerability_type:
+            lArgParser.print_usage()
+            Printer.print("Required argument --vulnerability-type not provided", Level.ERROR, Force.FORCE, LINES_BEFORE,
+                          LINES_AFTER)
+            exit(0)
+        l_api.get_vulnerability_template()
+        exit(0)
+
+    if Parser.get_vulnerability_types:
+        l_api.get_vulnerability_types()
         exit(0)
 
 if __name__ == '__main__':
@@ -272,6 +302,27 @@ if __name__ == '__main__':
     l_website_groups_group.add_argument('-wgupwg', '--upload-website-groups',
                                  help='Create website groups and exit. Requires properly formatted input file.',
                                  action='store_true')
+
+    l_website_groups_group = lArgParser.add_argument_group(title="Vulnerability Endpoint", description=None)
+    l_website_groups_group.add_argument('-vgvtemps', '--get-vulnerability-templates',
+                                 help='List vulnerability templates and exit',
+                                 action='store_true')
+    l_website_groups_group.add_argument('-vgvtemp', '--get-vulnerability-template',
+                                 help='Get the vulnerability template given vulnerability type and exit',
+                                 action='store_true')
+    l_website_groups_group.add_argument('-vgvtypes', '--get-vulnerability-types',
+                                 help='List vulnerability types and exit',
+                                 action='store_true')
+
+    l_universal_endpoint_group = lArgParser.add_argument_group(title="Vulnerability Endpoint Options", description=None)
+    l_universal_endpoint_group.add_argument('-rpi', '--report-policy-id',
+                                 help='The report policy ID',
+                                 type=str,
+                                 action='store')
+    l_universal_endpoint_group.add_argument('-vt', '--vulnerability-type',
+                                 help='The vulnerability type',
+                                 type=str,
+                                 action='store')
 
     Parser.parse_configuration(p_args=lArgParser.parse_args(), p_config=__config)
     run_main_program()

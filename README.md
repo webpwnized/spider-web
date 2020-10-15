@@ -4,7 +4,8 @@
 
     usage: spider-web [-h] [-v] [-d] [-o {JSON,CSV}] [-e] [-u] [-t] [-pn PAGE_NUMBER] [-ps PAGE_SIZE] [-if INPUT_FILENAME]
                       [-of OUTPUT_FILENAME] [-os OUTPUT_SEPARATOR] [-ga] [-gl] [-aga] [-dsgds] [-dsdds] [-tmgtm] [-wgw] [-wupw] [-wggwg]
-                      [-wgupwg]
+                      [-wgupwg] [-vgvtemps] [-vgvtemp] [-vgvtypes] [-rpi REPORT_POLICY_ID] [-vt VULNERABILITY_TYPE]
+
 ### Options
 
     optional arguments:
@@ -58,7 +59,20 @@
                             List website groups and exit. Output fetched in pages.
       -wgupwg, --upload-website-groups
                             Create website groups and exit. Requires properly formatted input file.
-         
+
+    Vulnerability Endpoint:
+      -vgvtemps, --get-vulnerability-templates
+                            List vulnerability templates and exit
+      -vgvtemp, --get-vulnerability-template
+                            Get the vulnerability template given vulnerability type and exit
+      -vgvtypes, --get-vulnerability-types
+                            List vulnerability types and exit
+    
+    Vulnerability Endpoint Options:
+      -rpi REPORT_POLICY_ID, --report-policy-id REPORT_POLICY_ID
+                            The report policy ID
+      -vt VULNERABILITY_TYPE, --vulnerability-type VULNERABILITY_TYPE
+                            The vulnerability type  
 ### Examples
 
 #### Get Help
@@ -110,3 +124,13 @@
 
     spider-web -wgupwg -if groups.csv
     spider-web --upload-website-groups --input-file groups.csv
+
+#### Get Vulnerability Template Information
+    spider-web -vgvtemps -rpi 074018e9-02d3-4e47-a937-6f7684e814da
+    spider-web --get-vulnerability-templates --report-policy-id 074018e9-02d3-4e47-a937-6f7684e814da
+
+    spider-web -vgvtemp -vt Xss -rpi 074018e9-02d3-4e47-a937-6f7684e814da
+    spider-web --get-vulnerability-template --vulnerability-type Xss --report-policy-id 074018e9-02d3-4e47-a937-6f7684e814da
+
+    spider-web -vgvtypes
+    spider-web --get-vulnerability-types  
