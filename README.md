@@ -1,5 +1,17 @@
 # Spider Web
 
+### Dependecies
+
+    python3
+
+### Installation
+
+  1. Run ./install.sh (Linux only)
+  2. Copy API user ID and password into ***spider-web.key*** file
+  3. If using proxy, enter proxy settings into ***config.py***. Set ***USE_PROXY=TRUE***. If proxy performs TLS inspection, and proxy CA certificate is not available, setting ***VERIFY_HTTPS_CERTIFICATE=FALSE*** may be an effective, although insecure, workaround
+  4. Show help with ***spider-web -h***
+  5. Test connectivity with ***spider-web -t***
+
 ### Usage
 
     usage: spider-web [-h] [-v] [-d] [-o {JSON,CSV}] [-e] [-u] [-t] [-pn PAGE_NUMBER] [-ps PAGE_SIZE] [-if INPUT_FILENAME]
