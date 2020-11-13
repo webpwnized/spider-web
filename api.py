@@ -3,7 +3,9 @@ from argparser import Parser
 from enum import Enum
 from database import SQLite
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
+from urllib.parse import urlparse
 
+import time
 import re
 import json
 import getpass
@@ -11,6 +13,7 @@ import requests
 import os
 import base64
 import csv
+import sys
 
 # Disable warning about insecure proxy when proxy enabled
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
@@ -82,6 +85,7 @@ class FileMode(Enum):
     READ='r'
     READ_BYTES='rb'
     WRITE='w'
+    WRITE_CREATE='w+'
     WRITE_BYTES='wb'
 
     def __str__(self):
@@ -376,6 +380,9 @@ class API:
             l_http_response = self.__call_api(p_url=p_url, p_headers=l_headers, p_method=p_method, p_data=p_data, p_json=p_json)
             self.__mPrinter.print("Connected to API", Level.SUCCESS)
             return l_http_response
+        except ValueError as e:
+            self.__mPrinter.print("__connect_to_api() - {0}".format(str(e)), Level.ERROR)
+            raise ValueError("__call_api() - {0}".format(str(e)))
         except Exception as e:
             self.__mPrinter.print("__connect_to_api() - {0}".format(str(e)), Level.ERROR)
 
@@ -408,6 +415,9 @@ class API:
                 raise ValueError(l_message)
             self.__mPrinter.print("Connected to API", Level.SUCCESS)
             return l_http_response
+        except ValueError as e:
+            self.__mPrinter.print("__call_api() - {0}".format(str(e)), Level.ERROR)
+            raise ValueError("__call_api() - {0}".format(str(e)))
         except Exception as e:
             self.__mPrinter.print("__call_api() - {0}".format(str(e)), Level.ERROR)
 
@@ -476,6 +486,20 @@ class API:
 
         except Exception as e:
             self.__mPrinter.print("__get_next_page() - {0}".format(str(e)), Level.ERROR)
+
+    def __url_is_valid(self, p_url: str) -> bool:
+        l_url_pattern = re.compile(
+            r'^(?:http)s?://'  # http:// or https://
+            r'(?:(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+(?:[A-Z]{2,6}\.?|[A-Z0-9-]{2,}\.?)|'  # domain...
+            r'localhost|'  # localhost...
+            r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})'  # ...or ip
+            r'(?::\d+)?'  # optional port
+            r'(?:/?|[/?]\S+)$', re.IGNORECASE)
+        return re.match(l_url_pattern, p_url)
+
+    def __url_is_secure(self, p_url: str) -> bool:
+        l_https_pattern = re.compile(r'^https://', re.IGNORECASE)
+        return re.match(l_https_pattern, p_url)
 
     # ---------------------------------
     # public instance methods
@@ -786,39 +810,121 @@ class API:
             self.__mPrinter.print("get_websites() - {0}".format(str(e)), Level.ERROR)
 
     def upload_websites(self) -> None:
+        # Documentation: https://www.netsparkercloud.com/docs/index#/
         # PRECONDITION: The website is in at least one website group
         NAME=0
         URL=1
         GROUPS=2
         try:
-            self.__mPrinter.print("Opening file {}".format(Parser.input_filename), Level.INFO)
-            with open(Parser.input_filename) as l_input_file:
+            l_output_file = open("{}{}{}{}".format(Parser.input_filename, ".failed.", time.strftime("%Y_%m_%d_%H_%M"), ".csv"), FileMode.WRITE_CREATE.value)
+            l_csv_writer = csv.writer(l_output_file)
+
+            self.__mPrinter.print("Opening file for reading {}".format(Parser.input_filename), Level.INFO)
+            with open(Parser.input_filename, FileMode.READ.value) as l_input_file:
                 l_csv_reader = csv.reader(l_input_file)
+
+                l_name: str = ""
+                l_url: str = ""
+                l_groups: str = ""
+                l_groups_string: str = ""
 
                 for l_row in l_csv_reader:
                     if l_row:
-                        l_name: str = l_row[NAME]
-                        l_url: str = l_row[URL]
-                        l_groups: list = l_row[GROUPS].split("|")
-                        l_groups_string = ', '.join('"{0}"'.format(g) for g in l_groups)
-                        l_agent_mode: str = "Cloud" if "Segment: Externally Vendor Hosted" in l_groups else "Internal"
-                        self.__mPrinter.print("Uploading website {}".format(l_name), Level.INFO)
+                        try:
+                            l_name = l_row[NAME]
+                            if not l_name:
+                                raise ValueError('Name is blank')
 
-                        l_json_string: str = \
-                            '{"AgentMode": "'+l_agent_mode+'","RootUrl": "'+l_url+'","Groups": ['+\
-                            l_groups_string+'],"LicenseType":"Subscription", "Name": "'+l_name+'"}'
-                        l_json=json.loads(l_json_string)
-                        l_http_response = self.__connect_to_api(p_url=self.__cWEBSITES_UPLOAD_URL,
-                                                               p_method=HTTPMethod.POST.value,
-                                                               p_data=None, p_json=l_json)
+                            l_url = l_row[URL].lower()
+                            if not self.__url_is_valid(l_url):
+                                raise ValueError('URL is not valid: {}'.format(l_url))
+                            if not self.__url_is_secure(l_url):
+                                raise ValueError('URL is not secure. Protocol must be HTTPS: {}'.format(l_url))
+                            l_url = 'https://{0}/'.format(urlparse(l_url).hostname)
 
-                        if l_http_response:
-                            self.__mPrinter.print("Uploaded website {0}".format(l_name), Level.INFO, Force.FORCE)
-                        else:
-                            self.__mPrinter.print("Unable to upload website {}".format(l_name), Level.ERROR)
+                            l_groups: list = l_row[GROUPS].split("|")
+                            l_groups_string = ', '.join('"{0}"'.format(g) for g in l_groups)
 
+                            if "connectship" in l_url:
+                                l_business_unit = 'Business Unit: ConnectShip'
+                            elif "coyote" in l_url:
+                                l_business_unit = 'Business Unit: Coyote / Freightex'
+                            elif "freightex" in l_url:
+                                l_business_unit = 'Business Unit: Coyote / Freightex'
+                            elif "iship" in l_url:
+                                l_business_unit = 'Business Unit: IShip - Production'
+                            elif "marken" in l_url:
+                                l_business_unit = 'Business Unit: Marken'
+                            elif "nightline" in l_url:
+                                l_business_unit = 'Business Unit: Nightline'
+                            elif "pieffe" in l_url:
+                                l_business_unit = 'Business Unit: Pieffe'
+                            elif "polarspeed" in l_url:
+                                l_business_unit = 'Business Unit: Polar Speed'
+                            elif "poltraf" in l_url:
+                                l_business_unit = 'Business Unit: Poltraf'
+                            elif "sttas" in l_url:
+                                l_business_unit = 'Business Unit: STTAS'
+                            elif "upscapital" in l_url:
+                                l_business_unit = 'Business Unit: UPS Capital / ParcelPro'
+                            elif "parcelpro" in l_url:
+                                l_business_unit = 'Business Unit: UPS Capital / ParcelPro'
+                            elif "upsfreight" in l_url:
+                                l_business_unit = 'Business Unit: UPS Freight / Overnite Business'
+                            elif "overnite" in l_url:
+                                l_business_unit = 'Business Unit: UPS Freight / Overnite Business'
+                            elif "cemelog" in l_url:
+                                l_business_unit = 'Business Unit: UPS Healthcare Hungary'
+                            elif "upsstore" in l_url:
+                                l_business_unit = 'Business Unit: UPS Store'
+                            elif "ups.com.tr" in l_url:
+                                l_business_unit = 'Business Unit: Unsped Packet Servisi'
+                            else:
+                                l_business_unit = 'Business Unit: United Parcel Service'
+
+                            if l_groups_string:
+                                l_groups_string = l_groups_string + ', "{0}"'.format(l_business_unit)
+                            else:
+                                l_groups_string = '"{0}"'.format(l_business_unit)
+
+                            l_agent_mode: str = "Cloud" if "Segment: Externally Vendor Hosted" in l_groups else "Internal"
+
+                            self.__mPrinter.print("Uploading website {}".format(l_name), Level.INFO)
+
+                            l_json_string: str = '{"AgentMode": "'+l_agent_mode+'","RootUrl": "'+l_url+'"'
+
+                            if l_groups_string:
+                                l_json_string += ',"Groups": ['+l_groups_string+']'
+
+                            l_json_string += ',"LicenseType":"Subscription", "Name": "'+l_name+'"}'
+
+                            l_json=json.loads(l_json_string)
+                            l_http_response = self.__connect_to_api(p_url=self.__cWEBSITES_UPLOAD_URL,
+                                                                   p_method=HTTPMethod.POST.value,
+                                                                   p_data=None, p_json=l_json)
+
+                            if l_http_response:
+                                self.__mPrinter.print("Uploaded website {0}".format(l_name), Level.INFO, Force.FORCE)
+                            else:
+                                raise ImportError("Unable to upload website {}".format(l_name))
+
+                        except ValueError as e:
+                            self.__mPrinter.print(e, Level.ERROR, Force.FORCE)
+                            l_csv_writer.writerow([l_name, l_url, l_groups, e])
+                        except ImportError as e:
+                            self.__mPrinter.print(e, Level.ERROR, Force.FORCE)
+                            l_csv_writer.writerow([l_name, l_url, l_groups, e])
+                        except Exception as e:
+                            self.__mPrinter.print(e, Level.ERROR, Force.FORCE)
+                            l_csv_writer.writerow([l_name, l_url, l_groups, e])
+
+        except FileNotFoundError as e:
+            self.__mPrinter.print("upload_websites(): Cannot find the input file - {0}".format(str(e)), Level.ERROR)
         except Exception as e:
-                    self.__mPrinter.print("upload_websites() - {0}".format(l_name, str(e)), Level.ERROR)
+            self.__mPrinter.print("upload_websites() - {0}:{1}".format(l_name, str(e)), Level.ERROR)
+        finally:
+            l_input_file.close()
+            l_output_file.close()
 
     def __print_vulnerability_templates_csv(self, p_json):
         try:

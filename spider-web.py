@@ -10,7 +10,7 @@ import argparse
 import sys
 
 
-l_version = '0.0.8'
+l_version = '0.0.9'
 
 
 def print_example_usage():
@@ -292,7 +292,7 @@ if __name__ == '__main__':
                                  help='List websites and exit. Output fetched in pages.',
                                  action='store_true')
     l_website_groups_group.add_argument('-wupw', '--upload-websites',
-                                 help='Create websites and exit. Requires properly formatted input file.',
+                                 help='Create websites and exit. Requires properly formatted input file: CSV with fields SITE_NAME, SITE_URL, SITE_GROUPS. SITE_GROUPS must be pipe delimited.',
                                  action='store_true')
 
     l_website_groups_group = lArgParser.add_argument_group(title="Website Groups Endpoint", description=None)
