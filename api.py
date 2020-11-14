@@ -809,6 +809,88 @@ class API:
         except Exception as e:
             self.__mPrinter.print("get_websites() - {0}".format(str(e)), Level.ERROR)
 
+    def __map_business_unit(self, p_url: str) -> str:
+
+        if "connectship" in p_url:
+            l_business_unit = 'Business Unit: ConnectShip'
+        elif "coyote" in p_url:
+            l_business_unit = 'Business Unit: Coyote / Freightex'
+        elif "freightex" in p_url:
+            l_business_unit = 'Business Unit: Coyote / Freightex'
+        elif "iship" in p_url:
+            l_business_unit = 'Business Unit: IShip - Production'
+        elif "marken" in p_url:
+            l_business_unit = 'Business Unit: Marken'
+        elif "nightline" in p_url:
+            l_business_unit = 'Business Unit: Nightline'
+        elif "pieffe" in p_url:
+            l_business_unit = 'Business Unit: Pieffe'
+        elif "polarspeed" in p_url:
+            l_business_unit = 'Business Unit: Polar Speed'
+        elif "poltraf" in p_url:
+            l_business_unit = 'Business Unit: Poltraf'
+        elif "sttas" in p_url:
+            l_business_unit = 'Business Unit: STTAS'
+        elif "upscapital" in p_url:
+            l_business_unit = 'Business Unit: UPS Capital / ParcelPro'
+        elif "parcelpro" in p_url:
+            l_business_unit = 'Business Unit: UPS Capital / ParcelPro'
+        elif "upsfreight" in p_url:
+            l_business_unit = 'Business Unit: UPS Freight / Overnite Business'
+        elif "overnite" in p_url:
+            l_business_unit = 'Business Unit: UPS Freight / Overnite Business'
+        elif "cemelog" in p_url:
+            l_business_unit = 'Business Unit: UPS Healthcare Hungary'
+        elif "upsstore" in p_url:
+            l_business_unit = 'Business Unit: UPS Store'
+        elif "ups.com.tr" in p_url:
+            l_business_unit = 'Business Unit: Unsped Packet Servisi'
+        else:
+            l_business_unit = 'Business Unit: United Parcel Service'
+
+        return l_business_unit
+
+    def __build_website_json(self, p_agent_mode: str, p_url: str, p_groups: str, p_name: str) -> str:
+        l_groups_string: str = self.__parse_website_groups(p_groups, p_url)
+
+        l_json_string = '{"AgentMode": "' + p_agent_mode + '","RootUrl": "' + p_url + '"'
+
+        if l_groups_string:
+            l_json_string += ',"Groups": [' + l_groups_string + ']'
+
+        l_json_string += ',"LicenseType":"Subscription", "Name": "' + p_name + '"}'
+
+        return l_json_string
+
+    def __parse_website_url(self, p_url: str) -> str:
+        l_url: str = ""
+        l_url = p_url.lower()
+        if not self.__url_is_valid(l_url):
+            raise ValueError('__parse_url(): URL is not valid: {}'.format(l_url))
+        if not self.__url_is_secure(l_url):
+            raise ValueError('__parse_url(): URL is not secure. Protocol must be HTTPS: {}'.format(l_url))
+        l_url = 'https://{0}/'.format(urlparse(l_url).hostname)
+        return l_url
+
+    def __parse_website_groups(self, p_groups: str, p_url: str) -> str:
+        l_groups: list = p_groups.split("|")
+        l_groups_string: str = ', '.join('"{0}"'.format(g) for g in l_groups)
+        l_business_unit: str = self.__map_business_unit(p_url)
+
+        # Add the business unit group based on the URL
+        if l_groups_string:
+            l_groups_string = '{0}, "{1}"'.format(l_groups_string, l_business_unit)
+        else:
+            l_groups_string = '"{0}"'.format(l_business_unit)
+
+        return l_groups_string
+
+    def __parse_website_name(self, p_name: str) -> str:
+        l_name: str = p_name
+        if not l_name:
+            raise ValueError('Name is blank')
+        return l_name
+
     def upload_websites(self) -> None:
         # Documentation: https://www.netsparkercloud.com/docs/index#/
         # PRECONDITION: The website is in at least one website group
@@ -826,79 +908,18 @@ class API:
                 l_name: str = ""
                 l_url: str = ""
                 l_groups: str = ""
-                l_groups_string: str = ""
 
                 for l_row in l_csv_reader:
                     if l_row:
                         try:
-                            l_name = l_row[NAME]
-                            if not l_name:
-                                raise ValueError('Name is blank')
-
-                            l_url = l_row[URL].lower()
-                            if not self.__url_is_valid(l_url):
-                                raise ValueError('URL is not valid: {}'.format(l_url))
-                            if not self.__url_is_secure(l_url):
-                                raise ValueError('URL is not secure. Protocol must be HTTPS: {}'.format(l_url))
-                            l_url = 'https://{0}/'.format(urlparse(l_url).hostname)
-
-                            l_groups: list = l_row[GROUPS].split("|")
-                            l_groups_string = ', '.join('"{0}"'.format(g) for g in l_groups)
-
-                            if "connectship" in l_url:
-                                l_business_unit = 'Business Unit: ConnectShip'
-                            elif "coyote" in l_url:
-                                l_business_unit = 'Business Unit: Coyote / Freightex'
-                            elif "freightex" in l_url:
-                                l_business_unit = 'Business Unit: Coyote / Freightex'
-                            elif "iship" in l_url:
-                                l_business_unit = 'Business Unit: IShip - Production'
-                            elif "marken" in l_url:
-                                l_business_unit = 'Business Unit: Marken'
-                            elif "nightline" in l_url:
-                                l_business_unit = 'Business Unit: Nightline'
-                            elif "pieffe" in l_url:
-                                l_business_unit = 'Business Unit: Pieffe'
-                            elif "polarspeed" in l_url:
-                                l_business_unit = 'Business Unit: Polar Speed'
-                            elif "poltraf" in l_url:
-                                l_business_unit = 'Business Unit: Poltraf'
-                            elif "sttas" in l_url:
-                                l_business_unit = 'Business Unit: STTAS'
-                            elif "upscapital" in l_url:
-                                l_business_unit = 'Business Unit: UPS Capital / ParcelPro'
-                            elif "parcelpro" in l_url:
-                                l_business_unit = 'Business Unit: UPS Capital / ParcelPro'
-                            elif "upsfreight" in l_url:
-                                l_business_unit = 'Business Unit: UPS Freight / Overnite Business'
-                            elif "overnite" in l_url:
-                                l_business_unit = 'Business Unit: UPS Freight / Overnite Business'
-                            elif "cemelog" in l_url:
-                                l_business_unit = 'Business Unit: UPS Healthcare Hungary'
-                            elif "upsstore" in l_url:
-                                l_business_unit = 'Business Unit: UPS Store'
-                            elif "ups.com.tr" in l_url:
-                                l_business_unit = 'Business Unit: Unsped Packet Servisi'
-                            else:
-                                l_business_unit = 'Business Unit: United Parcel Service'
-
-                            if l_groups_string:
-                                l_groups_string = l_groups_string + ', "{0}"'.format(l_business_unit)
-                            else:
-                                l_groups_string = '"{0}"'.format(l_business_unit)
-
+                            l_name = self.__parse_website_name(l_row[NAME])
+                            l_url = self.__parse_website_url(l_row[URL])
+                            l_groups = l_row[GROUPS]
                             l_agent_mode: str = "Cloud" if "Segment: Externally Vendor Hosted" in l_groups else "Internal"
+                            l_json_string = self.__build_website_json(l_agent_mode, l_url, l_groups, l_name)
+                            l_json=json.loads(l_json_string)
 
                             self.__mPrinter.print("Uploading website {}".format(l_name), Level.INFO)
-
-                            l_json_string: str = '{"AgentMode": "'+l_agent_mode+'","RootUrl": "'+l_url+'"'
-
-                            if l_groups_string:
-                                l_json_string += ',"Groups": ['+l_groups_string+']'
-
-                            l_json_string += ',"LicenseType":"Subscription", "Name": "'+l_name+'"}'
-
-                            l_json=json.loads(l_json_string)
                             l_http_response = self.__connect_to_api(p_url=self.__cWEBSITES_UPLOAD_URL,
                                                                    p_method=HTTPMethod.POST.value,
                                                                    p_data=None, p_json=l_json)

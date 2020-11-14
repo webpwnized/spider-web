@@ -7,10 +7,9 @@ import config as __config
 
 from argparse import RawTextHelpFormatter
 import argparse
-import sys
 
 
-l_version = '0.0.9'
+l_version = '0.0.10'
 
 
 def print_example_usage():
