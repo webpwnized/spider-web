@@ -2,7 +2,7 @@
 
 ### Dependecies
 
-    python3
+    python 3
 
 ### Installation
 
@@ -85,6 +85,10 @@
                             The report policy ID
       -vt VULNERABILITY_TYPE, --vulnerability-type VULNERABILITY_TYPE
                             The vulnerability type  
+
+    Auxiliary Features:
+      -auxps, --ping-sites  Report status of web sites and exit
+
 ### Examples
 
 #### Get Help
@@ -145,4 +149,8 @@
     spider-web --get-vulnerability-template --vulnerability-type Xss --report-policy-id 074018e9-02d3-4e47-a937-6f7684e814da
 
     spider-web -vgvtypes
-    spider-web --get-vulnerability-types  
+    spider-web --get-vulnerability-types
+
+#### Auxiliary Features and Reports
+    spider-web -auxps
+    spider-web --ping-sites

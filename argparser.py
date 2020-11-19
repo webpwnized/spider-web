@@ -88,3 +88,6 @@ class Parser:
         Parser.vulnerability_type = p_args.vulnerability_type
 
         Parser.output_format = p_args.output_format.value.upper() if hasattr(p_args.output_format, 'value') else None
+
+        #Auxiliary Features
+        Parser.ping_sites = p_args.ping_sites

@@ -466,7 +466,7 @@ class API:
         except Exception as e:
             self.__mPrinter.print("__print_json() - {0}".format(str(e)), Level.ERROR)
 
-    def __get_next_page(self, p_base_url: str, p_json, p_print_csv_function) -> None:
+    def __print_next_page(self, p_base_url: str, p_json, p_print_csv_function) -> None:
         try:
             l_current_page_number: int = int(p_json["PageNumber"])
             l_next_page_number: int = l_current_page_number + 1
@@ -482,8 +482,27 @@ class API:
 
             l_next_page = l_json["HasNextPage"]
             if l_next_page:
-                self.__get_next_page(l_base_url, l_json, p_print_csv_function)
+                self.__print_next_page(l_base_url, l_json, p_print_csv_function)
 
+        except Exception as e:
+            self.__mPrinter.print("__print_next_page() - {0}".format(str(e)), Level.ERROR)
+
+    def __get_next_page(self, p_base_url: str, p_json) -> list:
+        try:
+            l_current_page_number: int = int(p_json["PageNumber"])
+            l_next_page_number: int = l_current_page_number + 1
+            l_base_url = p_base_url.replace("page={}".format(l_current_page_number),
+                                            "page={}".format(l_next_page_number))
+            l_http_response = self.__connect_to_api(l_base_url)
+            l_json = json.loads(l_http_response.text)
+
+            l_list: list = l_json["List"]
+
+            l_next_page = l_json["HasNextPage"]
+            if l_next_page:
+                l_list.extend(self.__get_next_page(l_base_url, l_json))
+
+            return l_list
         except Exception as e:
             self.__mPrinter.print("__get_next_page() - {0}".format(str(e)), Level.ERROR)
 
@@ -592,21 +611,27 @@ class API:
         except Exception as e:
             self.__mPrinter.print("__print_agents_csv() - {0}".format(str(e)), Level.ERROR)
 
+    def __get_agents(self) -> None:
+
+        self.__mPrinter.print("Fetching agent information", Level.INFO)
+
+        l_base_url = "{0}?page={1}&pageSize={2}".format(
+            self.__cAGENTS_LIST_URL,
+            Parser.page_number, Parser.page_size
+        )
+        l_http_response = self.__connect_to_api(l_base_url)
+
+        self.__mPrinter.print("Fetched agent information", Level.SUCCESS)
+        self.__mPrinter.print("Parsing agent information", Level.INFO)
+        l_json = json.loads(l_http_response.text)
+        l_number_agents: int = l_json["TotalItemCount"]
+        self.__mPrinter.print("Found {} agents".format(l_number_agents), Level.INFO)
+
+        return l_base_url, l_json
+
     def get_agents(self) -> None:
         try:
-            self.__mPrinter.print("Fetching agent information", Level.INFO)
-
-            l_base_url = "{0}?page={1}&pageSize={2}".format(
-                self.__cAGENTS_LIST_URL,
-                Parser.page_number, Parser.page_size
-            )
-            l_http_response = self.__connect_to_api(l_base_url)
-
-            self.__mPrinter.print("Fetched agent information", Level.SUCCESS)
-            self.__mPrinter.print("Parsing agent information", Level.INFO)
-            l_json = json.loads(l_http_response.text)
-            l_number_agents: int = l_json["TotalItemCount"]
-            self.__mPrinter.print("Found {} agents".format(l_number_agents), Level.INFO)
+            l_base_url, l_json = self.__get_agents()
 
             if self.__m_output_format == OutputFormat.JSON.value:
                 self.__print_json(l_json)
@@ -620,7 +645,7 @@ class API:
 
             l_next_page = l_json["HasNextPage"]
             if l_next_page:
-                self.__get_next_page(l_base_url, l_json, self.__print_agents_csv)
+                self.__print_next_page(l_base_url, l_json, self.__print_agents_csv)
 
         except Exception as e:
             self.__mPrinter.print("get_agents() - {0}".format(str(e)), Level.ERROR)
@@ -668,7 +693,7 @@ class API:
 
             l_next_page = l_json["HasNextPage"]
             if l_next_page:
-                self.__get_next_page(l_base_url, l_json, self.__print_team_members_csv)
+                self.__print_next_page(l_base_url, l_json, self.__print_team_members_csv)
 
         except Exception as e:
             self.__mPrinter.print("get_team_members() - {0}".format(str(e)), Level.ERROR)
@@ -707,7 +732,7 @@ class API:
 
             l_next_page = l_json["HasNextPage"]
             if l_next_page:
-                self.__get_next_page(l_base_url, l_json, self.__print_website_groups_csv)
+                self.__print_next_page(l_base_url, l_json, self.__print_website_groups_csv)
 
         except Exception as e:
             self.__mPrinter.print("get_website_groups() - {0}".format(str(e)), Level.ERROR)
@@ -745,7 +770,7 @@ class API:
 
             l_next_page = l_json["HasNextPage"]
             if l_next_page:
-                self.__get_next_page(l_base_url, l_json, None)
+                self.__print_next_page(l_base_url, l_json, None)
 
         except Exception as e:
             self.__mPrinter.print("get_discovered_services() - {0}".format(str(e)), Level.ERROR)
@@ -764,50 +789,6 @@ class API:
 
         except Exception as e:
             self.__mPrinter.print("download_discovered_services() - {0}".format(str(e)), Level.ERROR)
-
-    def __print_websites_csv(self, p_json):
-        try:
-            l_list: list = p_json["List"]
-            for l_site in l_list:
-                l_groups: list = l_site["Groups"]
-                l_groups_string: str = ""
-                for l_group in l_groups:
-                    l_groups_string = "{},{}".format(l_groups_string, l_group["Name"])
-                print("{},{},{},{},{},{}".format(
-                    l_site["Name"], l_site["RootUrl"], l_site["TechnicalContactEmail"],
-                    l_site["IsVerified"], l_site["AgentMode"], l_groups_string[1:]
-                ))
-        except Exception as e:
-            self.__mPrinter.print("__print_websites_csv() - {0}".format(str(e)), Level.ERROR)
-
-    def get_websites(self) -> None:
-        try:
-            self.__mPrinter.print("Fetching website information", Level.INFO)
-
-            l_base_url = "{0}?page={1}&pageSize={2}".format(
-                self.__cWEBSITES_LIST_URL,
-                Parser.page_number, Parser.page_size
-            )
-            l_http_response = self.__connect_to_api(p_url=l_base_url)
-
-            self.__mPrinter.print("Fetched website information", Level.SUCCESS)
-            self.__mPrinter.print("Parsing website information", Level.INFO)
-            l_json = json.loads(l_http_response.text)
-            l_number_sites: int = l_json["TotalItemCount"]
-            self.__mPrinter.print("Found {} websites".format(l_number_sites), Level.INFO)
-
-            if self.__m_output_format == OutputFormat.JSON.value:
-                self.__print_json(l_json)
-            elif self.__m_output_format == OutputFormat.CSV.value:
-                print("Name, URL, Technical Contact, Verified?, Agent, Groups")
-                self.__print_websites_csv(l_json)
-
-            l_next_page = l_json["HasNextPage"]
-            if l_next_page:
-                self.__get_next_page(l_base_url, l_json, self.__print_websites_csv)
-
-        except Exception as e:
-            self.__mPrinter.print("get_websites() - {0}".format(str(e)), Level.ERROR)
 
     def __map_business_unit(self, p_url: str) -> str:
 
@@ -1062,3 +1043,116 @@ class API:
 
         except Exception as e:
             self.__mPrinter.print("get_vulnerability_types() - {0}".format(str(e)), Level.ERROR)
+
+    def __print_websites_csv(self, p_list):
+        try:
+            print("Name, URL, Technical Contact, Verified?, Agent, Groups")
+            for l_site in p_list:
+                l_groups: list = l_site["Groups"]
+                l_groups_string: str = ""
+                for l_group in l_groups:
+                    l_groups_string = "{},{}".format(l_groups_string, l_group["Name"])
+                print("{},{},{},{},{},{}".format(
+                    l_site["Name"], l_site["RootUrl"], l_site["TechnicalContactEmail"],
+                    l_site["IsVerified"], l_site["AgentMode"], l_groups_string[1:]
+                ))
+        except Exception as e:
+            self.__mPrinter.print("__print_websites_csv() - {0}".format(str(e)), Level.ERROR)
+
+    def get_websites(self) -> None:
+        try:
+            l_list: list = self.__get_websites()
+
+            if self.__m_output_format == OutputFormat.JSON.value:
+                for l_dict in l_list:
+                    print(l_dict)
+            elif self.__m_output_format == OutputFormat.CSV.value:
+                self.__print_websites_csv(l_list)
+
+        except Exception as e:
+            self.__mPrinter.print("get_websites() - {0}".format(str(e)), Level.ERROR)
+
+    def __print_website_status(self, p_url: str, p_status_code: int) -> None:
+        if p_status_code == 200:
+            l_message: str = "The site responded"
+            l_status: str = "Up"
+        elif p_status_code == 503:
+            l_message: str = "The site is not available"
+            l_status: str = "Down"
+        print('"{}", "{}", "{}", "{}"'.format(p_url, l_status, p_status_code, l_message))
+
+    def __get_websites(self) -> list:
+        try:
+            self.__mPrinter.print("Fetching website information", Level.INFO)
+
+            l_base_url = "{0}?page={1}&pageSize={2}".format(
+                self.__cWEBSITES_LIST_URL,
+                Parser.page_number, Parser.page_size
+            )
+            l_http_response = self.__connect_to_api(p_url=l_base_url)
+
+            self.__mPrinter.print("Fetched website information", Level.SUCCESS)
+            self.__mPrinter.print("Parsing website information", Level.INFO)
+            l_json = json.loads(l_http_response.text)
+            l_number_sites: int = l_json["TotalItemCount"]
+            self.__mPrinter.print("Found {} websites".format(l_number_sites), Level.INFO)
+
+            l_list: list = l_json["List"]
+
+            l_next_page = l_json["HasNextPage"]
+            if l_next_page:
+                l_list.extend(self.__get_next_page(l_base_url, l_json))
+
+            return l_list
+
+        except Exception as e:
+            self.__mPrinter.print("__get_websites() - {0}".format(str(e)), Level.ERROR)
+
+    def ping_sites(self):
+        C_3_SECONDS: int = 3
+        l_status_code: int = 0
+
+        try:
+            l_list: list = self.__get_websites()
+
+            self.__mPrinter.print("Starting to ping sites", Level.INFO)
+
+            print('"URL", "Status", "Status Code", "Comment"')
+            for l_record in l_list:
+                l_url: str = l_record["RootUrl"]
+                l_status_code = 0
+                try:
+                    l_proxies: dict = {}
+                    if self.__m_use_proxy:
+                        self.__mPrinter.print("Using upstream proxy", Level.INFO)
+                        l_proxies = self.__get_proxies()
+                    l_http_response = requests.get(url=l_url, proxies=l_proxies, timeout=C_3_SECONDS,
+                                                   verify=self.__m_verify_https_certificate)
+                    l_status_code = l_http_response.status_code
+                except requests.exceptions.ConnectionError as e:
+                    # Check our current proxy status and try the opposite
+                    if self.__m_use_proxy:
+                        try:
+                            self.__mPrinter.print("Since proxy enabled and site not responding, checking if site might be internal", Level.INFO)
+                            l_http_response = requests.get(url=l_url, timeout=C_3_SECONDS)
+                            l_status_code = l_http_response.status_code
+                        except requests.exceptions.RequestException as e:
+                            l_status_code = 503
+                    else:
+                        try:
+                            self.__mPrinter.print(
+                                "Since proxy is not enabled and site not responding, checking if site might be external. Using proxy configuration from config.py",
+                                Level.INFO)
+                            l_proxies = self.__get_proxies()
+                            l_http_response = requests.get(url=l_url, proxies=l_proxies, timeout=C_3_SECONDS,
+                                                           verify=self.__m_verify_https_certificate)
+                            l_status_code = l_http_response.status_code
+                        except requests.exceptions.RequestException as e:
+                            l_status_code = 503
+                except requests.exceptions.RequestException as e:
+                    l_status_code = 503
+
+                self.__print_website_status(l_url, l_status_code)
+
+        except Exception as e:
+            self.__mPrinter.print("ping_sites() - {0}".format(str(e)), Level.ERROR)
