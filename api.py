@@ -1092,7 +1092,7 @@ class API:
         else:
             l_message: str = "Unknown status code detected. Add this code to spider-web"
             l_status: str = "Unknown"
-        print('"{}", "{}", "{}", "{}: {}-{}"'.format(p_url, l_status, p_status_code, l_message, p_status_code, p_reason))
+        print('"{}", "{}", "{}", "{}: {} {}"'.format(p_url, l_status, p_status_code, l_message, p_status_code, p_reason))
 
     def __get_websites(self) -> list:
         try:
@@ -1146,6 +1146,9 @@ class API:
                                                    verify=self.__m_verify_https_certificate)
                     l_status_code = l_http_response.status_code
                     l_reason = l_http_response.reason
+
+                    if l_status_code == 502:
+                        raise requests.exceptions.ConnectionError
                 except requests.exceptions.ConnectionError as e:
                     # Check our current proxy status and try the opposite
                     self.__mPrinter.print("Second test for site {}".format(l_url), Level.INFO)
@@ -1172,7 +1175,7 @@ class API:
                 except requests.exceptions.RequestException as e:
                     l_status_code = 503
 
-                self.__mPrinter.print("Response for site {}: {}-{}".format(l_url, l_status_code, l_reason), Level.INFO)
+                self.__mPrinter.print("Response for site {}: {} {}".format(l_url, l_status_code, l_reason), Level.INFO)
                 self.__print_website_status(l_url, l_status_code, l_reason)
 
         except Exception as e:
