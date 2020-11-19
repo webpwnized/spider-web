@@ -1073,12 +1073,13 @@ class API:
             self.__mPrinter.print("get_websites() - {0}".format(str(e)), Level.ERROR)
 
     def __print_website_status(self, p_url: str, p_status_code: int) -> None:
+
         if p_status_code == 200:
             l_message: str = "The site responded"
             l_status: str = "Up"
         elif p_status_code == 302:
                 l_message: str = "The server redirected to another site"
-                l_status: str = "Down"
+                l_status: str = "Unkown"
         elif p_status_code == 500:
             l_message: str = "The site is not available"
             l_status: str = "Down"
@@ -1130,21 +1131,27 @@ class API:
             for l_record in l_list:
                 l_url: str = l_record["RootUrl"]
                 l_status_code = 0
+                l_proxies: dict = {}
+
                 try:
-                    l_proxies: dict = {}
+                    self.__mPrinter.print("Intial test for site {}".format(l_url), Level.INFO)
                     if self.__m_use_proxy:
                         self.__mPrinter.print("Using upstream proxy", Level.INFO)
                         l_proxies = self.__get_proxies()
                     l_http_response = requests.get(url=l_url, proxies=l_proxies, timeout=C_3_SECONDS,
                                                    verify=self.__m_verify_https_certificate)
                     l_status_code = l_http_response.status_code
+                    self.__mPrinter.print("Response code for site {}: {}".format(l_url, l_status_code), Level.INFO)
                 except requests.exceptions.ConnectionError as e:
                     # Check our current proxy status and try the opposite
+                    self.__mPrinter.print("Second test for site {}".format(l_url), Level.INFO)
                     if self.__m_use_proxy:
                         try:
                             self.__mPrinter.print("Since proxy enabled and site not responding, checking if site might be internal", Level.INFO)
                             l_http_response = requests.get(url=l_url, timeout=C_3_SECONDS)
                             l_status_code = l_http_response.status_code
+                            self.__mPrinter.print("Response code for site {}: {}".format(l_url, l_status_code),
+                                                  Level.INFO)
                         except requests.exceptions.RequestException as e:
                             l_status_code = 503
                     else:
@@ -1156,6 +1163,8 @@ class API:
                             l_http_response = requests.get(url=l_url, proxies=l_proxies, timeout=C_3_SECONDS,
                                                            verify=self.__m_verify_https_certificate)
                             l_status_code = l_http_response.status_code
+                            self.__mPrinter.print("Response code for site {}: {}".format(l_url, l_status_code),
+                                                  Level.INFO)
                         except requests.exceptions.RequestException as e:
                             l_status_code = 503
                 except requests.exceptions.RequestException as e:

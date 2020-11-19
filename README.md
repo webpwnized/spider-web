@@ -6,11 +6,14 @@
 
 ### Installation
 
-  1. Run ./install.sh (Linux only)
-  2. Copy API user ID and password into ***spider-web.key*** file
-  3. If using proxy, enter proxy settings into ***config.py***. Set ***USE_PROXY=TRUE***. If proxy performs TLS inspection, and proxy CA certificate is not available, setting ***VERIFY_HTTPS_CERTIFICATE=FALSE*** may be an effective, although insecure, workaround
-  4. Show help with ***spider-web -h***
-  5. Test connectivity with ***spider-web -t***
+  1. Run ***./install.sh*** (Linux only) to create symlink and make spider-web.py executable
+  2. Copy ***spider-web.key.sample*** to ***spider-web.key***
+  3. Copy API user ID and password into ***spider-web.key*** file
+  4. Copy ***config.py.sample*** to ***config.py***
+  5. Edit ***config.py*** file to have desired settings  
+  6. If using proxy, enter proxy settings into ***config.py***. Set ***USE_PROXY=TRUE***. If proxy performs TLS inspection, and proxy CA certificate is not available, setting ***VERIFY_HTTPS_CERTIFICATE=FALSE*** may be an effective, although insecure, workaround. If proxy is authenticated, set the proxy username and password.
+  7. Show help with ***spider-web -h***
+  8. Test connectivity with ***spider-web -t***
 
 ### Usage
 
