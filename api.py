@@ -1076,9 +1076,18 @@ class API:
         if p_status_code == 200:
             l_message: str = "The site responded"
             l_status: str = "Up"
+        elif p_status_code == 302:
+                l_message: str = "The server redirected to another site"
+                l_status: str = "Down"
+        elif p_status_code == 500:
+            l_message: str = "The site is not available"
+            l_status: str = "Down"
         elif p_status_code == 503:
             l_message: str = "The site is not available"
             l_status: str = "Down"
+        else:
+            l_message: str = "Unknown status code detected. Add this code to spider-web"
+            l_status: str = "Unknown"
         print('"{}", "{}", "{}", "{}"'.format(p_url, l_status, p_status_code, l_message))
 
     def __get_websites(self) -> list:
