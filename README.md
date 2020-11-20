@@ -29,7 +29,7 @@
       -d, --debug           Show debug output
       -o {JSON,CSV}, --output-format {JSON,CSV}
                             Output format
-    
+
     Utilities:
       -e, --examples        Show various examples and exit
       -u, --usage           Show brief usage and exit
@@ -39,17 +39,17 @@
       -pn PAGE_NUMBER, --page-number PAGE_NUMBER
                             The page index
       -ps PAGE_SIZE, --page-size PAGE_SIZE
-                            The page size can be any value between 1 and 200
+                            The number of records returned per request to the API. The page size can be any value between 1 and 200
       -if INPUT_FILENAME, --input-filename INPUT_FILENAME
-                        Input filename. File must be propely formatted.
+                            Input filename. File must be propely formatted.
       -of OUTPUT_FILENAME, --output-filename OUTPUT_FILENAME
-                            Output filename. Default is netsparker.csv
+                            Output filename. Default filename is netsparker.csv output to the current directory
       -os OUTPUT_SEPARATOR, --output-separator OUTPUT_SEPARATOR
                             Output separator for downloaded CSV files. Default is comma. Choices are ['Comma', 'Semicolon', 'Pipe', 'Tab']
-
+    
     Account Endpoint:
-      -ga, --get-account    Get account information and exit
-      -gl, --get-license    Get license information and exit
+      -ga, --get-account    Get current user account information and exit
+      -gl, --get-license    Get system license information and exit
     
     Agents Endpoint:
       -aga, --get-agents    List agents and exit. Output fetched in pages.
@@ -58,28 +58,28 @@
       -dsgds, --get-discovered-services
                             List discovered services and exit. Output fetched in pages.
       -dsdds, --download-discovered-services
-                            Download discovered services and exit
+                            Download discovered services as CSV file and exit. Specify optional output filename with -o, --output-format
     
     Team Member Endpoint:
       -tmgtm, --get-team-members
-                            List users and exit Output fetched in pages.
+                            List users and exit. Output fetched in pages.
     
     Website Endpoint:
       -wgw, --get-websites  List websites and exit. Output fetched in pages.
       -wupw, --upload-websites
-                            Create websites and exit. Requires properly formatted input file.
+                            Create websites and exit. Requires properly formatted input file: CSV with fields SITE_NAME, SITE_URL, SITE_GROUPS. SITE_GROUPS must be pipe delimited.
     
     Website Groups Endpoint:
       -wggwg, --get-website-groups
                             List website groups and exit. Output fetched in pages.
       -wgupwg, --upload-website-groups
-                            Create website groups and exit. Requires properly formatted input file.
-
+                            Create website groups and exit. Requires properly formatted input file: CSV with fields SITE_GROUP_NAME
+    
     Vulnerability Endpoint:
       -vgvtemps, --get-vulnerability-templates
                             List vulnerability templates and exit
       -vgvtemp, --get-vulnerability-template
-                            Get the vulnerability template given vulnerability type and exit
+                            Get the vulnerability template given vulnerability type and exit. Requires -vt, --vulnerability-type
       -vgvtypes, --get-vulnerability-types
                             List vulnerability types and exit
     
@@ -87,10 +87,12 @@
       -rpi REPORT_POLICY_ID, --report-policy-id REPORT_POLICY_ID
                             The report policy ID
       -vt VULNERABILITY_TYPE, --vulnerability-type VULNERABILITY_TYPE
-                            The vulnerability type  
-
+                            The vulnerability type
+    
     Auxiliary Features:
       -auxps, --ping-sites  Report status of web sites and exit
+      -auxpsif, --ping-sites-in-file
+                            Read site from file then report status and exit. Requires properly formatted input file: CSV with fields SITE_URL.
 
 ### Examples
 
@@ -157,3 +159,6 @@
 #### Auxiliary Features and Reports
     spider-web -auxps
     spider-web --ping-sites
+    
+    spider-web -auxpsif
+    spider-web --ping-sites-in-file

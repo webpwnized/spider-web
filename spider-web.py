@@ -9,7 +9,7 @@ from argparse import RawTextHelpFormatter
 import argparse
 
 
-l_version = '0.0.12'
+l_version = '0.0.13'
 
 
 def print_example_usage():
@@ -96,7 +96,10 @@ def print_example_usage():
     Auxiliary Features and Reports
     ----------------------------------------------------------------
     spider-web -auxps
-    spider-web --ping-sites                                 
+    spider-web --ping-sites
+
+    spider-web -auxpsif
+    spider-web --ping-sites-in-file
 """)
 
 def run_main_program():
@@ -126,7 +129,7 @@ def run_main_program():
         Parser.get_team_members or Parser.get_website_groups or Parser.get_discovered_services or \
         Parser.download_discovered_services or Parser.get_website_groups or Parser.upload_website_groups or \
         Parser.get_websites or Parser.upload_websites or Parser.get_vulnerability_templates or Parser.get_vulnerability_template or \
-        Parser.get_vulnerability_types or Parser.ping_sites:
+        Parser.get_vulnerability_types or Parser.ping_sites_from_file:
         l_api = API(p_parser=Parser)
     else:
         lArgParser.print_usage()
@@ -205,6 +208,10 @@ def run_main_program():
         l_api.ping_sites()
         exit(0)
 
+    if Parser.ping_sites_in_file:
+        l_api.ping_sites_in_file()
+        exit(0)
+
 if __name__ == '__main__':
     lArgParser = argparse.ArgumentParser(description="""
  _____       _     _             _    _      _     
@@ -220,7 +227,7 @@ if __name__ == '__main__':
  Version: {}
 """.format(l_version), formatter_class=RawTextHelpFormatter)
     lArgParser.add_argument('-v', '--verbose',
-                            help='Enable verbose output such as current progress and duration',
+                            help='Enable verbose output',
                             action='store_true')
     lArgParser.add_argument('-d', '--debug',
                             help='Show debug output',
@@ -251,7 +258,7 @@ if __name__ == '__main__':
                                  default=1,
                                  action='store')
     l_universal_endpoint_group.add_argument('-ps', '--page-size',
-                                 help='The page size can be any value between 1 and 200',
+                                 help='The number of records returned per request to the API. The page size can be any value between 1 and 200',
                                  type=int,
                                  default=200,
                                  action='store')
@@ -260,7 +267,7 @@ if __name__ == '__main__':
                                 type=str,
                                 action='store')
     l_universal_endpoint_group.add_argument('-of', '--output-filename',
-                                help='Output filename. Default is netsparker.csv',
+                                help='Output filename. Default filename is netsparker.csv output to the current directory',
                                 default='netsparker.csv',
                                 type=str,
                                 action='store')
@@ -272,10 +279,10 @@ if __name__ == '__main__':
 
     l_account_group = lArgParser.add_argument_group(title="Account Endpoint", description=None)
     l_account_group.add_argument('-ga', '--get-account',
-                                 help='Get account information and exit',
+                                 help='Get current user account information and exit',
                                  action='store_true')
     l_account_group.add_argument('-gl', '--get-license',
-                                  help='Get license information and exit',
+                                  help='Get system license information and exit',
                                   action='store_true')
 
     l_agents_group = lArgParser.add_argument_group(title="Agents Endpoint", description=None)
@@ -288,12 +295,12 @@ if __name__ == '__main__':
                                  help='List discovered services and exit. Output fetched in pages.',
                                  action='store_true')
     l_discovery_group.add_argument('-dsdds', '--download-discovered-services',
-                                 help='Download discovered services and exit',
+                                 help='Download discovered services as CSV file and exit. Specify optional output filename with -o, --output-format',
                                  action='store_true')
 
     l_team_member_group = lArgParser.add_argument_group(title="Team Member Endpoint", description=None)
     l_team_member_group.add_argument('-tmgtm', '--get-team-members',
-                                 help='List users and exit Output fetched in pages.',
+                                 help='List users and exit. Output fetched in pages.',
                                  action='store_true')
 
     l_website_groups_group = lArgParser.add_argument_group(title="Website Endpoint", description=None)
@@ -309,7 +316,7 @@ if __name__ == '__main__':
                                  help='List website groups and exit. Output fetched in pages.',
                                  action='store_true')
     l_website_groups_group.add_argument('-wgupwg', '--upload-website-groups',
-                                 help='Create website groups and exit. Requires properly formatted input file.',
+                                 help='Create website groups and exit. Requires properly formatted input file: CSV with fields SITE_GROUP_NAME',
                                  action='store_true')
 
     l_vulnerability_group = lArgParser.add_argument_group(title="Vulnerability Endpoint", description=None)
@@ -317,7 +324,7 @@ if __name__ == '__main__':
                                  help='List vulnerability templates and exit',
                                  action='store_true')
     l_vulnerability_group.add_argument('-vgvtemp', '--get-vulnerability-template',
-                                 help='Get the vulnerability template given vulnerability type and exit',
+                                 help='Get the vulnerability template given vulnerability type and exit. Requires -vt, --vulnerability-type',
                                  action='store_true')
     l_vulnerability_group.add_argument('-vgvtypes', '--get-vulnerability-types',
                                  help='List vulnerability types and exit',
@@ -335,7 +342,10 @@ if __name__ == '__main__':
 
     l_auxiliary_group = lArgParser.add_argument_group(title="Auxiliary Features", description=None)
     l_auxiliary_group.add_argument('-auxps', '--ping-sites',
-                                 help='Report status of web sites and exit',
+                                 help='Fetch sites from NetSparker API then report status and exit',
+                                 action='store_true')
+    l_auxiliary_group.add_argument('-auxpsif', '--ping-sites-in-file',
+                                 help='Read site from file then report status and exit. Requires properly formatted input file: CSV with fields SITE_URL.',
                                  action='store_true')
 
     Parser.parse_configuration(p_args=lArgParser.parse_args(), p_config=__config)

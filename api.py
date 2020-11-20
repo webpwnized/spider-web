@@ -1072,6 +1072,9 @@ class API:
         except Exception as e:
             self.__mPrinter.print("get_websites() - {0}".format(str(e)), Level.ERROR)
 
+    def __web_server_is_up(self, p_status_code: int) -> bool:
+        return str(p_status_code)[0] in ["2", "3"]
+
     def __print_website_status(self, p_url: str, p_status_code: int, p_reason: str) -> None:
 
         if p_status_code == 200:
@@ -1116,67 +1119,90 @@ class API:
             if l_next_page:
                 l_list.extend(self.__get_next_page(l_base_url, l_json))
 
+            self.__mPrinter.print("Fetched website information", Level.INFO)
+
             return l_list
 
         except Exception as e:
             self.__mPrinter.print("__get_websites() - {0}".format(str(e)), Level.ERROR)
 
-    def ping_sites(self):
+    def __ping_sites(self, p_list: list) -> None:
         C_3_SECONDS: int = 3
         l_status_code: int = 0
         l_reason: str = ""
 
+        self.__mPrinter.print("Beginning site analysis", Level.INFO)
+
+        print('"URL", "Status", "Status Code", "Comment"')
+        for l_record in p_list:
+            l_url: str = l_record["RootUrl"]
+            l_proxies: dict = {}
+
+            try:
+                self.__mPrinter.print("Intial test for site {}".format(l_url), Level.INFO)
+                if self.__m_use_proxy:
+                    self.__mPrinter.print("Using upstream proxy", Level.INFO)
+                    l_proxies = self.__get_proxies()
+                l_http_response = requests.get(url=l_url, proxies=l_proxies, timeout=C_3_SECONDS,
+                                               verify=self.__m_verify_https_certificate)
+                l_status_code = l_http_response.status_code
+                l_reason = l_http_response.reason
+
+                if l_status_code == 502:
+                    raise requests.exceptions.ConnectionError
+
+                if self.__web_server_is_up(l_status_code):
+                    self.__mPrinter.print("The site appears to be up", Level.SUCCESS)
+
+            except requests.exceptions.ConnectionError as e:
+                # Check our current proxy status and try the opposite
+                self.__mPrinter.print("Second test for site {}".format(l_url), Level.INFO)
+                if self.__m_use_proxy:
+                    try:
+                        self.__mPrinter.print(
+                            "Since proxy enabled and site not responding, checking if site might be internal",
+                            Level.INFO)
+                        l_http_response = requests.get(url=l_url, timeout=C_3_SECONDS)
+                        l_status_code = l_http_response.status_code
+                        l_reason = l_http_response.reason
+                        if self.__web_server_is_up(l_status_code):
+                            self.__mPrinter.print("The site appears to be internal", Level.SUCCESS)
+                    except requests.exceptions.RequestException as e:
+                        l_status_code = 503
+                else:
+                    try:
+                        self.__mPrinter.print(
+                            "Since proxy is not enabled and site not responding, checking if site might be external. Using proxy configuration from config.py",
+                            Level.INFO)
+                        l_proxies = self.__get_proxies()
+                        l_http_response = requests.get(url=l_url, proxies=l_proxies, timeout=C_3_SECONDS,
+                                                       verify=self.__m_verify_https_certificate)
+                        l_status_code = l_http_response.status_code
+                        l_reason = l_http_response.reason
+                        if self.__web_server_is_up(l_status_code):
+                            self.__mPrinter.print("The site appears to be external", Level.SUCCESS)
+                    except requests.exceptions.RequestException as e:
+                        l_status_code = 503
+            except requests.exceptions.RequestException as e:
+                l_status_code = 503
+
+            self.__mPrinter.print("Response for site {}: {} {}".format(l_url, l_status_code, l_reason), Level.INFO)
+            self.__print_website_status(l_url, l_status_code, l_reason)
+
+    def ping_sites(self) -> None:
+
         try:
             l_list: list = self.__get_websites()
+            self.__ping_sites(l_list)
 
-            self.__mPrinter.print("Starting to ping sites", Level.INFO)
+        except Exception as e:
+            self.__mPrinter.print("ping_sites() - {0}".format(str(e)), Level.ERROR)
 
-            print('"URL", "Status", "Status Code", "Comment"')
-            for l_record in l_list:
-                l_url: str = l_record["RootUrl"]
-                l_status_code = 0
-                l_proxies: dict = {}
+    def ping_sites_in_file(self) -> None:
 
-                try:
-                    self.__mPrinter.print("Intial test for site {}".format(l_url), Level.INFO)
-                    if self.__m_use_proxy:
-                        self.__mPrinter.print("Using upstream proxy", Level.INFO)
-                        l_proxies = self.__get_proxies()
-                    l_http_response = requests.get(url=l_url, proxies=l_proxies, timeout=C_3_SECONDS,
-                                                   verify=self.__m_verify_https_certificate)
-                    l_status_code = l_http_response.status_code
-                    l_reason = l_http_response.reason
-
-                    if l_status_code == 502:
-                        raise requests.exceptions.ConnectionError
-                except requests.exceptions.ConnectionError as e:
-                    # Check our current proxy status and try the opposite
-                    self.__mPrinter.print("Second test for site {}".format(l_url), Level.INFO)
-                    if self.__m_use_proxy:
-                        try:
-                            self.__mPrinter.print("Since proxy enabled and site not responding, checking if site might be internal", Level.INFO)
-                            l_http_response = requests.get(url=l_url, timeout=C_3_SECONDS)
-                            l_status_code = l_http_response.status_code
-                            l_reason = l_http_response.reason
-                        except requests.exceptions.RequestException as e:
-                            l_status_code = 503
-                    else:
-                        try:
-                            self.__mPrinter.print(
-                                "Since proxy is not enabled and site not responding, checking if site might be external. Using proxy configuration from config.py",
-                                Level.INFO)
-                            l_proxies = self.__get_proxies()
-                            l_http_response = requests.get(url=l_url, proxies=l_proxies, timeout=C_3_SECONDS,
-                                                           verify=self.__m_verify_https_certificate)
-                            l_status_code = l_http_response.status_code
-                            l_reason = l_http_response.reason
-                        except requests.exceptions.RequestException as e:
-                            l_status_code = 503
-                except requests.exceptions.RequestException as e:
-                    l_status_code = 503
-
-                self.__mPrinter.print("Response for site {}: {} {}".format(l_url, l_status_code, l_reason), Level.INFO)
-                self.__print_website_status(l_url, l_status_code, l_reason)
+        try:
+            l_list: list = self.__get_websites()
+            self.__ping_sites(l_list)
 
         except Exception as e:
             self.__mPrinter.print("ping_sites() - {0}".format(str(e)), Level.ERROR)

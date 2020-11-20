@@ -91,3 +91,4 @@ class Parser:
 
         #Auxiliary Features
         Parser.ping_sites = p_args.ping_sites
+        Parser.ping_sites_in_file = p_args.ping_sites_in_file
