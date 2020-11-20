@@ -98,8 +98,8 @@ def print_example_usage():
     spider-web -auxps
     spider-web --ping-sites
 
-    spider-web -auxpsif
-    spider-web --ping-sites-in-file
+    spider-web -auxpsif --input-file websites.csv
+    spider-web --ping-sites-in-file --input-file websites.csv
 """)
 
 def run_main_program():
@@ -129,7 +129,7 @@ def run_main_program():
         Parser.get_team_members or Parser.get_website_groups or Parser.get_discovered_services or \
         Parser.download_discovered_services or Parser.get_website_groups or Parser.upload_website_groups or \
         Parser.get_websites or Parser.upload_websites or Parser.get_vulnerability_templates or Parser.get_vulnerability_template or \
-        Parser.get_vulnerability_types or Parser.ping_sites_from_file:
+        Parser.get_vulnerability_types or Parser.ping_sites or Parser.ping_sites_in_file:
         l_api = API(p_parser=Parser)
     else:
         lArgParser.print_usage()
@@ -209,6 +209,10 @@ def run_main_program():
         exit(0)
 
     if Parser.ping_sites_in_file:
+        if not Parser.input_filename:
+            lArgParser.print_usage()
+            Printer.print("Required argument --input-file not provided", Level.ERROR, Force.FORCE, LINES_BEFORE, LINES_AFTER)
+            exit(0)
         l_api.ping_sites_in_file()
         exit(0)
 
@@ -308,7 +312,7 @@ if __name__ == '__main__':
                                  help='List websites and exit. Output fetched in pages.',
                                  action='store_true')
     l_website_groups_group.add_argument('-wupw', '--upload-websites',
-                                 help='Create websites and exit. Requires properly formatted input file: CSV with fields SITE_NAME, SITE_URL, SITE_GROUPS. SITE_GROUPS must be pipe delimited.',
+                                 help='Create websites and exit. Requires properly formatted input file: CSV with fields SITE_NAME, SITE_URL, SITE_GROUPS. SITE_GROUPS must be pipe delimited. Include input file with -if, --input-filename',
                                  action='store_true')
 
     l_website_groups_group = lArgParser.add_argument_group(title="Website Groups Endpoint", description=None)
@@ -316,7 +320,7 @@ if __name__ == '__main__':
                                  help='List website groups and exit. Output fetched in pages.',
                                  action='store_true')
     l_website_groups_group.add_argument('-wgupwg', '--upload-website-groups',
-                                 help='Create website groups and exit. Requires properly formatted input file: CSV with fields SITE_GROUP_NAME',
+                                 help='Create website groups and exit. Requires properly formatted input file: CSV with fields SITE_GROUP_NAME. Include input file with -if, --input-filename',
                                  action='store_true')
 
     l_vulnerability_group = lArgParser.add_argument_group(title="Vulnerability Endpoint", description=None)
@@ -345,7 +349,7 @@ if __name__ == '__main__':
                                  help='Fetch sites from NetSparker API then report status and exit',
                                  action='store_true')
     l_auxiliary_group.add_argument('-auxpsif', '--ping-sites-in-file',
-                                 help='Read site from file then report status and exit. Requires properly formatted input file: CSV with fields SITE_URL.',
+                                 help='Read site from file then report status and exit. Requires properly formatted input file: CSV with fields SITE_NAME, SITE_URL. Include input file with -if, --input-filename',
                                  action='store_true')
 
     Parser.parse_configuration(p_args=lArgParser.parse_args(), p_config=__config)

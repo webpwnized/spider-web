@@ -67,13 +67,13 @@
     Website Endpoint:
       -wgw, --get-websites  List websites and exit. Output fetched in pages.
       -wupw, --upload-websites
-                            Create websites and exit. Requires properly formatted input file: CSV with fields SITE_NAME, SITE_URL, SITE_GROUPS. SITE_GROUPS must be pipe delimited.
+                            Create websites and exit. Requires properly formatted input file: CSV with fields SITE_NAME, SITE_URL, SITE_GROUPS. SITE_GROUPS must be pipe delimited. Include input file with -if, --input-filename
     
     Website Groups Endpoint:
       -wggwg, --get-website-groups
                             List website groups and exit. Output fetched in pages.
       -wgupwg, --upload-website-groups
-                            Create website groups and exit. Requires properly formatted input file: CSV with fields SITE_GROUP_NAME
+                            Create website groups and exit. Requires properly formatted input file: CSV with fields SITE_GROUP_NAME. Include input file with -if, --input-filename
     
     Vulnerability Endpoint:
       -vgvtemps, --get-vulnerability-templates
@@ -90,9 +90,9 @@
                             The vulnerability type
     
     Auxiliary Features:
-      -auxps, --ping-sites  Report status of web sites and exit
+      -auxps, --ping-sites  Fetch sites from NetSparker API then report status and exit
       -auxpsif, --ping-sites-in-file
-                            Read site from file then report status and exit. Requires properly formatted input file: CSV with fields SITE_URL.
+                            Read site from file then report status and exit. Requires properly formatted input file: CSV with fields SITE_NAME, SITE_URL. Include input file with -if, --input-filename
 
 ### Examples
 
@@ -160,5 +160,5 @@
     spider-web -auxps
     spider-web --ping-sites
     
-    spider-web -auxpsif
-    spider-web --ping-sites-in-file
+    spider-web -auxpsif --input-file websites.csv
+    spider-web --ping-sites-in-file --input-file websites.csv

@@ -92,6 +92,15 @@ class FileMode(Enum):
         return self.value
 
 
+class WebsiteUploadFileFields(Enum):
+    NAME = 0
+    URL = 1
+    GROUPS = 2
+
+    def __str__(self):
+        return self.value
+
+
 class API:
 
     # ---------------------------------
@@ -872,61 +881,85 @@ class API:
             raise ValueError('Name is blank')
         return l_name
 
-    def upload_websites(self) -> None:
+    def __upload_websites(self, p_websites: list) -> None:
         # Documentation: https://www.netsparkercloud.com/docs/index#/
         # PRECONDITION: The website is in at least one website group
-        NAME=0
-        URL=1
-        GROUPS=2
         try:
+            l_name: str = ""
+            l_url: str = ""
+            l_groups: str = ""
+
             l_output_file = open("{}{}{}{}".format(Parser.input_filename, ".failed.", time.strftime("%Y_%m_%d_%H_%M"), ".csv"), FileMode.WRITE_CREATE.value)
             l_csv_writer = csv.writer(l_output_file)
 
+            for l_website in p_websites:
+                try:
+                    l_name = self.__parse_website_name(l_website[WebsiteUploadFileFields.NAME.value])
+                    l_url = self.__parse_website_url(l_website[WebsiteUploadFileFields.URL.value])
+                    l_groups = l_website[WebsiteUploadFileFields.GROUPS.value]
+                    l_agent_mode: str = "Cloud" if "Segment: Externally Vendor Hosted" in l_groups else "Internal"
+                    l_json_string = self.__build_website_json(l_agent_mode, l_url, l_groups, l_name)
+                    l_json=json.loads(l_json_string)
+
+                    self.__mPrinter.print("Uploading website {}".format(l_name), Level.INFO)
+                    l_http_response = self.__connect_to_api(p_url=self.__cWEBSITES_UPLOAD_URL,
+                                                           p_method=HTTPMethod.POST.value,
+                                                           p_data=None, p_json=l_json)
+
+                    if l_http_response:
+                        self.__mPrinter.print("Uploaded website {0}".format(l_name), Level.INFO, Force.FORCE)
+                    else:
+                        raise ImportError("Unable to upload website {}".format(l_name))
+
+                except ValueError as e:
+                    self.__mPrinter.print(e, Level.ERROR, Force.FORCE)
+                    l_csv_writer.writerow([l_name, l_url, l_groups, e])
+                except ImportError as e:
+                    self.__mPrinter.print(e, Level.ERROR, Force.FORCE)
+                    l_csv_writer.writerow([l_name, l_url, l_groups, e])
+                except Exception as e:
+                    self.__mPrinter.print(e, Level.ERROR, Force.FORCE)
+                    l_csv_writer.writerow([l_name, l_url, l_groups, e])
+        except FileNotFoundError as e:
+            self.__mPrinter.print("__upload_websites(): Cannot find the input file - {0}".format(str(e)), Level.ERROR)
+        except Exception as e:
+            self.__mPrinter.print("__upload_websites() - {0}:{1}".format(l_name, str(e)), Level.ERROR)
+        finally:
+            if l_output_file:
+                l_output_file.close()
+
+    def __parse_website_upload(self) -> list:
+        try:
             self.__mPrinter.print("Opening file for reading {}".format(Parser.input_filename), Level.INFO)
             with open(Parser.input_filename, FileMode.READ.value) as l_input_file:
                 l_csv_reader = csv.reader(l_input_file)
 
                 l_name: str = ""
-                l_url: str = ""
-                l_groups: str = ""
-
+                l_sites: list = []
                 for l_row in l_csv_reader:
                     if l_row:
-                        try:
-                            l_name = self.__parse_website_name(l_row[NAME])
-                            l_url = self.__parse_website_url(l_row[URL])
-                            l_groups = l_row[GROUPS]
-                            l_agent_mode: str = "Cloud" if "Segment: Externally Vendor Hosted" in l_groups else "Internal"
-                            l_json_string = self.__build_website_json(l_agent_mode, l_url, l_groups, l_name)
-                            l_json=json.loads(l_json_string)
-
-                            self.__mPrinter.print("Uploading website {}".format(l_name), Level.INFO)
-                            l_http_response = self.__connect_to_api(p_url=self.__cWEBSITES_UPLOAD_URL,
-                                                                   p_method=HTTPMethod.POST.value,
-                                                                   p_data=None, p_json=l_json)
-
-                            if l_http_response:
-                                self.__mPrinter.print("Uploaded website {0}".format(l_name), Level.INFO, Force.FORCE)
-                            else:
-                                raise ImportError("Unable to upload website {}".format(l_name))
-
-                        except ValueError as e:
-                            self.__mPrinter.print(e, Level.ERROR, Force.FORCE)
-                            l_csv_writer.writerow([l_name, l_url, l_groups, e])
-                        except ImportError as e:
-                            self.__mPrinter.print(e, Level.ERROR, Force.FORCE)
-                            l_csv_writer.writerow([l_name, l_url, l_groups, e])
-                        except Exception as e:
-                            self.__mPrinter.print(e, Level.ERROR, Force.FORCE)
-                            l_csv_writer.writerow([l_name, l_url, l_groups, e])
-
+                        l_name = l_row[WebsiteUploadFileFields.NAME.value]
+                        l_sites.append((l_name,
+                                           l_row[WebsiteUploadFileFields.URL.value],
+                                           l_row[WebsiteUploadFileFields.GROUPS.value]))
+            return l_sites
         except FileNotFoundError as e:
-            self.__mPrinter.print("upload_websites(): Cannot find the input file - {0}".format(str(e)), Level.ERROR)
+            self.__mPrinter.print("__parse_website_upload(): Cannot find the input file {0} - {1}".format(Parser.input_filename, str(e)), Level.ERROR)
+            raise FileNotFoundError(e)
         except Exception as e:
-            self.__mPrinter.print("upload_websites() - {0}:{1}".format(l_name, str(e)), Level.ERROR)
+            self.__mPrinter.print("__parse_website_upload() - {0}:{1}".format(l_name, str(e)), Level.ERROR)
         finally:
-            l_input_file.close()
-            l_output_file.close()
+            if l_input_file:
+                l_input_file.close()
+
+    def upload_websites(self) -> None:
+        # Documentation: https://www.netsparkercloud.com/docs/index#/
+        # PRECONDITION: The website is in at least one website group
+        try:
+            l_sites: list = self.__parse_website_upload()
+            self.__upload_websites(l_sites)
+        except Exception as e:
+            self.__mPrinter.print("upload_websites() - {0}".format(str(e)), Level.ERROR)
 
     def __print_vulnerability_templates_csv(self, p_json):
         try:
@@ -1075,7 +1108,7 @@ class API:
     def __web_server_is_up(self, p_status_code: int) -> bool:
         return str(p_status_code)[0] in ["2", "3"]
 
-    def __print_website_status(self, p_url: str, p_status_code: int, p_reason: str) -> None:
+    def __print_website_status(self, p_name: str, p_url: str, p_status_code: int, p_reason: str) -> None:
 
         if p_status_code == 200:
             l_message: str = "The site responded"
@@ -1095,7 +1128,7 @@ class API:
         else:
             l_message: str = "Unknown status code detected. Add this code to spider-web"
             l_status: str = "Unknown"
-        print('"{}", "{}", "{}", "{}: {} {}"'.format(p_url, l_status, p_status_code, l_message, p_status_code, p_reason))
+        print('"{}", "{}", "{}", "{}", "{}: {} {}"'.format(p_name, p_url, l_status, p_status_code, l_message, p_status_code, p_reason))
 
     def __get_websites(self) -> list:
         try:
@@ -1127,73 +1160,88 @@ class API:
             self.__mPrinter.print("__get_websites() - {0}".format(str(e)), Level.ERROR)
 
     def __ping_sites(self, p_list: list) -> None:
-        C_3_SECONDS: int = 3
-        l_status_code: int = 0
-        l_reason: str = ""
+        try:
+            C_3_SECONDS: int = 3
+            l_status_code: int = 0
+            l_reason: str = ""
 
-        self.__mPrinter.print("Beginning site analysis", Level.INFO)
+            self.__mPrinter.print("Beginning site analysis", Level.INFO)
 
-        print('"URL", "Status", "Status Code", "Comment"')
-        for l_record in p_list:
-            l_url: str = l_record["RootUrl"]
-            l_proxies: dict = {}
+            print('"Name", "URL", "Status", "Status Code", "Comment"')
+            for l_record in p_list:
+                l_name: str = l_record[WebsiteUploadFileFields.NAME.value]
+                l_url: str = l_record[WebsiteUploadFileFields.URL.value]
+                l_proxies: dict = {}
 
-            try:
-                self.__mPrinter.print("Intial test for site {}".format(l_url), Level.INFO)
-                if self.__m_use_proxy:
-                    self.__mPrinter.print("Using upstream proxy", Level.INFO)
-                    l_proxies = self.__get_proxies()
-                l_http_response = requests.get(url=l_url, proxies=l_proxies, timeout=C_3_SECONDS,
-                                               verify=self.__m_verify_https_certificate)
-                l_status_code = l_http_response.status_code
-                l_reason = l_http_response.reason
-
-                if l_status_code == 502:
-                    raise requests.exceptions.ConnectionError
-
-                if self.__web_server_is_up(l_status_code):
-                    self.__mPrinter.print("The site appears to be up", Level.SUCCESS)
-
-            except requests.exceptions.ConnectionError as e:
-                # Check our current proxy status and try the opposite
-                self.__mPrinter.print("Second test for site {}".format(l_url), Level.INFO)
-                if self.__m_use_proxy:
-                    try:
-                        self.__mPrinter.print(
-                            "Since proxy enabled and site not responding, checking if site might be internal",
-                            Level.INFO)
-                        l_http_response = requests.get(url=l_url, timeout=C_3_SECONDS)
-                        l_status_code = l_http_response.status_code
-                        l_reason = l_http_response.reason
-                        if self.__web_server_is_up(l_status_code):
-                            self.__mPrinter.print("The site appears to be internal", Level.SUCCESS)
-                    except requests.exceptions.RequestException as e:
-                        l_status_code = 503
-                else:
-                    try:
-                        self.__mPrinter.print(
-                            "Since proxy is not enabled and site not responding, checking if site might be external. Using proxy configuration from config.py",
-                            Level.INFO)
+                try:
+                    self.__mPrinter.print("Intial test for site {}".format(l_url), Level.INFO)
+                    if self.__m_use_proxy:
+                        self.__mPrinter.print("Using upstream proxy", Level.INFO)
                         l_proxies = self.__get_proxies()
-                        l_http_response = requests.get(url=l_url, proxies=l_proxies, timeout=C_3_SECONDS,
-                                                       verify=self.__m_verify_https_certificate)
-                        l_status_code = l_http_response.status_code
-                        l_reason = l_http_response.reason
-                        if self.__web_server_is_up(l_status_code):
-                            self.__mPrinter.print("The site appears to be external", Level.SUCCESS)
-                    except requests.exceptions.RequestException as e:
-                        l_status_code = 503
-            except requests.exceptions.RequestException as e:
-                l_status_code = 503
+                    l_http_response = requests.get(url=l_url, proxies=l_proxies, timeout=C_3_SECONDS,
+                                                   verify=self.__m_verify_https_certificate)
+                    l_status_code = l_http_response.status_code
+                    l_reason = l_http_response.reason
+                    self.__mPrinter.print("HTTP request return status code {0}-{1}".format(l_status_code, l_reason), Level.SUCCESS)
+                    if l_status_code == 502:
+                        raise requests.exceptions.ConnectionError
+                    if self.__web_server_is_up(l_status_code):
+                        self.__mPrinter.print("The site appears to be up", Level.SUCCESS)
 
-            self.__mPrinter.print("Response for site {}: {} {}".format(l_url, l_status_code, l_reason), Level.INFO)
-            self.__print_website_status(l_url, l_status_code, l_reason)
+                except requests.exceptions.ConnectionError as e:
+                    # Check our current proxy status and try the opposite
+                    self.__mPrinter.print("Second test for site {}".format(l_url), Level.INFO)
+                    if self.__m_use_proxy:
+                        try:
+                            self.__mPrinter.print(
+                                "Since proxy enabled and site not responding, checking if site might be internal",
+                                Level.INFO)
+                            l_http_response = requests.get(url=l_url, timeout=C_3_SECONDS)
+                            l_status_code = l_http_response.status_code
+                            l_reason = l_http_response.reason
+                            self.__mPrinter.print(
+                                "HTTP request return status code {0}-{1}".format(l_status_code, l_reason),
+                                Level.SUCCESS)
+                            if self.__web_server_is_up(l_status_code):
+                                self.__mPrinter.print("The site appears to be internal", Level.SUCCESS)
+                        except requests.exceptions.RequestException as e:
+                            l_status_code = 503
+                            l_reason = str(e)
+                    else:
+                        try:
+                            self.__mPrinter.print(
+                                "Since proxy is not enabled and site not responding, checking if site might be external. Using proxy configuration from config.py",
+                                Level.INFO)
+                            l_proxies = self.__get_proxies()
+                            l_http_response = requests.get(url=l_url, proxies=l_proxies, timeout=C_3_SECONDS,
+                                                           verify=self.__m_verify_https_certificate)
+                            l_status_code = l_http_response.status_code
+                            l_reason = l_http_response.reason
+                            self.__mPrinter.print(
+                                "HTTP request return status code {0}-{1}".format(l_status_code, l_reason),
+                                Level.SUCCESS)
+                            if self.__web_server_is_up(l_status_code):
+                                self.__mPrinter.print("The site appears to be external", Level.SUCCESS)
+                        except requests.exceptions.RequestException as e:
+                            l_status_code = 503
+                            l_reason = str(e)
+                except requests.exceptions.RequestException as e:
+                    l_status_code = 503
+                    l_reason = str(e)
+
+                self.__mPrinter.print("Response for site {} ({}): {} {}".format(l_name, l_url, l_status_code, l_reason), Level.INFO)
+                self.__print_website_status(l_name, l_url, l_status_code, l_reason)
+        except Exception as e:
+            self.__mPrinter.print("__ping_sites() - {0}".format(str(e)), Level.ERROR)
 
     def ping_sites(self) -> None:
 
         try:
+            l_sites: list = []
             l_list: list = self.__get_websites()
-            self.__ping_sites(l_list)
+            for l_record in l_list:
+                l_sites.append((l_record["Name"], l_record["RootUrl"]))
+            self.__ping_sites(l_sites)
 
         except Exception as e:
             self.__mPrinter.print("ping_sites() - {0}".format(str(e)), Level.ERROR)
@@ -1201,8 +1249,8 @@ class API:
     def ping_sites_in_file(self) -> None:
 
         try:
-            l_list: list = self.__get_websites()
-            self.__ping_sites(l_list)
+            l_sites: list = self.__parse_website_upload()
+            self.__ping_sites(l_sites)
 
         except Exception as e:
-            self.__mPrinter.print("ping_sites() - {0}".format(str(e)), Level.ERROR)
+            self.__mPrinter.print("ping_sites_in_file() - {0}".format(str(e)), Level.ERROR)
