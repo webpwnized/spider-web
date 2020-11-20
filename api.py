@@ -1106,7 +1106,16 @@ class API:
             self.__mPrinter.print("get_websites() - {0}".format(str(e)), Level.ERROR)
 
     def __web_server_is_up(self, p_status_code: int) -> bool:
-        return str(p_status_code)[0] in ["2", "3"]
+        return str(p_status_code)[0] in ["1", "2", "3", "4"]
+
+    def __web_server_is_redirecting(self, p_status_code: int) -> bool:
+        return str(p_status_code)[0] in ["3"]
+
+    def __web_server_is_down(self, p_status_code: int) -> bool:
+        return str(p_status_code)[0] in ["5"]
+
+    def __cannot_resolve_URL(self, p_status_code: int) -> bool:
+        return p_status_code == 502
 
     def __print_website_status(self, p_name: str, p_url: str, p_status_code: int, p_reason: str) -> None:
 
@@ -1114,16 +1123,25 @@ class API:
             l_message: str = "The site responded"
             l_status: str = "Up"
         elif p_status_code == 302:
-                l_message: str = "The server redirected to another site"
-                l_status: str = "Unkown"
+            l_message: str = "The server redirected to another site"
+            l_status: str = "Unknown"
+        elif p_status_code == 400:
+            l_message: str = "The site did not like the request"
+            l_status: str = "Up"
+        elif p_status_code == 403:
+            l_message: str = "The site requires authorization"
+            l_status: str = "Up"
+        elif p_status_code == 404:
+            l_message: str = "Page not found"
+            l_status: str = "Unknown"
         elif p_status_code == 500:
-            l_message: str = "The site is not available"
+            l_message: str = "The server is not available"
             l_status: str = "Down"
         elif p_status_code == 502:
-            l_message: str = "The site is not available"
+            l_message: str = "Cannot resolve DNS"
             l_status: str = "Down"
         elif p_status_code == 503:
-            l_message: str = "The site is not available"
+            l_message: str = "The server is not available"
             l_status: str = "Down"
         else:
             l_message: str = "Unknown status code detected. Add this code to spider-web"
@@ -1183,10 +1201,10 @@ class API:
                     l_status_code = l_http_response.status_code
                     l_reason = l_http_response.reason
                     self.__mPrinter.print("HTTP request return status code {0}-{1}".format(l_status_code, l_reason), Level.SUCCESS)
-                    if l_status_code == 502:
+                    if self.__web_server_is_redirecting(l_status_code):
+                        raise requests.exceptions.TooManyRedirects("Server redirected to {}".format(""))
+                    if self.__cannot_resolve_URL(l_status_code):
                         raise requests.exceptions.ConnectionError
-                    if self.__web_server_is_up(l_status_code):
-                        self.__mPrinter.print("The site appears to be up", Level.SUCCESS)
 
                 except requests.exceptions.ConnectionError as e:
                     # Check our current proxy status and try the opposite
