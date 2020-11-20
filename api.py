@@ -1123,7 +1123,7 @@ class API:
             l_message: str = "The site responded"
             l_status: str = "Up"
         elif p_status_code == 302:
-            l_message: str = "The server redirected to another site"
+            l_message: str = "The server redirected to another site. Check carefully."
             l_status: str = "Unknown"
         elif p_status_code == 400:
             l_message: str = "The site did not like the request"
@@ -1201,7 +1201,7 @@ class API:
                     l_reason = l_http_response.reason
                     self.__mPrinter.print("HTTP request return status code {0}-{1}".format(l_status_code, l_reason), Level.SUCCESS)
                     if self.__web_server_is_redirecting(l_status_code):
-                        raise requests.exceptions.TooManyRedirects("Server redirected to {}".format(l_http_response.headers['location']))
+                        l_reason = "Server redirected to {}".format(l_http_response.headers['location'])
                     if self.__web_server_is_down(l_status_code):
                         raise requests.exceptions.ConnectionError
 
@@ -1220,7 +1220,7 @@ class API:
                                 "HTTP request return status code {0}-{1}".format(l_status_code, l_reason),
                                 Level.SUCCESS)
                             if self.__web_server_is_redirecting(l_status_code):
-                                raise requests.exceptions.TooManyRedirects("Server redirected to {}".format(l_http_response.headers['location']))
+                                l_reason = "Server redirected to {}".format(l_http_response.headers['location'])
                             if self.__web_server_is_up(l_status_code):
                                 self.__mPrinter.print("The site appears to be internal", Level.SUCCESS)
                         except requests.exceptions.RequestException as e:
@@ -1240,7 +1240,7 @@ class API:
                                 "HTTP request return status code {0}-{1}".format(l_status_code, l_reason),
                                 Level.SUCCESS)
                             if self.__web_server_is_redirecting(l_status_code):
-                                raise requests.exceptions.TooManyRedirects("Server redirected to {}".format(l_http_response.headers['location']))
+                                l_reason = "Server redirected to {}".format(l_http_response.headers['location'])
                             if self.__web_server_is_up(l_status_code):
                                 self.__mPrinter.print("The site appears to be external", Level.SUCCESS)
                         except requests.exceptions.RequestException as e:
