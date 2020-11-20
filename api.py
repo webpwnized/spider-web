@@ -1179,7 +1179,6 @@ class API:
 
     def __ping_sites(self, p_list: list) -> None:
         try:
-            C_3_SECONDS: int = 3
             l_status_code: int = 0
             l_reason: str = ""
 
@@ -1196,13 +1195,13 @@ class API:
                     if self.__m_use_proxy:
                         self.__mPrinter.print("Using upstream proxy", Level.INFO)
                         l_proxies = self.__get_proxies()
-                    l_http_response = requests.get(url=l_url, proxies=l_proxies, timeout=C_3_SECONDS,
-                                                   verify=self.__m_verify_https_certificate)
+                    l_http_response = requests.get(url=l_url, proxies=l_proxies, timeout=self.__m_api_connection_timeout,
+                                                   verify=self.__m_verify_https_certificate, allow_redirects=False)
                     l_status_code = l_http_response.status_code
                     l_reason = l_http_response.reason
                     self.__mPrinter.print("HTTP request return status code {0}-{1}".format(l_status_code, l_reason), Level.SUCCESS)
                     if self.__web_server_is_redirecting(l_status_code):
-                        raise requests.exceptions.TooManyRedirects("Server redirected to {}".format(""))
+                        raise requests.exceptions.TooManyRedirects("Server redirected to {}".format(l_http_response.headers['location']))
                     if self.__cannot_resolve_URL(l_status_code):
                         raise requests.exceptions.ConnectionError
 
@@ -1214,12 +1213,14 @@ class API:
                             self.__mPrinter.print(
                                 "Since proxy enabled and site not responding, checking if site might be internal",
                                 Level.INFO)
-                            l_http_response = requests.get(url=l_url, timeout=C_3_SECONDS)
+                            l_http_response = requests.get(url=l_url, timeout=self.__m_api_connection_timeout, allow_redirects=False)
                             l_status_code = l_http_response.status_code
                             l_reason = l_http_response.reason
                             self.__mPrinter.print(
                                 "HTTP request return status code {0}-{1}".format(l_status_code, l_reason),
                                 Level.SUCCESS)
+                            if self.__web_server_is_redirecting(l_status_code):
+                                raise requests.exceptions.TooManyRedirects("Server redirected to {}".format(l_http_response.headers['location']))
                             if self.__web_server_is_up(l_status_code):
                                 self.__mPrinter.print("The site appears to be internal", Level.SUCCESS)
                         except requests.exceptions.RequestException as e:
@@ -1231,13 +1232,15 @@ class API:
                                 "Since proxy is not enabled and site not responding, checking if site might be external. Using proxy configuration from config.py",
                                 Level.INFO)
                             l_proxies = self.__get_proxies()
-                            l_http_response = requests.get(url=l_url, proxies=l_proxies, timeout=C_3_SECONDS,
-                                                           verify=self.__m_verify_https_certificate)
+                            l_http_response = requests.get(url=l_url, proxies=l_proxies, timeout=self.__m_api_connection_timeout,
+                                                           verify=self.__m_verify_https_certificate, allow_redirects=False)
                             l_status_code = l_http_response.status_code
                             l_reason = l_http_response.reason
                             self.__mPrinter.print(
                                 "HTTP request return status code {0}-{1}".format(l_status_code, l_reason),
                                 Level.SUCCESS)
+                            if self.__web_server_is_redirecting(l_status_code):
+                                raise requests.exceptions.TooManyRedirects("Server redirected to {}".format(l_http_response.headers['location']))
                             if self.__web_server_is_up(l_status_code):
                                 self.__mPrinter.print("The site appears to be external", Level.SUCCESS)
                         except requests.exceptions.RequestException as e:
