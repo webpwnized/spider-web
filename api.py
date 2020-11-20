@@ -1202,7 +1202,7 @@ class API:
                     self.__mPrinter.print("HTTP request return status code {0}-{1}".format(l_status_code, l_reason), Level.SUCCESS)
                     if self.__web_server_is_redirecting(l_status_code):
                         raise requests.exceptions.TooManyRedirects("Server redirected to {}".format(l_http_response.headers['location']))
-                    if self.__cannot_resolve_URL(l_status_code):
+                    if self.__web_server_is_down(l_status_code):
                         raise requests.exceptions.ConnectionError
 
                 except requests.exceptions.ConnectionError as e:
