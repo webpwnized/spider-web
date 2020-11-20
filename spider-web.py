@@ -129,7 +129,7 @@ def run_main_program():
         Parser.get_team_members or Parser.get_website_groups or Parser.get_discovered_services or \
         Parser.download_discovered_services or Parser.get_website_groups or Parser.upload_website_groups or \
         Parser.get_websites or Parser.upload_websites or Parser.get_vulnerability_templates or Parser.get_vulnerability_template or \
-        Parser.get_vulnerability_types or Parser.ping_sites_from_file:
+        Parser.get_vulnerability_types or Parser.ping_sites_in_file:
         l_api = API(p_parser=Parser)
     else:
         lArgParser.print_usage()
