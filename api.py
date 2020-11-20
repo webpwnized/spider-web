@@ -1122,6 +1122,9 @@ class API:
         if p_status_code == 200:
             l_message: str = "The site responded"
             l_status: str = "Up"
+        elif p_status_code == 301:
+            l_message: str = "The server redirected to another site. Check carefully."
+            l_status: str = "Unknown"
         elif p_status_code == 302:
             l_message: str = "The server redirected to another site. Check carefully."
             l_status: str = "Unknown"
