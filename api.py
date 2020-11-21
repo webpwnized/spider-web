@@ -101,6 +101,15 @@ class WebsiteUploadFileFields(Enum):
         return self.value
 
 
+class PingMethod(Enum):
+    INITIAL_TEST = 0
+    SECOND_TEST_NO_PROXY = 1
+    SECOND_TEST_USE_PROXY = 2
+
+    def __str__(self):
+        return self.value
+
+
 class API:
 
     # ---------------------------------
@@ -1117,39 +1126,19 @@ class API:
     def __cannot_resolve_URL(self, p_status_code: int) -> bool:
         return p_status_code == 502
 
-    def __print_website_status(self, p_name: str, p_url: str, p_status_code: int, p_reason: str) -> None:
-
-        if p_status_code == 200:
-            l_message: str = "The site responded"
-            l_status: str = "Up"
-        elif p_status_code == 301:
-            l_message: str = "The server redirected to another site. Check carefully."
-            l_status: str = "Unknown"
-        elif p_status_code == 302:
-            l_message: str = "The server redirected to another site. Check carefully."
-            l_status: str = "Unknown"
-        elif p_status_code == 400:
-            l_message: str = "The site did not like the request"
-            l_status: str = "Up"
-        elif p_status_code == 403:
-            l_message: str = "The site requires authorization"
-            l_status: str = "Up"
-        elif p_status_code == 404:
-            l_message: str = "Page not found"
-            l_status: str = "Unknown"
-        elif p_status_code == 500:
-            l_message: str = "The server is not available"
-            l_status: str = "Down"
-        elif p_status_code == 502:
-            l_message: str = "Cannot resolve DNS"
-            l_status: str = "Down"
-        elif p_status_code == 503:
-            l_message: str = "The server is not available"
-            l_status: str = "Down"
-        else:
-            l_message: str = "Unknown status code detected. Add this code to spider-web"
-            l_status: str = "Unknown"
-        print('"{}", "{}", "{}", "{}", "{}: {} {}"'.format(p_name, p_url, l_status, p_status_code, l_message, p_status_code, p_reason))
+    def __is_authentication_site(self, l_domain: str) -> bool:
+        return l_domain in ["login.microsoftonline.com",
+                            "eamsso.inside.ups.com",
+                            "eamsso.ups.com",
+                            "eam2.inside.ups.com",
+                            "ep.ups.com",
+                            "exteam.ups.com",
+                            "eamsso.inside.ams1907.com",
+                            "eamsso.ams1907.com",
+                            "eam2.inside.ams1907.com",
+                            "ep.ams1907.com",
+                            "exteam.ams1907.com"
+                            ]
 
     def __get_websites(self) -> list:
         try:
@@ -1180,81 +1169,117 @@ class API:
         except Exception as e:
             self.__mPrinter.print("__get_websites() - {0}".format(str(e)), Level.ERROR)
 
+    def __ping_url(self, p_url:str, p_method: int):
+
+        l_proxies: dict = {}
+        l_site_is_up: bool = False
+
+        self.__mPrinter.print("Testing site {}".format(p_url), Level.INFO)
+
+        if p_method == PingMethod.INITIAL_TEST.value:
+
+            if self.__m_use_proxy:
+                self.__mPrinter.print("Using upstream proxy", Level.INFO)
+                l_proxies = self.__get_proxies()
+            l_http_response = requests.get(url=p_url, proxies=l_proxies, timeout=self.__m_api_connection_timeout,
+                                           verify=self.__m_verify_https_certificate, allow_redirects=False)
+            l_status_code = l_http_response.status_code
+            l_reason = l_http_response.reason
+            self.__mPrinter.print("HTTP request return status code {0}-{1}".format(l_status_code, l_reason),
+                                  Level.SUCCESS)
+            if self.__web_server_is_down(l_status_code):
+                raise requests.exceptions.ConnectionError
+            l_site_is_up = True
+
+        elif p_method == PingMethod.SECOND_TEST_NO_PROXY.value:
+
+            try:
+                self.__mPrinter.print(
+                    "Since proxy enabled and site not responding, checking if site might be internal",
+                    Level.INFO)
+                l_http_response = requests.get(url=p_url, timeout=self.__m_api_connection_timeout, allow_redirects=False)
+                l_status_code = l_http_response.status_code
+                l_reason = l_http_response.reason
+                self.__mPrinter.print(
+                    "HTTP request return status code {0}-{1}".format(l_status_code, l_reason),
+                    Level.SUCCESS)
+                if self.__web_server_is_up(l_status_code):
+                    self.__mPrinter.print("The site appears to be internal", Level.SUCCESS)
+                l_site_is_up = True
+            except requests.exceptions.RequestException as e:
+                l_site_is_up = False
+                l_status_code = 503
+                l_reason = str(e)
+
+        elif p_method == PingMethod.SECOND_TEST_USE_PROXY.value:
+
+            try:
+                self.__mPrinter.print(
+                    "Since proxy is not enabled and site not responding, checking if site might be external. Using proxy configuration from config.py",
+                    Level.INFO)
+                l_proxies = self.__get_proxies()
+                l_http_response = requests.get(url=p_url, proxies=l_proxies, timeout=self.__m_api_connection_timeout,
+                                               verify=self.__m_verify_https_certificate, allow_redirects=False)
+                l_status_code = l_http_response.status_code
+                l_reason = l_http_response.reason
+                self.__mPrinter.print(
+                    "HTTP request return status code {0}-{1}".format(l_status_code, l_reason),
+                    Level.SUCCESS)
+                if self.__web_server_is_up(l_status_code):
+                    self.__mPrinter.print("The site appears to be external", Level.SUCCESS)
+                l_site_is_up = True
+
+            except requests.exceptions.RequestException as e:
+                l_site_is_up = False
+                l_status_code = 503
+                l_reason = str(e)
+
+        if self.__web_server_is_redirecting(l_status_code):
+            l_current_domain = urlparse(l_http_response.url).hostname
+            l_redirect_domain = urlparse(l_http_response.next.url).hostname
+            self.__mPrinter.print("Server redirected from {} to {}".format(l_current_domain, l_redirect_domain), Level.INFO)
+            if l_current_domain == l_redirect_domain:
+                l_site_is_up = True
+                l_reason = "Server is redirecting to the same domain"
+            elif self.__is_authentication_site(l_redirect_domain):
+                l_site_is_up = True
+                l_reason = "Server is redirecting to an authentication domain {}".format(l_redirect_domain)
+            else:
+                l_site_is_up = False
+                l_reason = "Server is redirecting to a different domain {}".format(l_redirect_domain)
+
+        return l_site_is_up, l_status_code, l_reason
+
     def __ping_sites(self, p_list: list) -> None:
         try:
+            l_site_is_up: bool = False
             l_status_code: int = 0
             l_reason: str = ""
 
             self.__mPrinter.print("Beginning site analysis", Level.INFO)
-
             print('"Name", "URL", "Status", "Status Code", "Comment"')
+
             for l_record in p_list:
                 l_name: str = l_record[WebsiteUploadFileFields.NAME.value]
                 l_url: str = l_record[WebsiteUploadFileFields.URL.value]
-                l_proxies: dict = {}
 
                 try:
-                    self.__mPrinter.print("Intial test for site {}".format(l_url), Level.INFO)
-                    if self.__m_use_proxy:
-                        self.__mPrinter.print("Using upstream proxy", Level.INFO)
-                        l_proxies = self.__get_proxies()
-                    l_http_response = requests.get(url=l_url, proxies=l_proxies, timeout=self.__m_api_connection_timeout,
-                                                   verify=self.__m_verify_https_certificate, allow_redirects=False)
-                    l_status_code = l_http_response.status_code
-                    l_reason = l_http_response.reason
-                    self.__mPrinter.print("HTTP request return status code {0}-{1}".format(l_status_code, l_reason), Level.SUCCESS)
-                    if self.__web_server_is_redirecting(l_status_code):
-                        l_reason = "Server redirected to {}".format(l_http_response.headers['location'])
-                    if self.__web_server_is_down(l_status_code):
-                        raise requests.exceptions.ConnectionError
-
+                    self.__mPrinter.print("Initial test for site {}".format(l_url), Level.INFO)
+                    l_site_is_up, l_status_code, l_reason = self.__ping_url(l_url, PingMethod.INITIAL_TEST.value)
                 except requests.exceptions.ConnectionError as e:
                     # Check our current proxy status and try the opposite
                     self.__mPrinter.print("Second test for site {}".format(l_url), Level.INFO)
                     if self.__m_use_proxy:
-                        try:
-                            self.__mPrinter.print(
-                                "Since proxy enabled and site not responding, checking if site might be internal",
-                                Level.INFO)
-                            l_http_response = requests.get(url=l_url, timeout=self.__m_api_connection_timeout, allow_redirects=False)
-                            l_status_code = l_http_response.status_code
-                            l_reason = l_http_response.reason
-                            self.__mPrinter.print(
-                                "HTTP request return status code {0}-{1}".format(l_status_code, l_reason),
-                                Level.SUCCESS)
-                            if self.__web_server_is_redirecting(l_status_code):
-                                l_reason = "Server redirected to {}".format(l_http_response.headers['location'])
-                            if self.__web_server_is_up(l_status_code):
-                                self.__mPrinter.print("The site appears to be internal", Level.SUCCESS)
-                        except requests.exceptions.RequestException as e:
-                            l_status_code = 503
-                            l_reason = str(e)
+                        l_site_is_up, l_status_code, l_reason = self.__ping_url(l_url, PingMethod.SECOND_TEST_NO_PROXY.value)
                     else:
-                        try:
-                            self.__mPrinter.print(
-                                "Since proxy is not enabled and site not responding, checking if site might be external. Using proxy configuration from config.py",
-                                Level.INFO)
-                            l_proxies = self.__get_proxies()
-                            l_http_response = requests.get(url=l_url, proxies=l_proxies, timeout=self.__m_api_connection_timeout,
-                                                           verify=self.__m_verify_https_certificate, allow_redirects=False)
-                            l_status_code = l_http_response.status_code
-                            l_reason = l_http_response.reason
-                            self.__mPrinter.print(
-                                "HTTP request return status code {0}-{1}".format(l_status_code, l_reason),
-                                Level.SUCCESS)
-                            if self.__web_server_is_redirecting(l_status_code):
-                                l_reason = "Server redirected to {}".format(l_http_response.headers['location'])
-                            if self.__web_server_is_up(l_status_code):
-                                self.__mPrinter.print("The site appears to be external", Level.SUCCESS)
-                        except requests.exceptions.RequestException as e:
-                            l_status_code = 503
-                            l_reason = str(e)
-                except requests.exceptions.RequestException as e:
-                    l_status_code = 503
-                    l_reason = str(e)
+                        l_site_is_up, l_status_code, l_reason = self.__ping_url(l_url, PingMethod.SECOND_TEST_USE_PROXY.value)
 
-                self.__mPrinter.print("Response for site {} ({}): {} {}".format(l_name, l_url, l_status_code, l_reason), Level.INFO)
-                self.__print_website_status(l_name, l_url, l_status_code, l_reason)
+                l_status:str = "Up" if l_site_is_up else "Down"
+                self.__mPrinter.print("Response for site {} ({}): {} {}. Site is {}".format(l_name, l_url, l_status_code, l_reason, l_status), Level.INFO)
+                print('"{}", "{}", "{}", "{}", "{}"'.format(
+                    l_name, l_url, l_status, l_status_code, l_reason)
+                )
+
         except Exception as e:
             self.__mPrinter.print("__ping_sites() - {0}".format(str(e)), Level.ERROR)
 
