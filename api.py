@@ -1178,18 +1178,21 @@ class API:
 
         if p_method == PingMethod.INITIAL_TEST.value:
 
-            if self.__m_use_proxy:
-                self.__mPrinter.print("Using upstream proxy", Level.INFO)
-                l_proxies = self.__get_proxies()
-            l_http_response = requests.get(url=p_url, proxies=l_proxies, timeout=self.__m_api_connection_timeout,
-                                           verify=self.__m_verify_https_certificate, allow_redirects=False)
-            l_status_code = l_http_response.status_code
-            l_reason = l_http_response.reason
-            self.__mPrinter.print("HTTP request return status code {0}-{1}".format(l_status_code, l_reason),
-                                  Level.SUCCESS)
-            if self.__web_server_is_down(l_status_code):
+            try:
+                if self.__m_use_proxy:
+                    self.__mPrinter.print("Using upstream proxy", Level.INFO)
+                    l_proxies = self.__get_proxies()
+                l_http_response = requests.get(url=p_url, proxies=l_proxies, timeout=self.__m_api_connection_timeout,
+                                               verify=self.__m_verify_https_certificate, allow_redirects=False)
+                l_status_code = l_http_response.status_code
+                l_reason = l_http_response.reason
+                self.__mPrinter.print("HTTP request return status code {0}-{1}".format(l_status_code, l_reason),
+                                      Level.SUCCESS)
+                if self.__web_server_is_down(l_status_code):
+                    raise requests.exceptions.ConnectionError
+                l_site_is_up = True
+            except requests.exceptions.RequestException as e:
                 raise requests.exceptions.ConnectionError
-            l_site_is_up = True
 
         elif p_method == PingMethod.SECOND_TEST_NO_PROXY.value:
 
