@@ -1127,18 +1127,7 @@ class API:
         return p_status_code == 502
 
     def __is_authentication_site(self, l_domain: str) -> bool:
-        return l_domain in ["login.microsoftonline.com",
-                            "eamsso.inside.ups.com",
-                            "eamsso.ups.com",
-                            "eam2.inside.ups.com",
-                            "ep.ups.com",
-                            "exteam.ups.com",
-                            "eamsso.inside.ams1907.com",
-                            "eamsso.ams1907.com",
-                            "eam2.inside.ams1907.com",
-                            "ep.ams1907.com",
-                            "exteam.ams1907.com"
-                            ]
+        return l_domain in Parser.AUTHENTICATION_SITES
 
     def __get_websites(self) -> list:
         try:
