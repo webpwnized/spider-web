@@ -9,7 +9,7 @@ from argparse import RawTextHelpFormatter
 import argparse
 
 
-l_version = '0.0.21'
+l_version = '0.0.23'
 
 
 def print_example_usage():
@@ -100,6 +100,12 @@ def print_example_usage():
 
     spider-web -auxpsif --input-file websites.csv
     spider-web --ping-sites-in-file --input-file websites.csv
+
+    ----------------------------------------------------------------
+    Reports
+    ----------------------------------------------------------------        
+    spider-web -ramh --of netsparker.csv
+    spider-web --report-agents-missing-heartbeat --output-filename netsparker.csv
 """)
 
 def run_main_program():
@@ -129,8 +135,9 @@ def run_main_program():
         Parser.get_team_members or Parser.get_website_groups or Parser.get_discovered_services or \
         Parser.download_discovered_services or Parser.get_website_groups or Parser.upload_website_groups or \
         Parser.get_websites or Parser.upload_websites or Parser.get_vulnerability_templates or Parser.get_vulnerability_template or \
-        Parser.get_vulnerability_types or Parser.ping_sites or Parser.ping_sites_in_file:
-        l_api = API(p_parser=Parser)
+        Parser.get_vulnerability_types or Parser.ping_sites or Parser.ping_sites_in_file \
+        or Parser.report_agents_missing_heartbeat:
+            l_api = API(p_parser=Parser)
     else:
         lArgParser.print_usage()
         Printer.print("Required arguments not provided", Level.ERROR, Force.FORCE, LINES_BEFORE, LINES_AFTER)
@@ -172,6 +179,10 @@ def run_main_program():
         exit(0)
 
     if Parser.download_discovered_services:
+        if not Parser.output_filename:
+            lArgParser.print_usage()
+            Printer.print("Required argument --output-file not provided", Level.ERROR, Force.FORCE, LINES_BEFORE, LINES_AFTER)
+            exit(0)
         l_api.download_discovered_services()
         exit(0)
 
@@ -215,6 +226,13 @@ def run_main_program():
             exit(0)
         l_api.ping_sites_in_file()
         exit(0)
+
+    if Parser.report_agents_missing_heartbeat:
+        if not Parser.output_filename:
+            lArgParser.print_usage()
+            Printer.print("Required argument --output-file not provided", Level.ERROR, Force.FORCE, LINES_BEFORE, LINES_AFTER)
+            exit(0)
+        exit(l_api.report_agents_missing_heartbeat())
 
 if __name__ == '__main__':
     lArgParser = argparse.ArgumentParser(description="""
@@ -272,7 +290,6 @@ if __name__ == '__main__':
                                 action='store')
     l_universal_endpoint_group.add_argument('-of', '--output-filename',
                                 help='Output filename. Default filename is netsparker.csv output to the current directory',
-                                default='netsparker.csv',
                                 type=str,
                                 action='store')
     l_universal_endpoint_group.add_argument('-os', '--output-separator',
@@ -299,7 +316,7 @@ if __name__ == '__main__':
                                  help='List discovered services and exit. Output fetched in pages.',
                                  action='store_true')
     l_discovery_group.add_argument('-dsdds', '--download-discovered-services',
-                                 help='Download discovered services as CSV file and exit. Specify optional output filename with -o, --output-format',
+                                 help='Download discovered services as CSV file and exit. Output filename is required. Specify output filename with -o, --output-format.',
                                  action='store_true')
 
     l_team_member_group = lArgParser.add_argument_group(title="Team Member Endpoint", description=None)
@@ -350,6 +367,11 @@ if __name__ == '__main__':
                                  action='store_true')
     l_auxiliary_group.add_argument('-auxpsif', '--ping-sites-in-file',
                                  help='Read site from file then report status and exit. Requires properly formatted input file: CSV with fields SITE_NAME, SITE_URL. Include input file with -if, --input-filename',
+                                 action='store_true')
+
+    l_report_group = lArgParser.add_argument_group(title="Reports", description=None)
+    l_report_group.add_argument('-ramh', '--report-agents-missing-heartbeat',
+                                 help='Report agents that have not checked in recently and exit. Number of seconds is configurable on config.py. Exit code is non-zero if all agents are checking in. Output filename is required. Specify output filename with -o, --output-format.',
                                  action='store_true')
 
     Parser.parse_configuration(p_args=lArgParser.parse_args(), p_config=__config)

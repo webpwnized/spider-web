@@ -94,4 +94,10 @@ class Parser:
         Parser.ping_sites_in_file = p_args.ping_sites_in_file
 
         #Authetication Sites
-        Parser.AUTHENTICATION_SITES = p_config.AUTHENTICATION_SITES
+        Parser.authentication_sites = p_config.AUTHENTICATION_SITES
+
+        #Reporting Options
+        Parser.report_agents_missing_heartbeat = p_args.report_agents_missing_heartbeat
+        Parser.agent_heartbeat_too_long_seconds = p_config.AGENT_HEARTBEAT_TOO_LONG_SECONDS
+        Parser.agent_heartbeat_breadcrumb_filename = p_config.AGENT_HEARTBEAT_BREADCRUMB_FILENAME
+        Parser.agent_heartbeat_notification_interval_minutes = p_config.AGENT_HEARTBEAT_NOTIFICATION_INTERVAL_MINUTES

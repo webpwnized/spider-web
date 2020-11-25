@@ -4,6 +4,9 @@ from enum import Enum
 from database import SQLite
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
 from urllib.parse import urlparse
+from datetime import datetime
+from datetime import timezone
+from dateutil import parser
 
 import time
 import re
@@ -13,7 +16,6 @@ import requests
 import os
 import base64
 import csv
-import sys
 
 # Disable warning about insecure proxy when proxy enabled
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
@@ -108,6 +110,12 @@ class PingMethod(Enum):
 
     def __str__(self):
         return self.value
+
+
+class ExitCodes(Enum):
+    EXIT_NORMAL = 0
+    NOTHING_TO_REPORT = 1001
+    ALREADY_REPORTED_TODAY = 1002
 
 
 class API:
@@ -614,59 +622,161 @@ class API:
         except Exception as e:
             self.__mPrinter.print("get_license() - {0}".format(str(e)), Level.ERROR)
 
-    def __print_agents_csv(self, p_json):
+    def __print_agents_csv(self, p_list):
         try:
-            l_list: list = p_json["List"]
-            for l_agent in l_list:
-                print("{},{},{},{},{},{},{},{},{},{},{},{},{},{}".format(
+            print('"Needs Update?", "Name", "IP address", "Status", "Version", "Last Heartbeat", '
+                  '"VDB Version", "Operating System", "Architecture", "ID"')
+            for l_agent in p_list:
+                print('"{}","{}","{}","{}","{}","{}","{}","{}","{}","{}"'.format(
                     l_agent["IsAgentNeedsUpdate"], l_agent["Name"], l_agent["IpAddress"],
                     l_agent["State"], l_agent["Version"], l_agent["Heartbeat"],
-                    l_agent["AutoUpdateEnabled"], l_agent["Launched"], l_agent["VdbVersion"],
-                    "{} {}".format(l_agent["OsDescription"], l_agent["OsArchitecture"]),
-                    l_agent["FrameworkDescription"], l_agent["ProcessArchitecture"],
-                    l_agent["HasWaitingCommand"], l_agent["Id"]
+                    l_agent["VdbVersion"], l_agent["OsDescription"], l_agent["ProcessArchitecture"],
+                    l_agent["Id"]
                 ))
         except Exception as e:
             self.__mPrinter.print("__print_agents_csv() - {0}".format(str(e)), Level.ERROR)
 
-    def __get_agents(self) -> None:
-
-        self.__mPrinter.print("Fetching agent information", Level.INFO)
-
-        l_base_url = "{0}?page={1}&pageSize={2}".format(
-            self.__cAGENTS_LIST_URL,
-            Parser.page_number, Parser.page_size
-        )
-        l_http_response = self.__connect_to_api(l_base_url)
-
-        self.__mPrinter.print("Fetched agent information", Level.SUCCESS)
-        self.__mPrinter.print("Parsing agent information", Level.INFO)
-        l_json = json.loads(l_http_response.text)
-        l_number_agents: int = l_json["TotalItemCount"]
-        self.__mPrinter.print("Found {} agents".format(l_number_agents), Level.INFO)
-
-        return l_base_url, l_json
-
-    def get_agents(self) -> None:
+    def __output_agents_to_file(self, p_agents: list):
         try:
-            l_base_url, l_json = self.__get_agents()
+            l_agents: list = []
+            l_field_names: list = ["Needs Update?", "Name", "IP address", "Status", "Version",
+                                   "Last Heartbeat", "VDB Version", "Operating System", "Architecture",
+                                   "ID"]
 
-            if self.__m_output_format == OutputFormat.JSON.value:
-                self.__print_json(l_json)
+            for l_agent in p_agents:
+                l_agents.append([
+                    l_agent["IsAgentNeedsUpdate"], l_agent["Name"], l_agent["IpAddress"],
+                    l_agent["State"], l_agent["Version"], l_agent["Heartbeat"],
+                    l_agent["VdbVersion"], l_agent["OsDescription"], l_agent["ProcessArchitecture"],
+                    l_agent["Id"]
+                ])
 
-            elif self.__m_output_format == OutputFormat.CSV.value:
-                #TODO: Need agents to test with
-                print("Needs Update?, Name, IP address, Status, Version, Last Heartbeat, Auto Update?, "
-                      "Launched, VDB Version, Operating System, Framework, Architecture, Has Waiting Command, "
-                      "ID")
-                self.__print_agents_csv(l_json)
+            with open(Parser.output_filename, FileMode.WRITE_CREATE.value) as l_file:
+                l_csv_writer = csv.writer(l_file)
+                l_csv_writer.writerow(l_field_names)
+                l_csv_writer.writerows(l_agents)
+
+        except Exception as e:
+            self.__mPrinter.print("__output_agents_to_file() - {0}".format(str(e)), Level.ERROR)
+
+    def __get_agents(self) -> list:
+        try:
+            self.__mPrinter.print("Fetching agent information", Level.INFO)
+
+            l_base_url = "{0}?page={1}&pageSize={2}".format(
+                self.__cAGENTS_LIST_URL,
+                Parser.page_number, Parser.page_size
+            )
+            l_http_response = self.__connect_to_api(p_url=l_base_url)
+
+            self.__mPrinter.print("Fetched agent information", Level.SUCCESS)
+            self.__mPrinter.print("Parsing agent information", Level.INFO)
+            l_json = json.loads(l_http_response.text)
+            l_number_sites: int = l_json["TotalItemCount"]
+            self.__mPrinter.print("Found {} agent".format(l_number_sites), Level.INFO)
+
+            l_list: list = l_json["List"]
 
             l_next_page = l_json["HasNextPage"]
             if l_next_page:
-                self.__print_next_page(l_base_url, l_json, self.__print_agents_csv)
+                l_list.extend(self.__get_next_page(l_base_url, l_json))
+
+            self.__mPrinter.print("Fetched agent information", Level.INFO)
+
+            return l_list
+
+        except Exception as e:
+            self.__mPrinter.print("__get_agents() - {0}".format(str(e)), Level.ERROR)
+
+    def get_agents(self) -> None:
+        try:
+            l_list = self.__get_agents()
+
+            if self.__m_output_format == OutputFormat.JSON.value:
+                for l_dict in l_list:
+                    print(l_dict)
+            elif self.__m_output_format == OutputFormat.CSV.value:
+                self.__print_agents_csv(l_list)
 
         except Exception as e:
             self.__mPrinter.print("get_agents() - {0}".format(str(e)), Level.ERROR)
+
+    def __create_breadcrumb(self, p_filename: str) -> None:
+        try:
+            Printer.print("Creating breadcrumb file {}".format(p_filename), Level.INFO)
+            l_file = open(p_filename, FileMode.WRITE_CREATE.value)
+            l_file.write(str(int(datetime.now().timestamp())))
+        except Exception as e:
+            self.__mPrinter.print("__create_breadcrumb() - {0}".format(str(e)), Level.ERROR)
+        finally:
+            if l_file:
+                l_file.close()
+
+    def __read_breadcrumb(self, p_filename: str) -> datetime:
+        try:
+            Printer.print("Reading breadcrumb file {}".format(p_filename), Level.INFO)
+            l_file = open(p_filename, FileMode.READ.value)
+            l_string: str = l_file.read()
+            if l_string:
+                l_time: datetime = datetime.fromtimestamp(int(l_string))
+                return l_time
+            else:
+                raise ValueError("File {} is empty".format(p_filename))
+        except FileNotFoundError as e:
+            self.__mPrinter.print("__read_breadcrumb() - {0}".format(str(e)), Level.ERROR)
+            raise FileNotFoundError
+        except ValueError as e:
+            self.__mPrinter.print("__read_breadcrumb() - {0}".format(str(e)), Level.ERROR)
+            raise ValueError
+        except Exception as e:
+            self.__mPrinter.print("__read_breadcrumb() - {0}".format(str(e)), Level.ERROR)
+            raise Exception(e)
+        finally:
+            if l_file:
+                l_file.close()
+
+    def already_reported_today(self) -> bool:
+        try:
+            l_todays_time: datetime = datetime.today()
+            l_breadcrumb_time: datetime = self.__read_breadcrumb(Parser.agent_heartbeat_breadcrumb_filename)
+            l_target_time = l_todays_time - l_breadcrumb_time
+            return (l_target_time.seconds // 60 < Parser.agent_heartbeat_notification_interval_minutes)
+        except ValueError as e:
+            return False
+        except FileNotFoundError as e:
+            return False
+        except Exception as e:
+            self.__mPrinter.print("already_reported_today() - {0}".format(str(e)), Level.ERROR)
+
+    def report_agents_missing_heartbeat(self) -> int:
+        try:
+            l_unresponsive_agents: list = []
+            l_list = self.__get_agents()
+
+            l_now: datetime = datetime.now(timezone.utc)
+            for l_dict in l_list:
+                l_heartbeat_time: datetime = parser.parse(l_dict["Heartbeat"])
+                l_diff = (l_now - l_heartbeat_time)
+                if l_diff.seconds > Parser.agent_heartbeat_too_long_seconds:
+                    l_unresponsive_agents.append(l_dict)
+
+            if l_unresponsive_agents:
+                Printer.print("{} unresponsive agents found".format(len(l_unresponsive_agents)), Level.ERROR)
+
+                if self.already_reported_today():
+                    Printer.print("Already reported in today. Exiting.", Level.ERROR)
+                    return ExitCodes.ALREADY_REPORTED_TODAY.value
+
+                self.__output_agents_to_file(l_unresponsive_agents)
+                self.__create_breadcrumb(Parser.agent_heartbeat_breadcrumb_filename)
+
+                return ExitCodes.EXIT_NORMAL.value
+            else:
+                Printer.print("No unresponsive agents found", Level.SUCCESS)
+                return ExitCodes.NOTHING_TO_REPORT.value
+
+        except Exception as e:
+            self.__mPrinter.print("report_agents_missing_heartbeat() - {0}".format(str(e)), Level.ERROR)
 
     def __print_team_members_csv(self, p_json):
         try:

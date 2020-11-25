@@ -22,3 +22,7 @@ PROXY_PASSWORD = "PROXY PASSWORD HERE"
 VERIFY_HTTPS_CERTIFICATE = True
 
 AUTHENTICATION_SITES = ["login.microsoftonline.com"]
+
+AGENT_HEARTBEAT_TOO_LONG_SECONDS = 600      # How long as agent can fail to check-in before being reported
+AGENT_HEARTBEAT_BREADCRUMB_FILENAME = "agent-heartbeat-report.breadcrumb"
+AGENT_HEARTBEAT_NOTIFICATION_INTERVAL_MINUTES = 1440  # How often to report agents that have not checked in
