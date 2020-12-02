@@ -114,8 +114,8 @@ class PingMethod(Enum):
 
 class ExitCodes(Enum):
     EXIT_NORMAL = 0
-    NOTHING_TO_REPORT = 1001
-    ALREADY_REPORTED_TODAY = 1002
+    NOTHING_TO_REPORT = 4
+    ALREADY_REPORTED_TODAY = 8
 
 
 class API:
@@ -651,10 +651,12 @@ class API:
                     l_agent["Id"]
                 ])
 
+            self.__mPrinter.print("Opening file {} for writing".format(Parser.output_filename), Level.INFO)
             with open(Parser.output_filename, FileMode.WRITE_CREATE.value) as l_file:
                 l_csv_writer = csv.writer(l_file)
                 l_csv_writer.writerow(l_field_names)
                 l_csv_writer.writerows(l_agents)
+            self.__mPrinter.print("Wrote {} agents to file {}".format(len(p_agents), Parser.output_filename), Level.INFO)
 
         except Exception as e:
             self.__mPrinter.print("__output_agents_to_file() - {0}".format(str(e)), Level.ERROR)
@@ -715,25 +717,22 @@ class API:
     def __read_breadcrumb(self, p_filename: str) -> datetime:
         try:
             Printer.print("Reading breadcrumb file {}".format(p_filename), Level.INFO)
-            l_file = open(p_filename, FileMode.READ.value)
-            l_string: str = l_file.read()
-            if l_string:
-                l_time: datetime = datetime.fromtimestamp(int(l_string))
-                return l_time
-            else:
-                raise ValueError("File {} is empty".format(p_filename))
+            with open(p_filename, FileMode.READ.value) as l_file:
+                l_string: str = l_file.read()
+                if l_string:
+                    l_time: datetime = datetime.fromtimestamp(int(l_string))
+                    return l_time
+                else:
+                    raise ValueError("File {} is empty".format(p_filename))
         except FileNotFoundError as e:
-            self.__mPrinter.print("__read_breadcrumb() - {0}".format(str(e)), Level.ERROR)
-            raise FileNotFoundError
+            self.__mPrinter.print("__read_breadcrumb() - File not found {0}".format(str(e)), Level.INFO)
+            raise FileNotFoundError(e)
         except ValueError as e:
             self.__mPrinter.print("__read_breadcrumb() - {0}".format(str(e)), Level.ERROR)
-            raise ValueError
+            raise ValueError(e)
         except Exception as e:
             self.__mPrinter.print("__read_breadcrumb() - {0}".format(str(e)), Level.ERROR)
             raise Exception(e)
-        finally:
-            if l_file:
-                l_file.close()
 
     def already_reported_today(self) -> bool:
         try:
@@ -751,6 +750,11 @@ class API:
     def report_agents_missing_heartbeat(self) -> int:
         try:
             l_unresponsive_agents: list = []
+
+            if self.already_reported_today():
+                Printer.print("Already reported in today. Exiting.", Level.INFO)
+                return ExitCodes.ALREADY_REPORTED_TODAY.value
+
             l_list = self.__get_agents()
 
             l_now: datetime = datetime.now(timezone.utc)
@@ -761,10 +765,10 @@ class API:
                     l_unresponsive_agents.append(l_dict)
 
             if l_unresponsive_agents:
-                Printer.print("{} unresponsive agents found".format(len(l_unresponsive_agents)), Level.ERROR)
+                Printer.print("{} unresponsive agents found".format(len(l_unresponsive_agents)), Level.INFO)
 
                 if self.already_reported_today():
-                    Printer.print("Already reported in today. Exiting.", Level.ERROR)
+                    Printer.print("Already reported in today. Exiting.", Level.INFO)
                     return ExitCodes.ALREADY_REPORTED_TODAY.value
 
                 self.__output_agents_to_file(l_unresponsive_agents)
