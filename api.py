@@ -1237,7 +1237,7 @@ class API:
         return p_status_code == 502
 
     def __is_authentication_site(self, l_domain: str) -> bool:
-        return l_domain in Parser.AUTHENTICATION_SITES
+        return l_domain in Parser.authentication_sites
 
     def __get_websites(self) -> list:
         try:
