@@ -97,6 +97,7 @@ class Parser:
         Parser.authentication_sites = p_config.AUTHENTICATION_SITES
 
         #Reporting Options
+        Parser.unattended = p_args.unattended
         Parser.report_agents_missing_heartbeat = p_args.report_agents_missing_heartbeat
         Parser.agent_heartbeat_too_long_seconds = p_config.AGENT_HEARTBEAT_TOO_LONG_SECONDS
         Parser.agent_heartbeat_breadcrumb_filename = p_config.AGENT_HEARTBEAT_BREADCRUMB_FILENAME

@@ -751,7 +751,7 @@ class API:
         try:
             l_unresponsive_agents: list = []
 
-            if self.already_reported_today():
+            if Parser.unattended and self.already_reported_today():
                 Printer.print("Already reported in today. Exiting.", Level.INFO)
                 return ExitCodes.ALREADY_REPORTED_TODAY.value
 
@@ -763,16 +763,18 @@ class API:
                 l_diff = (l_now - l_heartbeat_time)
                 if l_diff.seconds > Parser.agent_heartbeat_too_long_seconds:
                     l_unresponsive_agents.append(l_dict)
+                    Printer.print("Unresponsive agent found. Current time: {}. Last heartbeat: {}. Difference: {}".format(l_now.strftime('%m-%d-%Y %H:%M'), l_heartbeat_time.strftime('%m-%d-%Y %H:%M'), l_diff), Level.INFO)
 
             if l_unresponsive_agents:
                 Printer.print("{} unresponsive agents found".format(len(l_unresponsive_agents)), Level.INFO)
 
-                if self.already_reported_today():
-                    Printer.print("Already reported in today. Exiting.", Level.INFO)
-                    return ExitCodes.ALREADY_REPORTED_TODAY.value
+                if Parser.output_filename:
+                    self.__output_agents_to_file(l_unresponsive_agents)
+                else:
+                    self.__print_agents_csv(l_unresponsive_agents)
 
-                self.__output_agents_to_file(l_unresponsive_agents)
-                self.__create_breadcrumb(Parser.agent_heartbeat_breadcrumb_filename)
+                if Parser.unattended:
+                    self.__create_breadcrumb(Parser.agent_heartbeat_breadcrumb_filename)
 
                 return ExitCodes.EXIT_NORMAL.value
             else:

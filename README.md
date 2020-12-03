@@ -46,7 +46,9 @@
                             Output filename. Default filename is netsparker.csv output to the current directory
       -os OUTPUT_SEPARATOR, --output-separator OUTPUT_SEPARATOR
                             Output separator for downloaded CSV files. Default is comma. Choices are ['Comma', 'Semicolon', 'Pipe', 'Tab']
-    
+      -un UNATTENDED, --unattended UNATTENDED
+                            Unattended mode. In unattended mode, reporting functions will check for breadcrumb files and only report if the specified time has passed since the last report. The specified time is set in the config.py file.
+
     Account Endpoint:
       -ga, --get-account    Get current user account information and exit
       -gl, --get-license    Get system license information and exit
@@ -95,8 +97,10 @@
                             Read site from file then report status and exit. Requires properly formatted input file: CSV with fields SITE_NAME, SITE_URL. Include input file with -if, --input-filename
 
     Reports:
-      -ramh, --report-agents-missing-heartbeat
-                            Report agents that have not checked in recently and exit. Number of seconds is configurable on config.py. Exit code is non-zero if all agents are checking in. Output filename is required. Specify output filename with -o, --output-format.
+        Reports can be output to a file. Output filename is optional. Otherwise output is sent to standard out (STDOUT). Specify output filename with -o, --output-format. Report functions allows unattended mode. In unattended mode, functions will only produce output if the configured amount of time has passed the time contained in the breadcrumb file. Configure the breadcrumb filename and the amount of time in config.py.
+
+        -ramh, --report-agents-missing-heartbeat
+                        Report agents that have not checked in recently and exit. Number of seconds is configurable on config.py. Exit code is non-zero if all agents are checking in.
                         
 ### Examples
 
@@ -168,5 +172,11 @@
     spider-web --ping-sites-in-file --input-file websites.csv
 
 #### Reports
-    spider-web -ramh -of netsparker.csv
+    spider-web -ramh
+    spider-web --report-agents-missing-heartbeat
+
+    spider-web -ramh --of netsparker.csv
     spider-web --report-agents-missing-heartbeat --output-filename netsparker.csv
+
+    spider-web -ramh --of netsparker.csv --un
+    spider-web --report-agents-missing-heartbeat --output-filename netsparker.csv --unattended

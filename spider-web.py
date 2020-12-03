@@ -9,7 +9,7 @@ from argparse import RawTextHelpFormatter
 import argparse
 
 
-l_version = '0.0.25'
+l_version = '0.0.26'
 
 
 def print_example_usage():
@@ -104,8 +104,12 @@ def print_example_usage():
     ----------------------------------------------------------------
     Reports
     ----------------------------------------------------------------        
+    spider-web -ramh
+    spider-web --report-agents-missing-heartbeat
     spider-web -ramh --of netsparker.csv
     spider-web --report-agents-missing-heartbeat --output-filename netsparker.csv
+    spider-web -ramh --of netsparker.csv --un
+    spider-web --report-agents-missing-heartbeat --output-filename netsparker.csv --unattended
 """)
 
 def run_main_program():
@@ -228,10 +232,6 @@ def run_main_program():
         exit(0)
 
     if Parser.report_agents_missing_heartbeat:
-        if not Parser.output_filename:
-            lArgParser.print_usage()
-            Printer.print("Required argument --output-file not provided", Level.ERROR, Force.FORCE, LINES_BEFORE, LINES_AFTER)
-            exit(0)
         exit(l_api.report_agents_missing_heartbeat())
 
 if __name__ == '__main__':
@@ -297,6 +297,9 @@ if __name__ == '__main__':
                                 default='Comma',
                                 type=str,
                                 action='store')
+    l_universal_endpoint_group.add_argument('-un', '--unattended',
+                                help='Unattended mode. In unattended mode, reporting functions will check for breadcrumb files and only report if the specified time has passed since the last report. The specified time is set in the config.py file.',
+                                action='store_true')
 
     l_account_group = lArgParser.add_argument_group(title="Account Endpoint", description=None)
     l_account_group.add_argument('-ga', '--get-account',
@@ -369,9 +372,9 @@ if __name__ == '__main__':
                                  help='Read site from file then report status and exit. Requires properly formatted input file: CSV with fields SITE_NAME, SITE_URL. Include input file with -if, --input-filename',
                                  action='store_true')
 
-    l_report_group = lArgParser.add_argument_group(title="Reports", description=None)
+    l_report_group = lArgParser.add_argument_group(title="Reports", description="Reports can be output to a file. Output filename is optional. Otherwise output is sent to standard out (STDOUT). Specify output filename with -o, --output-format. Report functions allows unattended mode. In unattended mode, functions will only produce output if the configured amount of time has passed the time contained in the breadcrumb file. Configure the breadcrumb filename and the amount of time in config.py.")
     l_report_group.add_argument('-ramh', '--report-agents-missing-heartbeat',
-                                 help='Report agents that have not checked in recently and exit. Number of seconds is configurable on config.py. Exit code is non-zero if all agents are checking in. Output filename is required. Specify output filename with -o, --output-format.',
+                                 help='Report agents that have not checked in recently and exit. Number of seconds is configurable on config.py. Exit code is non-zero if all agents are checking in.',
                                  action='store_true')
 
     Parser.parse_configuration(p_args=lArgParser.parse_args(), p_config=__config)
