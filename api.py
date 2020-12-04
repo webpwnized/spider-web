@@ -978,7 +978,6 @@ class API:
         return l_json_string
 
     def __parse_website_url(self, p_url: str) -> str:
-        l_url: str = ""
         l_url = p_url.lower()
         if not self.__url_is_valid(l_url):
             raise ValueError('__parse_url(): URL is not valid: {}'.format(l_url))
@@ -1000,15 +999,16 @@ class API:
 
         return l_groups_string
 
-    def __parse_website_name(self, p_name: str) -> str:
-        l_name: str = p_name
-        if not l_name:
-            raise ValueError('Name is blank')
-        return l_name
+    def __parse_website_name(self, p_url: str) -> str:
+        # l_name: str = p_name
+        # if not l_name:
+        #     raise ValueError('Name is blank')
+        # return l_name
+        # Change requested by TS to use domain name as site name instead of HS site name
+        return urlparse(p_url).hostname.lower()
 
     def __upload_websites(self, p_websites: list) -> None:
         # Documentation: https://www.netsparkercloud.com/docs/index#/
-        # PRECONDITION: The website is in at least one website group
         try:
             l_name: str = ""
             l_url: str = ""
@@ -1019,7 +1019,8 @@ class API:
 
             for l_website in p_websites:
                 try:
-                    l_name = self.__parse_website_name(l_website[WebsiteUploadFileFields.NAME.value])
+                    #l_name = self.__parse_website_name(l_website[WebsiteUploadFileFields.NAME.value])
+                    l_name = self.__parse_website_name(l_website[WebsiteUploadFileFields.URL.value])
                     l_url = self.__parse_website_url(l_website[WebsiteUploadFileFields.URL.value])
                     l_groups = l_website[WebsiteUploadFileFields.GROUPS.value]
                     l_agent_mode: str = "Cloud" if "Segment: Externally Vendor Hosted" in l_groups else "Internal"
@@ -1063,10 +1064,11 @@ class API:
                 l_sites: list = []
                 for l_row in l_csv_reader:
                     if l_row:
-                        l_name = l_row[WebsiteUploadFileFields.NAME.value]
-                        l_sites.append((l_name,
-                                           l_row[WebsiteUploadFileFields.URL.value],
-                                           l_row[WebsiteUploadFileFields.GROUPS.value]))
+                        l_sites.append((
+                            l_name,
+                            l_row[WebsiteUploadFileFields.URL.value],
+                            l_row[WebsiteUploadFileFields.GROUPS.value])
+                        )
             return l_sites
         except FileNotFoundError as e:
             self.__mPrinter.print("__parse_website_upload(): Cannot find the input file {0} - {1}".format(Parser.input_filename, str(e)), Level.ERROR)
