@@ -16,6 +16,7 @@ import requests
 import os
 import base64
 import csv
+import pytz
 
 # Disable warning about insecure proxy when proxy enabled
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
@@ -115,7 +116,7 @@ class PingMethod(Enum):
 class ExitCodes(Enum):
     EXIT_NORMAL = 0
     NOTHING_TO_REPORT = 4
-    ALREADY_REPORTED_TODAY = 8
+    ALREADY_REPORTED = 8
 
 
 class API:
@@ -123,6 +124,9 @@ class API:
     # ---------------------------------
     # "Private" class variables
     # ---------------------------------
+    __c_EASTERN_TIMEZONE = pytz.timezone('US/Eastern')
+    __c_DATETIME_FORMAT = '%m-%d-%Y %H:%M'
+
     __cAPI_KEY_HEADER: str = "Authorization"
     __cUSER_AGENT_HEADER: str = "User-Agent"
     __cUSER_AGENT_VALUE: str = "Mozilla/5.0 (Windows NT 6.1; WOW64; rv:64.0) Gecko/20100101 Firefox/64.0"
@@ -703,87 +707,6 @@ class API:
         except Exception as e:
             self.__mPrinter.print("get_agents() - {0}".format(str(e)), Level.ERROR)
 
-    def __create_breadcrumb(self, p_filename: str) -> None:
-        try:
-            Printer.print("Creating breadcrumb file {}".format(p_filename), Level.INFO)
-            l_file = open(p_filename, FileMode.WRITE_CREATE.value)
-            l_file.write(str(int(datetime.now().timestamp())))
-        except Exception as e:
-            self.__mPrinter.print("__create_breadcrumb() - {0}".format(str(e)), Level.ERROR)
-        finally:
-            if l_file:
-                l_file.close()
-
-    def __read_breadcrumb(self, p_filename: str) -> datetime:
-        try:
-            Printer.print("Reading breadcrumb file {}".format(p_filename), Level.INFO)
-            with open(p_filename, FileMode.READ.value) as l_file:
-                l_string: str = l_file.read()
-                if l_string:
-                    l_time: datetime = datetime.fromtimestamp(int(l_string))
-                    return l_time
-                else:
-                    raise ValueError("File {} is empty".format(p_filename))
-        except FileNotFoundError as e:
-            self.__mPrinter.print("__read_breadcrumb() - File not found {0}".format(str(e)), Level.INFO)
-            raise FileNotFoundError(e)
-        except ValueError as e:
-            self.__mPrinter.print("__read_breadcrumb() - {0}".format(str(e)), Level.ERROR)
-            raise ValueError(e)
-        except Exception as e:
-            self.__mPrinter.print("__read_breadcrumb() - {0}".format(str(e)), Level.ERROR)
-            raise Exception(e)
-
-    def already_reported_today(self) -> bool:
-        try:
-            l_todays_time: datetime = datetime.today()
-            l_breadcrumb_time: datetime = self.__read_breadcrumb(Parser.agent_heartbeat_breadcrumb_filename)
-            l_target_time = l_todays_time - l_breadcrumb_time
-            return (l_target_time.seconds // 60 < Parser.agent_heartbeat_notification_interval_minutes)
-        except ValueError as e:
-            return False
-        except FileNotFoundError as e:
-            return False
-        except Exception as e:
-            self.__mPrinter.print("already_reported_today() - {0}".format(str(e)), Level.ERROR)
-
-    def report_agents_missing_heartbeat(self) -> int:
-        try:
-            l_unresponsive_agents: list = []
-
-            if Parser.unattended and self.already_reported_today():
-                Printer.print("Already reported in today. Exiting.", Level.INFO)
-                return ExitCodes.ALREADY_REPORTED_TODAY.value
-
-            l_list = self.__get_agents()
-
-            l_now: datetime = datetime.now(timezone.utc)
-            for l_dict in l_list:
-                l_heartbeat_time: datetime = parser.parse(l_dict["Heartbeat"])
-                l_diff = (l_now - l_heartbeat_time)
-                if l_diff.seconds > Parser.agent_heartbeat_too_long_seconds:
-                    l_unresponsive_agents.append(l_dict)
-                    Printer.print("Unresponsive agent found. Current time: {}. Last heartbeat: {}. Difference: {}".format(l_now.strftime('%m-%d-%Y %H:%M'), l_heartbeat_time.strftime('%m-%d-%Y %H:%M'), l_diff), Level.INFO)
-
-            if l_unresponsive_agents:
-                Printer.print("{} unresponsive agents found".format(len(l_unresponsive_agents)), Level.INFO)
-
-                if Parser.output_filename:
-                    self.__output_agents_to_file(l_unresponsive_agents)
-                else:
-                    self.__print_agents_csv(l_unresponsive_agents)
-
-                if Parser.unattended:
-                    self.__create_breadcrumb(Parser.agent_heartbeat_breadcrumb_filename)
-
-                return ExitCodes.EXIT_NORMAL.value
-            else:
-                Printer.print("No unresponsive agents found", Level.SUCCESS)
-                return ExitCodes.NOTHING_TO_REPORT.value
-
-        except Exception as e:
-            self.__mPrinter.print("report_agents_missing_heartbeat() - {0}".format(str(e)), Level.ERROR)
-
     def __print_team_members_csv(self, p_json):
         try:
             l_list: list = p_json["List"]
@@ -1014,7 +937,7 @@ class API:
             l_url: str = ""
             l_groups: str = ""
 
-            l_output_file = open("{}{}{}{}".format(Parser.input_filename, ".failed.", time.strftime("%Y_%m_%d_%H_%M"), ".csv"), FileMode.WRITE_CREATE.value)
+            l_output_file = open("{}{}{}{}".format(Parser.input_filename, ".failed.", time.strftime(self.__c_DATETIME_FORMAT), ".csv"), FileMode.WRITE_CREATE.value)
             l_csv_writer = csv.writer(l_output_file)
 
             for l_website in p_websites:
@@ -1413,3 +1336,114 @@ class API:
 
         except Exception as e:
             self.__mPrinter.print("ping_sites_in_file() - {0}".format(str(e)), Level.ERROR)
+
+    # ------------------------------------------------------------
+    # Reports
+    # ------------------------------------------------------------
+    def __format_exitcode(self, p_exitcode: ExitCodes) -> str:
+        return "{} ({})".format(p_exitcode.value, p_exitcode.name)
+
+    def __format_datetime(self, p_datetime: datetime) -> str:
+        return "{} EST".format(p_datetime.astimezone(self.__c_EASTERN_TIMEZONE).strftime(self.__c_DATETIME_FORMAT))
+
+    def __create_breadcrumb(self, p_filename: str) -> None:
+        try:
+            Printer.print("Creating breadcrumb file {}".format(p_filename), Level.INFO)
+            l_file = open(p_filename, FileMode.WRITE_CREATE.value)
+            l_file.write(str(int(datetime.now().timestamp())))
+            Printer.print("Created breadcrumb file {}".format(p_filename), Level.INFO)
+        except Exception as e:
+            self.__mPrinter.print("__create_breadcrumb() - {0}".format(str(e)), Level.ERROR)
+        finally:
+            if l_file:
+                l_file.close()
+
+    def __read_breadcrumb(self, p_filename: str) -> datetime:
+        try:
+            Printer.print("Reading breadcrumb file {}".format(p_filename), Level.INFO)
+            with open(p_filename, FileMode.READ.value) as l_file:
+                l_string: str = l_file.read()
+                if l_string:
+                    l_time: datetime = datetime.fromtimestamp(int(l_string))
+                    Printer.print("Timestamp in breadcrumb file {} is {}".format(p_filename, self.__format_datetime(l_time)), Level.INFO)
+                    return l_time
+                else:
+                    raise ValueError("Breadcrumb file {} is empty".format(p_filename))
+            Printer.print("Closing breadcrumb file {}".format(p_filename), Level.INFO)
+        except FileNotFoundError as e:
+            self.__mPrinter.print("__read_breadcrumb() - File not found {0}".format(str(e)), Level.INFO)
+            raise FileNotFoundError(e)
+        except ValueError as e:
+            self.__mPrinter.print("__read_breadcrumb() - {0}".format(str(e)), Level.ERROR)
+            raise ValueError(e)
+        except Exception as e:
+            self.__mPrinter.print("__read_breadcrumb() - {0}".format(str(e)), Level.ERROR)
+            raise Exception(e)
+
+    def __already_reported(self, p_filename: str, p_notification_interval: int) -> bool:
+        try:
+            Printer.print("Checking if issues already reported today", Level.INFO)
+            l_current_time: datetime = datetime.today()
+            l_breadcrumb_time: datetime = self.__read_breadcrumb(p_filename)
+            l_difference = l_current_time - l_breadcrumb_time
+            l_difference_minutes = l_difference.total_seconds() // 60
+            l_already_reported = l_difference_minutes < p_notification_interval
+
+            Printer.print("Current time: {}".format(self.__format_datetime(l_current_time)), Level.INFO)
+            Printer.print("Breadcrumb time: {}".format(self.__format_datetime(l_breadcrumb_time)) ,Level.INFO)
+            Printer.print("Difference: {} minutes".format(l_difference_minutes), Level.INFO)
+            Printer.print("Notification interval: {} minutes".format(p_notification_interval), Level.INFO)
+            Printer.print("Already reported?: {}".format(l_already_reported), Level.INFO)
+
+            return (l_already_reported)
+        except ValueError as e:
+            return False
+        except FileNotFoundError as e:
+            return False
+        except Exception as e:
+            self.__mPrinter.print("__already_reported() - {0}".format(str(e)), Level.ERROR)
+
+    def report_agents_missing_heartbeat(self) -> int:
+        try:
+            l_unresponsive_agents: list = []
+
+            if Parser.unattended and self.__already_reported(Parser.agent_heartbeat_breadcrumb_filename, Parser.agent_heartbeat_notification_interval_minutes):
+                Printer.print("Already reported in today. Exiting with status {}".format(self.__format_exitcode(ExitCodes.ALREADY_REPORTED)), Level.INFO)
+                return ExitCodes.ALREADY_REPORTED.value
+
+            l_list = self.__get_agents()
+
+            l_now: datetime = datetime.now(timezone.utc)
+            for l_dict in l_list:
+                l_heartbeat_time: datetime = parser.parse(l_dict["Heartbeat"])
+                l_diff = (l_now - l_heartbeat_time)
+                if l_diff.seconds > Parser.agent_heartbeat_too_long_seconds:
+                    l_unresponsive_agents.append(l_dict)
+                    Printer.print(
+                        "Unresponsive agent found. Current time: {}. Last heartbeat: {}. Difference: {}. State: {}".format(
+                            l_now.astimezone(self.__c_EASTERN_TIMEZONE).strftime(self.__c_DATETIME_FORMAT),
+                            l_heartbeat_time.astimezone(self.__c_EASTERN_TIMEZONE).strftime(self.__c_DATETIME_FORMAT),
+                            l_diff,
+                            l_dict["State"]
+                        ), Level.INFO)
+
+            if l_unresponsive_agents:
+                Printer.print("{} unresponsive agents found".format(len(l_unresponsive_agents)), Level.INFO)
+
+                if Parser.output_filename:
+                    self.__output_agents_to_file(l_unresponsive_agents)
+                else:
+                    self.__print_agents_csv(l_unresponsive_agents)
+
+                if Parser.unattended:
+                    self.__create_breadcrumb(Parser.agent_heartbeat_breadcrumb_filename)
+
+                Printer.print("Exiting with status code {}".format(self.__format_exitcode(ExitCodes.EXIT_NORMAL.value)), Level.INFO)
+                return ExitCodes.EXIT_NORMAL.value
+            else:
+                Printer.print("No unresponsive agents found", Level.SUCCESS)
+                Printer.print("Exiting with status code {}".format(self.__format_exitcode(ExitCodes.NOTHING_TO_REPORT)), Level.INFO)
+                return ExitCodes.NOTHING_TO_REPORT.value
+
+        except Exception as e:
+            self.__mPrinter.print("report_agents_missing_heartbeat() - {0}".format(str(e)), Level.ERROR)
