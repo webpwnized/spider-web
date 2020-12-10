@@ -17,6 +17,7 @@ import os
 import base64
 import csv
 import pytz
+import sys
 
 # Disable warning about insecure proxy when proxy enabled
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
@@ -626,87 +627,6 @@ class API:
         except Exception as e:
             self.__mPrinter.print("get_license() - {0}".format(str(e)), Level.ERROR)
 
-    def __print_agents_csv(self, p_list):
-        try:
-            print('"Needs Update?", "Name", "IP address", "Status", "Version", "Last Heartbeat", '
-                  '"VDB Version", "Operating System", "Architecture", "ID"')
-            for l_agent in p_list:
-                print('"{}","{}","{}","{}","{}","{}","{}","{}","{}","{}"'.format(
-                    l_agent["IsAgentNeedsUpdate"], l_agent["Name"], l_agent["IpAddress"],
-                    l_agent["State"], l_agent["Version"], l_agent["Heartbeat"],
-                    l_agent["VdbVersion"], l_agent["OsDescription"], l_agent["ProcessArchitecture"],
-                    l_agent["Id"]
-                ))
-        except Exception as e:
-            self.__mPrinter.print("__print_agents_csv() - {0}".format(str(e)), Level.ERROR)
-
-    def __output_agents_to_file(self, p_agents: list):
-        try:
-            l_agents: list = []
-            l_field_names: list = ["Needs Update?", "Name", "IP address", "Status", "Version",
-                                   "Last Heartbeat", "VDB Version", "Operating System", "Architecture",
-                                   "ID"]
-
-            for l_agent in p_agents:
-                l_agents.append([
-                    l_agent["IsAgentNeedsUpdate"], l_agent["Name"], l_agent["IpAddress"],
-                    l_agent["State"], l_agent["Version"], l_agent["Heartbeat"],
-                    l_agent["VdbVersion"], l_agent["OsDescription"], l_agent["ProcessArchitecture"],
-                    l_agent["Id"]
-                ])
-
-            self.__mPrinter.print("Opening file {} for writing".format(Parser.output_filename), Level.INFO)
-            with open(Parser.output_filename, FileMode.WRITE_CREATE.value) as l_file:
-                l_csv_writer = csv.writer(l_file)
-                l_csv_writer.writerow(l_field_names)
-                l_csv_writer.writerows(l_agents)
-            self.__mPrinter.print("Wrote {} agents to file {}".format(len(p_agents), Parser.output_filename), Level.INFO)
-
-        except Exception as e:
-            self.__mPrinter.print("__output_agents_to_file() - {0}".format(str(e)), Level.ERROR)
-
-    def __get_agents(self) -> list:
-        try:
-            self.__mPrinter.print("Fetching agent information", Level.INFO)
-
-            l_base_url = "{0}?page={1}&pageSize={2}".format(
-                self.__cAGENTS_LIST_URL,
-                Parser.page_number, Parser.page_size
-            )
-            l_http_response = self.__connect_to_api(p_url=l_base_url)
-
-            self.__mPrinter.print("Fetched agent information", Level.SUCCESS)
-            self.__mPrinter.print("Parsing agent information", Level.INFO)
-            l_json = json.loads(l_http_response.text)
-            l_number_sites: int = l_json["TotalItemCount"]
-            self.__mPrinter.print("Found {} agent".format(l_number_sites), Level.INFO)
-
-            l_list: list = l_json["List"]
-
-            l_next_page = l_json["HasNextPage"]
-            if l_next_page:
-                l_list.extend(self.__get_next_page(l_base_url, l_json))
-
-            self.__mPrinter.print("Fetched agent information", Level.INFO)
-
-            return l_list
-
-        except Exception as e:
-            self.__mPrinter.print("__get_agents() - {0}".format(str(e)), Level.ERROR)
-
-    def get_agents(self) -> None:
-        try:
-            l_list = self.__get_agents()
-
-            if self.__m_output_format == OutputFormat.JSON.value:
-                for l_dict in l_list:
-                    print(l_dict)
-            elif self.__m_output_format == OutputFormat.CSV.value:
-                self.__print_agents_csv(l_list)
-
-        except Exception as e:
-            self.__mPrinter.print("get_agents() - {0}".format(str(e)), Level.ERROR)
-
     def __print_team_members_csv(self, p_json):
         try:
             l_list: list = p_json["List"]
@@ -1142,34 +1062,6 @@ class API:
         except Exception as e:
             self.__mPrinter.print("__print_websites_csv() - {0}".format(str(e)), Level.ERROR)
 
-    def get_websites(self) -> None:
-        try:
-            l_list: list = self.__get_websites()
-
-            if self.__m_output_format == OutputFormat.JSON.value:
-                for l_dict in l_list:
-                    print(l_dict)
-            elif self.__m_output_format == OutputFormat.CSV.value:
-                self.__print_websites_csv(l_list)
-
-        except Exception as e:
-            self.__mPrinter.print("get_websites() - {0}".format(str(e)), Level.ERROR)
-
-    def __web_server_is_up(self, p_status_code: int) -> bool:
-        return str(p_status_code)[0] in ["1", "2", "3", "4"]
-
-    def __web_server_is_redirecting(self, p_status_code: int) -> bool:
-        return str(p_status_code)[0] in ["3"]
-
-    def __web_server_is_down(self, p_status_code: int) -> bool:
-        return str(p_status_code)[0] in ["5"]
-
-    def __cannot_resolve_URL(self, p_status_code: int) -> bool:
-        return p_status_code == 502
-
-    def __is_authentication_site(self, l_domain: str) -> bool:
-        return l_domain in Parser.authentication_sites
-
     def __get_websites(self) -> list:
         try:
             self.__mPrinter.print("Fetching website information", Level.INFO)
@@ -1198,6 +1090,34 @@ class API:
 
         except Exception as e:
             self.__mPrinter.print("__get_websites() - {0}".format(str(e)), Level.ERROR)
+
+    def get_websites(self) -> None:
+        try:
+            l_list: list = self.__get_websites()
+
+            if self.__m_output_format == OutputFormat.JSON.value:
+                for l_dict in l_list:
+                    print(l_dict)
+            elif self.__m_output_format == OutputFormat.CSV.value:
+                self.__print_websites_csv(l_list)
+
+        except Exception as e:
+            self.__mPrinter.print("get_websites() - {0}".format(str(e)), Level.ERROR)
+
+    def __web_server_is_up(self, p_status_code: int) -> bool:
+        return str(p_status_code)[0] in ["1", "2", "3", "4"]
+
+    def __web_server_is_redirecting(self, p_status_code: int) -> bool:
+        return str(p_status_code)[0] in ["3"]
+
+    def __web_server_is_down(self, p_status_code: int) -> bool:
+        return str(p_status_code)[0] in ["5"]
+
+    def __cannot_resolve_URL(self, p_status_code: int) -> bool:
+        return p_status_code == 502
+
+    def __is_authentication_site(self, l_domain: str) -> bool:
+        return l_domain in Parser.authentication_sites
 
     def __ping_url(self, p_url:str, p_method: int):
 
@@ -1338,7 +1258,96 @@ class API:
             self.__mPrinter.print("ping_sites_in_file() - {0}".format(str(e)), Level.ERROR)
 
     # ------------------------------------------------------------
-    # Reports
+    # Agents Methods
+    # ------------------------------------------------------------
+    def __write_csv(self, p_file, p_header: list, p_data: list) -> None:
+        try:
+            self.__mPrinter.print("Writing {} rows to {}".format(len(p_data), p_file), Level.INFO)
+            l_csv_writer = csv.writer(p_file)
+            l_csv_writer.writerow(p_header)
+            l_csv_writer.writerows(p_data)
+        except Exception as e:
+            self.__mPrinter.print("__write_csv() - {0}".format(str(e)), Level.ERROR)
+
+    def __get_agents_header(self) -> list:
+        return ["Needs Update?", "Name", "IP address", "Status", "Version", "Last Heartbeat",
+                "VDB Version", "Operating System", "Architecture", "ID"]
+
+    def __print_agents_csv(self, p_agents):
+        try:
+            self.__write_csv(sys.stdout, self.__get_agents_header(), p_agents)
+        except Exception as e:
+            self.__mPrinter.print("__print_agents_csv() - {0}".format(str(e)), Level.ERROR)
+
+    def __output_agents_to_csv_file(self, p_agents: list):
+        try:
+            self.__mPrinter.print("Opening file {} for writing".format(Parser.output_filename), Level.INFO)
+            with open(Parser.output_filename, FileMode.WRITE_CREATE.value) as l_file:
+                self.__write_csv(l_file, self.__get_agents_header(), p_agents)
+            self.__mPrinter.print("Wrote {} agents to file {}".format(len(p_agents), Parser.output_filename),
+                                  Level.INFO)
+        except Exception as e:
+            self.__mPrinter.print("__output_agents_to_file() - {0}".format(str(e)), Level.ERROR)
+
+    def __parse_agents_json_to_csv(self, l_list: list) -> list:
+        try:
+            l_agents: list = []
+            for l_agent in l_list:
+                l_agents.append([
+                    l_agent["IsAgentNeedsUpdate"], l_agent["Name"], l_agent["IpAddress"],
+                    l_agent["State"], l_agent["Version"], l_agent["Heartbeat"],
+                    l_agent["VdbVersion"], l_agent["OsDescription"], l_agent["ProcessArchitecture"],
+                    l_agent["Id"]
+                ])
+            return l_agents
+        except Exception as e:
+            self.__mPrinter.print("__parse_agents_json_to_csv() - {0}".format(str(e)), Level.ERROR)
+
+    def __get_agents(self) -> list:
+        try:
+            self.__mPrinter.print("Fetching agent information", Level.INFO)
+
+            l_base_url = "{0}?page={1}&pageSize={2}".format(
+                self.__cAGENTS_LIST_URL,
+                Parser.page_number, Parser.page_size
+            )
+            l_http_response = self.__connect_to_api(p_url=l_base_url)
+
+            self.__mPrinter.print("Fetched agent information", Level.SUCCESS)
+            self.__mPrinter.print("Parsing agent information", Level.INFO)
+            l_json = json.loads(l_http_response.text)
+            l_number_sites: int = l_json["TotalItemCount"]
+            self.__mPrinter.print("Found {} agent".format(l_number_sites), Level.INFO)
+
+            l_list: list = l_json["List"]
+
+            l_next_page = l_json["HasNextPage"]
+            if l_next_page:
+                l_list.extend(self.__get_next_page(l_base_url, l_json))
+
+            self.__mPrinter.print("Fetched agent information", Level.INFO)
+
+            return l_list
+
+        except Exception as e:
+            self.__mPrinter.print("__get_agents() - {0}".format(str(e)), Level.ERROR)
+
+    def get_agents(self) -> None:
+        try:
+            l_list = self.__get_agents()
+
+            if self.__m_output_format == OutputFormat.JSON.value:
+                for l_dict in l_list:
+                    print(l_dict)
+            elif self.__m_output_format == OutputFormat.CSV.value:
+                l_agents: list = self.__parse_agents_json_to_csv(l_list)
+                self.__print_agents_csv(l_agents)
+
+        except Exception as e:
+            self.__mPrinter.print("get_agents() - {0}".format(str(e)), Level.ERROR)
+
+    # ------------------------------------------------------------
+    # Report Helper Methods
     # ------------------------------------------------------------
     def __format_exitcode(self, p_exitcode: ExitCodes) -> str:
         return "{} ({})".format(p_exitcode.value, p_exitcode.name)
@@ -1403,6 +1412,9 @@ class API:
         except Exception as e:
             self.__mPrinter.print("__already_reported() - {0}".format(str(e)), Level.ERROR)
 
+    # ------------------------------------------------------------
+    # Report Methods
+    # ------------------------------------------------------------
     def report_agents_missing_heartbeat(self) -> int:
         try:
             l_unresponsive_agents: list = []
@@ -1421,8 +1433,8 @@ class API:
                     l_unresponsive_agents.append(l_dict)
                     Printer.print(
                         "Unresponsive agent found. Current time: {}. Last heartbeat: {}. Difference: {}. State: {}".format(
-                            l_now.astimezone(self.__c_EASTERN_TIMEZONE).strftime(self.__c_DATETIME_FORMAT),
-                            l_heartbeat_time.astimezone(self.__c_EASTERN_TIMEZONE).strftime(self.__c_DATETIME_FORMAT),
+                            self.__format_datetime(l_now),
+                            self.__format_datetime(l_heartbeat_time),
                             l_diff,
                             l_dict["State"]
                         ), Level.INFO)
@@ -1430,15 +1442,16 @@ class API:
             if l_unresponsive_agents:
                 Printer.print("{} unresponsive agents found".format(len(l_unresponsive_agents)), Level.INFO)
 
+                l_agents: list = self.__parse_agents_json_to_csv(l_unresponsive_agents)
                 if Parser.output_filename:
-                    self.__output_agents_to_file(l_unresponsive_agents)
+                    self.__output_agents_to_csv_file(l_agents)
                 else:
-                    self.__print_agents_csv(l_unresponsive_agents)
+                    self.__print_agents_csv(l_agents)
 
                 if Parser.unattended:
                     self.__create_breadcrumb(Parser.agent_heartbeat_breadcrumb_filename)
 
-                Printer.print("Exiting with status code {}".format(self.__format_exitcode(ExitCodes.EXIT_NORMAL.value)), Level.INFO)
+                Printer.print("Exiting with status code {}".format(self.__format_exitcode(ExitCodes.EXIT_NORMAL)), Level.INFO)
                 return ExitCodes.EXIT_NORMAL.value
             else:
                 Printer.print("No unresponsive agents found", Level.SUCCESS)
