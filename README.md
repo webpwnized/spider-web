@@ -43,7 +43,7 @@
       -if INPUT_FILENAME, --input-filename INPUT_FILENAME
                             Input filename. File must be propely formatted.
       -of OUTPUT_FILENAME, --output-filename OUTPUT_FILENAME
-                            Output filename. Default filename is netsparker.csv output to the current directory
+                            Output filename. For methods that support output files, the method will output to the filename if -of, --output-filename if present.
       -os OUTPUT_SEPARATOR, --output-separator OUTPUT_SEPARATOR
                             Output separator for downloaded CSV files. Default is comma. Choices are ['Comma', 'Semicolon', 'Pipe', 'Tab']
       -un UNATTENDED, --unattended UNATTENDED
@@ -140,7 +140,7 @@
     spider-web -tmgtm -pn 1 -ps 200
     spider-web --get-team-members --page-number 1 --page-size 200
 
-#### Get Website Information
+#### Website Information
     spider-web -wgw -pn 1 -ps 200
     spider-web --get-websites --page-number 1 --page-size 200
 

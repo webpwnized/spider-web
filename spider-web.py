@@ -9,7 +9,7 @@ from argparse import RawTextHelpFormatter
 import argparse
 
 
-l_version = '0.0.29'
+l_version = '0.0.30'
 
 
 def print_example_usage():
@@ -63,7 +63,7 @@ def print_example_usage():
     spider-web --get-team-members --page-number 1 --page-size 200
 
     --------------------------------
-    Get Website Information
+    Website Information
     --------------------------------
     spider-web -wgw -pn 1 -ps 200
     spider-web --get-websites --page-number 1 --page-size 200
@@ -106,8 +106,10 @@ def print_example_usage():
     ----------------------------------------------------------------        
     spider-web -ramh
     spider-web --report-agents-missing-heartbeat
+    
     spider-web -ramh --of netsparker.csv
     spider-web --report-agents-missing-heartbeat --output-filename netsparker.csv
+    
     spider-web -ramh --of netsparker.csv --un
     spider-web --report-agents-missing-heartbeat --output-filename netsparker.csv --unattended
 """)
@@ -289,7 +291,7 @@ if __name__ == '__main__':
                                 type=str,
                                 action='store')
     l_universal_endpoint_group.add_argument('-of', '--output-filename',
-                                help='Output filename. Default filename is netsparker.csv output to the current directory',
+                                help='Output filename. For methods that support output files, the method will output to the filename if -of, --output-filename if present.',
                                 type=str,
                                 action='store')
     l_universal_endpoint_group.add_argument('-os', '--output-separator',
