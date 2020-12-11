@@ -9,7 +9,7 @@ from argparse import RawTextHelpFormatter
 import argparse
 
 
-l_version = '0.0.30'
+l_version = '0.0.31'
 
 
 def print_example_usage():
@@ -67,6 +67,9 @@ def print_example_usage():
     --------------------------------
     spider-web -wgw -pn 1 -ps 200
     spider-web --get-websites --page-number 1 --page-size 200
+
+    spider-web -wgw -pn 1 -ps 200 -of websites.csv
+    spider-web --get-websites --page-number 1 --page-size 200 --output-file websites.csv
 
     spider-web -wupw -if groups.csv
     spider-web --upload-websites --input-file websites.csv

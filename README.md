@@ -17,9 +17,9 @@
 
 ### Usage
 
-    usage: spider-web [-h] [-v] [-d] [-o {JSON,CSV}] [-e] [-u] [-t] [-pn PAGE_NUMBER] [-ps PAGE_SIZE] [-if INPUT_FILENAME]
-                      [-of OUTPUT_FILENAME] [-os OUTPUT_SEPARATOR] [-ga] [-gl] [-aga] [-dsgds] [-dsdds] [-tmgtm] [-wgw] [-wupw] [-wggwg]
-                      [-wgupwg] [-vgvtemps] [-vgvtemp] [-vgvtypes] [-rpi REPORT_POLICY_ID] [-vt VULNERABILITY_TYPE]
+    usage: spider-web [-h] [-v] [-d] [-o {JSON,CSV}] [-e] [-u] [-t] [-pn PAGE_NUMBER] [-ps PAGE_SIZE] [-if INPUT_FILENAME] [-of OUTPUT_FILENAME]
+                      [-os OUTPUT_SEPARATOR] [-un] [-ga] [-gl] [-aga] [-dsgds] [-dsdds] [-tmgtm] [-wgw] [-wupw] [-wggwg] [-wgupwg] [-vgvtemps]
+                      [-vgvtemp] [-vgvtypes] [-rpi REPORT_POLICY_ID] [-vt VULNERABILITY_TYPE] [-auxps] [-auxpsif] [-ramh]
 
 ### Options
 
@@ -143,6 +143,9 @@
 #### Website Information
     spider-web -wgw -pn 1 -ps 200
     spider-web --get-websites --page-number 1 --page-size 200
+
+    spider-web -wgw -pn 1 -ps 200 -of websites.csv
+    spider-web --get-websites --page-number 1 --page-size 200 --output-file websites.csv
 
     spider-web -wupw -if groups.csv
     spider-web --upload-websites --input-file websites.csv
