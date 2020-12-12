@@ -417,7 +417,7 @@ class API:
         except Exception as e:
             self.__mPrinter.print("__connect_to_api() - {0}".format(str(e)), Level.ERROR)
 
-    def __call_api(self, p_url: str, p_headers: dict, p_method: str=HTTPMethod.GET.value, p_data: str=None, p_json: str=None):
+    def __call_api(self, p_url: str, p_headers: dict, p_method: str=HTTPMethod.GET.value, p_data: str=None, p_json: str=None) -> requests.Response:
         l_proxies: dict = {}
         try:
             if self.__m_use_proxy:
@@ -452,7 +452,7 @@ class API:
         except Exception as e:
             self.__mPrinter.print("__call_api() - {0}".format(str(e)), Level.ERROR)
 
-    def __get_proxies(self):
+    def __get_proxies(self) -> dict:
         try:
             # If proxy in use, create proxy URL in the format of http://user:password@example.com:port
             # Otherwise, return empty dictionary
@@ -480,17 +480,19 @@ class API:
         except Exception as e:
             self.__mPrinter.print("__get_proxies() - {0}".format(str(e)), Level.ERROR)
 
-    def __get_filename_from_content_disposition(self, l_http_response):
+    def __get_filename_from_content_disposition(self, l_http_response) -> str:
+        try:
+            l_content_disposition = l_http_response.headers.get('content-disposition')
+            if not l_content_disposition:
+                return None
+            l_filename = re.findall('filename=(.+)', l_content_disposition)
+            if not l_filename:
+                return None
+            return l_filename[0]
+        except Exception as e:
+            self.__mPrinter.print("__get_filename_from_content_disposition() - {0}".format(str(e)), Level.ERROR)
 
-        l_content_disposition = l_http_response.headers.get('content-disposition')
-        if not l_content_disposition:
-            return None
-        l_filename = re.findall('filename=(.+)', l_content_disposition)
-        if not l_filename:
-            return None
-        return l_filename[0]
-
-    def __print_json(self, p_json):
+    def __print_json(self, p_json) -> None:
         try:
             for l_dict in p_json["List"]:
                 print(l_dict)
@@ -538,18 +540,22 @@ class API:
             self.__mPrinter.print("__get_next_page() - {0}".format(str(e)), Level.ERROR)
 
     def __url_is_valid(self, p_url: str) -> bool:
-        l_url_pattern = re.compile(
-            r'^(?:http)s?://'  # http:// or https://
-            r'(?:(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+(?:[A-Z]{2,6}\.?|[A-Z0-9-]{2,}\.?)|'  # domain...
-            r'localhost|'  # localhost...
-            r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})'  # ...or ip
-            r'(?::\d+)?'  # optional port
-            r'(?:/?|[/?]\S+)$', re.IGNORECASE)
-        return re.match(l_url_pattern, p_url)
+        try:
+            l_url_pattern = re.compile(
+                r'^(?:http)s?://'  # http:// or https://
+                r'(?:(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+(?:[A-Z]{2,6}\.?|[A-Z0-9-]{2,}\.?))'  # domain...
+                r'(?::\d+)?'  # optional port
+                r'(?:/?|[/?]\S+)$', re.IGNORECASE)
+            return re.match(l_url_pattern, p_url)
+        except Exception as e:
+            self.__mPrinter.print("__url_is_valid() - {0}".format(str(e)), Level.ERROR)
 
     def __url_is_secure(self, p_url: str) -> bool:
-        l_https_pattern = re.compile(r'^https://', re.IGNORECASE)
-        return re.match(l_https_pattern, p_url)
+        try:
+            l_https_pattern = re.compile(r'^https://', re.IGNORECASE)
+            return re.match(l_https_pattern, p_url)
+        except Exception as e:
+            self.__mPrinter.print("__url_is_secure() - {0}".format(str(e)), Level.ERROR)
 
     # ---------------------------------
     # public instance methods
@@ -561,7 +567,7 @@ class API:
             if not self.verbose:
                 self.__mPrinter.print("Connected to API", Level.SUCCESS, True)
         except Exception as e:
-            self.__mPrinter.print("Connection test failed. Unable to connect to API. {0}".format(str(e)), Level.ERROR)
+            self.__mPrinter.print("test_connectivity() - Connection test failed. Unable to connect to API. {0}".format(str(e)), Level.ERROR)
 
     # ------------------------------------------------------------
     # Common Methods
@@ -603,7 +609,7 @@ class API:
             return l_json
 
         except Exception as e:
-            self.__mPrinter.print("__get_paged_data() - {0}".format(str(e)), Level.ERROR)
+            self.__mPrinter.print("__get_unpaged_data() - {0}".format(str(e)), Level.ERROR)
 
     def __get_paged_data(self, p_url: str, p_endpoint_name: str) -> list:
         try:
@@ -636,10 +642,10 @@ class API:
     def __get_account_header(self) -> list:
         return ["Name", "Email", "Time Zone"]
 
-    def __parse_account_json_to_csv(self, p_list: list) -> list:
+    def __parse_account_json_to_csv(self, p_json: list) -> list:
         try:
             l_account: list = []
-            l_account.append([p_list["DisplayName"], p_list["Email"], p_list["TimeZoneInfo"]])
+            l_account.append([p_json["DisplayName"], p_json["Email"], p_json["TimeZoneInfo"]])
             return l_account
         except Exception as e:
             self.__mPrinter.print("__parse_account_json_to_csv() - {0}".format(str(e)), Level.ERROR)
@@ -674,38 +680,59 @@ class API:
     # ------------------------------------------------------------
     # License Methods
     # ------------------------------------------------------------
-    def get_license(self) -> None:
+    def __get_license_header(self) -> list:
+        return ["Site Count", "Site Limit", "Percent Used", "Start Date",
+                "End Date", "Whitelisted", "License Type", "Remaining Days", "Status"]
+
+    def __parse_license_json_to_csv(self, p_json: list) -> list:
         TWO_DECIMAL_PLACES:int = 2
 
         try:
-            self.__mPrinter.print("Fetching license information", Level.INFO)
-            l_http_response = self.__connect_to_api(self.__cACCOUNT_LICENSE_URL)
-            self.__mPrinter.print("Fetched license information", Level.SUCCESS)
-            self.__mPrinter.print("Parsing license information", Level.INFO)
-            l_json = json.loads(l_http_response.text)
+            l_license: list = []
+
+            l_site_count: str = p_json["SubscriptionSiteCount"]
+            l_site_limit: str = p_json["SubscriptionMaximumSiteLimit"]
+            l_percent_sites_used: float = round(l_site_count / l_site_limit,
+                                                TWO_DECIMAL_PLACES) if l_site_limit != 0 else 0.0
+            l_license_start_date: str = p_json["SubscriptionStartDate"]
+            l_license_end_date: str = p_json["SubscriptionEndDate"]
+            l_whitelisted: list = p_json["IsAccountWhitelisted"]
+
+            l_license_type: list = p_json["Licenses"][0]["ProductDefinition"]
+            l_license_remaining_days: list = p_json["Licenses"][0]["ValidForDays"]
+            l_license_status: list = p_json["Licenses"][0]["IsActive"]
+
+            l_license.append([l_site_count, l_site_limit, l_percent_sites_used, l_license_start_date,
+                l_license_end_date, l_whitelisted, l_license_type, l_license_remaining_days,
+                l_license_status])
+
+            return l_license
+        except Exception as e:
+            self.__mPrinter.print("__parse_license_json_to_csv() - {0}".format(str(e)), Level.ERROR)
+
+    def __print_license_csv(self, p_license):
+        try:
+            l_header: list = self.__get_license_header()
+            l_license: list = self.__parse_license_json_to_csv(p_license)
+
+            self.__write_csv(l_header, l_license)
+        except Exception as e:
+            self.__mPrinter.print("__print_license_csv() - {0}".format(str(e)), Level.ERROR)
+
+    def __get_license(self) -> list:
+        try:
+            return self.__get_unpaged_data(self.__cACCOUNT_LICENSE_URL, "license")
+        except Exception as e:
+            self.__mPrinter.print("__get_license() - {0}".format(str(e)), Level.ERROR)
+
+    def get_license(self) -> None:
+        try:
+            l_json: list = self.__get_license()
 
             if self.__m_output_format == OutputFormat.JSON.value:
                 print(l_json)
-
             elif self.__m_output_format == OutputFormat.CSV.value:
-                l_site_count: str = l_json["SubscriptionSiteCount"]
-                l_site_limit: str = l_json["SubscriptionMaximumSiteLimit"]
-                l_percent_sites_used: float = round(l_site_count / l_site_limit, TWO_DECIMAL_PLACES) if l_site_limit != 0 else 0.0
-                l_license_start_date: str = l_json["SubscriptionStartDate"]
-                l_license_end_date: str = l_json["SubscriptionEndDate"]
-                l_whitelisted: list = l_json["IsAccountWhitelisted"]
-
-                l_license_type: list = l_json["Licenses"][0]["ProductDefinition"]
-                l_license_remaining_days: list = l_json["Licenses"][0]["ValidForDays"]
-                l_license_status: list = l_json["Licenses"][0]["IsActive"]
-
-                print("Site Count, Site Limit, Percent Used, Start Date, "
-                      "End Date, Whitelisted, License Type, Remaining Days, Status")
-                print("{},{},{},{},{},{},{},{},{}".format(
-                    l_site_count, l_site_limit, l_percent_sites_used, l_license_start_date,
-                    l_license_end_date, l_whitelisted, l_license_type, l_license_remaining_days,
-                    l_license_status
-                ))
+                self.__print_license_csv(l_json)
 
         except Exception as e:
             self.__mPrinter.print("get_license() - {0}".format(str(e)), Level.ERROR)
@@ -713,50 +740,53 @@ class API:
     # ------------------------------------------------------------
     # Team Member Methods
     # ------------------------------------------------------------
-    def __print_team_members_csv(self, p_json):
+    def __get_team_members_header(self) -> list:
+        return ["Name", "Email", "Enabled?", "Manage Apps?", "Manage Issues?", "Manage Issues (Restricted)?",
+                "Manage Team?", "Manage Websites?", "Start Scan?", "View Reports?", "API Access?", "2FA?",
+                "Groups"]
+
+    def __parse_team_members_json_to_csv(self, p_json: list) -> list:
         try:
-            l_list: list = p_json["List"]
-            for l_user in l_list:
+            l_team_members: list = []
+            for l_user in p_json:
                 l_groups: str = ",".join(l_user["SelectedGroups"])
-                print("{},{},{},{},{},{},{},{},{},{},{},{},{}".format(
-                    l_user["Name"], l_user["Email"], l_user["UserState"],
-                    l_user["CanManageApplication"], l_user["CanManageIssues"], l_user["CanManageIssuesAsRestricted"],
-                    l_user["CanManageTeam"], l_user["CanManageWebsites"], l_user["CanStartScan"],
-                    l_user["CanViewScanReports"], l_user["IsApiAccessEnabled"],
-                    l_user["IsTwoFactorAuthenticationEnabled"],
-                    l_groups
-                ))
+                l_team_members.append([l_user["Name"], l_user["Email"], l_user["UserState"],
+                        l_user["CanManageApplication"], l_user["CanManageIssues"], l_user["CanManageIssuesAsRestricted"],
+                        l_user["CanManageTeam"], l_user["CanManageWebsites"], l_user["CanStartScan"],
+                        l_user["CanViewScanReports"], l_user["IsApiAccessEnabled"],
+                        l_user["IsTwoFactorAuthenticationEnabled"],
+                        l_groups])
+            return l_team_members
+        except Exception as e:
+            self.__mPrinter.print("__parse_team_members_json_to_csv() - {0}".format(str(e)), Level.ERROR)
+
+    def __print_team_members_csv(self, p_json) -> None:
+        try:
+            l_header: list = self.__get_team_members_header()
+            l_team_members: list = self.__parse_team_members_json_to_csv(p_json)
+
+            self.__write_csv(l_header, l_team_members)
         except Exception as e:
             self.__mPrinter.print("__print_team_members_csv() - {0}".format(str(e)), Level.ERROR)
 
-    def get_team_members(self) -> None:
+    def __get_team_members(self) -> list:
         try:
-            self.__mPrinter.print("Fetching team member information", Level.INFO)
-
             l_base_url = "{0}?page={1}&pageSize={2}".format(
                 self.__cTEAM_MEMBER_LIST_URL,
                 Parser.page_number, Parser.page_size
             )
-            l_http_response = self.__connect_to_api(l_base_url)
+            return self.__get_paged_data(l_base_url, "team members")
+        except Exception as e:
+            self.__mPrinter.print("__get_team_members() - {0}".format(str(e)), Level.ERROR)
 
-            self.__mPrinter.print("Fetched team member information", Level.SUCCESS)
-            self.__mPrinter.print("Parsing team member information", Level.INFO)
-            l_json = json.loads(l_http_response.text)
-            l_number_agents: int = l_json["TotalItemCount"]
-            self.__mPrinter.print("Found {} team members".format(l_number_agents), Level.INFO)
+    def get_team_members(self) -> None:
+        try:
+            l_json: list = self.__get_team_members()
 
             if self.__m_output_format == OutputFormat.JSON.value:
-                self.__print_json(l_json)
-
+                print(l_json)
             elif self.__m_output_format == OutputFormat.CSV.value:
-                print("Name, Email, Enabled?, Manage Apps?, Manage Issues?, Manage Issues (Restricted)?, "
-                      "Manage Team?, Manage Websites?, Start Scan?, View Reports?, API Access?, 2FA?, "
-                      "Groups")
                 self.__print_team_members_csv(l_json)
-
-            l_next_page = l_json["HasNextPage"]
-            if l_next_page:
-                self.__print_next_page(l_base_url, l_json, self.__print_team_members_csv)
 
         except Exception as e:
             self.__mPrinter.print("get_team_members() - {0}".format(str(e)), Level.ERROR)
@@ -764,41 +794,45 @@ class API:
     # ------------------------------------------------------------
     # Web Site Groups Methods
     # ------------------------------------------------------------
+    def __get_website_groups_header(self) -> list:
+        return ["Name", "Number Websites"]
+
+    def __parse_website_groups_json_to_csv(self, p_json: list) -> list:
+        try:
+            l_website_groups: list = []
+            for l_website_group in p_json:
+                l_website_groups.append([l_website_group["Name"], l_website_group["TotalWebsites"]])
+            return l_website_groups
+        except Exception as e:
+            self.__mPrinter.print("__parse_website_groups_json_to_csv() - {0}".format(str(e)), Level.ERROR)
+
     def __print_website_groups_csv(self, p_json):
         try:
-            l_list: list = p_json["List"]
-            for l_group in l_list:
-                print("{},{}".format(
-                    l_group["Name"], l_group["TotalWebsites"]
-                ))
+            l_header: list = self.__get_team_members_header()
+            l_website_groups: list = self.__parse_website_groups_json_to_csv(p_json)
+
+            self.__write_csv(l_header, l_website_groups)
         except Exception as e:
             self.__mPrinter.print("__print_website_groups_csv() - {0}".format(str(e)), Level.ERROR)
 
-    def get_website_groups(self) -> None:
+    def __get_website_groups(self) -> list:
         try:
-            self.__mPrinter.print("Fetching website groups information", Level.INFO)
-
             l_base_url = "{0}?page={1}&pageSize={2}".format(
                 self.__cWEBSITE_GROUPS_LIST_URL,
                 Parser.page_number, Parser.page_size
             )
-            l_http_response = self.__connect_to_api(p_url=l_base_url)
+            return self.__get_paged_data(l_base_url, "website groups")
+        except Exception as e:
+            self.__mPrinter.print("__get_website_groups() - {0}".format(str(e)), Level.ERROR)
 
-            self.__mPrinter.print("Fetched website groups information", Level.SUCCESS)
-            self.__mPrinter.print("Parsing website groups information", Level.INFO)
-            l_json = json.loads(l_http_response.text)
-            l_number_groups: int = l_json["TotalItemCount"]
-            self.__mPrinter.print("Found {} website groups".format(l_number_groups), Level.INFO)
+    def get_website_groups(self) -> None:
+        try:
+            l_json: list = self.__get_website_groups()
 
             if self.__m_output_format == OutputFormat.JSON.value:
-                self.__print_json(l_json)
+                print(l_json)
             elif self.__m_output_format == OutputFormat.CSV.value:
-                print("Name, Number Websites")
                 self.__print_website_groups_csv(l_json)
-
-            l_next_page = l_json["HasNextPage"]
-            if l_next_page:
-                self.__print_next_page(l_base_url, l_json, self.__print_website_groups_csv)
 
         except Exception as e:
             self.__mPrinter.print("get_website_groups() - {0}".format(str(e)), Level.ERROR)
@@ -818,37 +852,31 @@ class API:
         except Exception as e:
             self.__mPrinter.print("upload_website_groups() - {0}".format(str(e)), Level.ERROR)
 
+    # ------------------------------------------------------------
+    # Discovered Services Methods
+    # ------------------------------------------------------------
+    def __get_discovered_services(self) -> list:
+        try:
+            l_base_url = "{0}?page={1}&pageSize={2}".format(
+                self.__cDISCOVERED_SERVICES_LIST_URL, Parser.page_number, Parser.page_size)
+            return self.__get_paged_data(l_base_url, "discovered services")
+        except Exception as e:
+            self.__mPrinter.print("__get_discovered_services() - {0}".format(str(e)), Level.ERROR)
+
     def get_discovered_services(self) -> None:
         try:
-            self.__mPrinter.print("Fetching discovered services information", Level.INFO)
-            self.output_format = OutputFormat.JSON.value
-
-            l_base_url = "{0}?page={1}&pageSize={2}".format(self.__cDISCOVERED_SERVICES_LIST_URL, Parser.page_number, Parser.page_size)
-            l_http_response = self.__connect_to_api(l_base_url)
-
-            self.__mPrinter.print("Fetched discovered services information", Level.SUCCESS)
-            self.__mPrinter.print("Parsing discovered services information", Level.INFO)
-            l_json = json.loads(l_http_response.text)
-            l_number_agents: int = l_json["TotalItemCount"]
-            self.__mPrinter.print("Found {} discovered services".format(l_number_agents), Level.INFO)
-
-            self.__print_json(l_json)
-
-            l_next_page = l_json["HasNextPage"]
-            if l_next_page:
-                self.__print_next_page(l_base_url, l_json, None)
-
+            l_json: list = self.__get_discovered_services()
+            print(l_json)
         except Exception as e:
             self.__mPrinter.print("get_discovered_services() - {0}".format(str(e)), Level.ERROR)
 
     def download_discovered_services(self) -> None:
         try:
             self.__mPrinter.print("Fetching discovered services information", Level.INFO)
-
             l_base_url = "{0}?csvSeparator={1}".format(self.__cDISCOVERED_SERVICES_DOWNLOAD_URL, Parser.output_separator)
             l_http_response = self.__connect_to_api(l_base_url)
-
             self.__mPrinter.print("Fetched discovered services information", Level.SUCCESS)
+
             self.__mPrinter.print("Writing issues to file {}".format(Parser.output_filename), Level.INFO)
             open(Parser.output_filename, FileMode.WRITE.value).write(l_http_response.text)
             self.__mPrinter.print("Wrote issues to file {}".format(Parser.output_filename), Level.SUCCESS)
@@ -856,80 +884,94 @@ class API:
         except Exception as e:
             self.__mPrinter.print("download_discovered_services() - {0}".format(str(e)), Level.ERROR)
 
+    # ------------------------------------------------------------
+    # Upload Website Methods
+    # ------------------------------------------------------------
     def __map_business_unit(self, p_url: str) -> str:
+        try:
+            if "connectship" in p_url:
+                l_business_unit = 'Business Unit: ConnectShip'
+            elif "coyote" in p_url:
+                l_business_unit = 'Business Unit: Coyote / Freightex'
+            elif "freightex" in p_url:
+                l_business_unit = 'Business Unit: Coyote / Freightex'
+            elif "iship" in p_url:
+                l_business_unit = 'Business Unit: IShip - Production'
+            elif "marken" in p_url:
+                l_business_unit = 'Business Unit: Marken'
+            elif "nightline" in p_url:
+                l_business_unit = 'Business Unit: Nightline'
+            elif "pieffe" in p_url:
+                l_business_unit = 'Business Unit: Pieffe'
+            elif "polarspeed" in p_url:
+                l_business_unit = 'Business Unit: Polar Speed'
+            elif "poltraf" in p_url:
+                l_business_unit = 'Business Unit: Poltraf'
+            elif "sttas" in p_url:
+                l_business_unit = 'Business Unit: STTAS'
+            elif "upscapital" in p_url:
+                l_business_unit = 'Business Unit: UPS Capital / ParcelPro'
+            elif "parcelpro" in p_url:
+                l_business_unit = 'Business Unit: UPS Capital / ParcelPro'
+            elif "upsfreight" in p_url:
+                l_business_unit = 'Business Unit: UPS Freight / Overnite Business'
+            elif "overnite" in p_url:
+                l_business_unit = 'Business Unit: UPS Freight / Overnite Business'
+            elif "cemelog" in p_url:
+                l_business_unit = 'Business Unit: UPS Healthcare Hungary'
+            elif "upsstore" in p_url:
+                l_business_unit = 'Business Unit: UPS Store'
+            elif "ups.com.tr" in p_url:
+                l_business_unit = 'Business Unit: Unsped Packet Servisi'
+            else:
+                l_business_unit = 'Business Unit: United Parcel Service'
 
-        if "connectship" in p_url:
-            l_business_unit = 'Business Unit: ConnectShip'
-        elif "coyote" in p_url:
-            l_business_unit = 'Business Unit: Coyote / Freightex'
-        elif "freightex" in p_url:
-            l_business_unit = 'Business Unit: Coyote / Freightex'
-        elif "iship" in p_url:
-            l_business_unit = 'Business Unit: IShip - Production'
-        elif "marken" in p_url:
-            l_business_unit = 'Business Unit: Marken'
-        elif "nightline" in p_url:
-            l_business_unit = 'Business Unit: Nightline'
-        elif "pieffe" in p_url:
-            l_business_unit = 'Business Unit: Pieffe'
-        elif "polarspeed" in p_url:
-            l_business_unit = 'Business Unit: Polar Speed'
-        elif "poltraf" in p_url:
-            l_business_unit = 'Business Unit: Poltraf'
-        elif "sttas" in p_url:
-            l_business_unit = 'Business Unit: STTAS'
-        elif "upscapital" in p_url:
-            l_business_unit = 'Business Unit: UPS Capital / ParcelPro'
-        elif "parcelpro" in p_url:
-            l_business_unit = 'Business Unit: UPS Capital / ParcelPro'
-        elif "upsfreight" in p_url:
-            l_business_unit = 'Business Unit: UPS Freight / Overnite Business'
-        elif "overnite" in p_url:
-            l_business_unit = 'Business Unit: UPS Freight / Overnite Business'
-        elif "cemelog" in p_url:
-            l_business_unit = 'Business Unit: UPS Healthcare Hungary'
-        elif "upsstore" in p_url:
-            l_business_unit = 'Business Unit: UPS Store'
-        elif "ups.com.tr" in p_url:
-            l_business_unit = 'Business Unit: Unsped Packet Servisi'
-        else:
-            l_business_unit = 'Business Unit: United Parcel Service'
-
-        return l_business_unit
+            return l_business_unit
+        except Exception as e:
+            self.__mPrinter.print("__map_business_unit() - {0}".format(str(e)), Level.ERROR)
 
     def __build_website_json(self, p_agent_mode: str, p_url: str, p_groups: str, p_name: str) -> str:
-        l_groups_string: str = self.__parse_website_groups(p_groups, p_url)
+        try:
+            l_groups_string: str = self.__parse_website_groups(p_groups, p_url)
 
-        l_json_string = '{"AgentMode": "' + p_agent_mode + '","RootUrl": "' + p_url + '"'
+            l_json_string = '{"AgentMode": "' + p_agent_mode + '","RootUrl": "' + p_url + '"'
 
-        if l_groups_string:
-            l_json_string += ',"Groups": [' + l_groups_string + ']'
+            if l_groups_string:
+                l_json_string += ',"Groups": [' + l_groups_string + ']'
 
-        l_json_string += ',"LicenseType":"Subscription", "Name": "' + p_name + '"}'
+            l_json_string += ',"LicenseType":"Subscription", "Name": "' + p_name + '"}'
 
-        return l_json_string
+            return l_json_string
+        except Exception as e:
+            self.__mPrinter.print("__build_website_json() - {0}".format(str(e)), Level.ERROR)
 
     def __parse_website_url(self, p_url: str) -> str:
-        l_url = p_url.lower()
-        if not self.__url_is_valid(l_url):
-            raise ValueError('__parse_url(): URL is not valid: {}'.format(l_url))
-        if not self.__url_is_secure(l_url):
-            raise ValueError('__parse_url(): URL is not secure. Protocol must be HTTPS: {}'.format(l_url))
-        l_url = 'https://{0}/'.format(urlparse(l_url).hostname)
-        return l_url
+        try:
+            l_url = p_url.lower()
+            if not self.__url_is_valid(l_url):
+                raise ValueError('__parse_url(): URL is not valid: {}'.format(l_url))
+            if not self.__url_is_secure(l_url):
+                raise ValueError('__parse_url(): URL is not secure. Protocol must be HTTPS: {}'.format(l_url))
+            l_url = 'https://{0}/'.format(urlparse(l_url).hostname)
+            return l_url
+        except Exception as e:
+            self.__mPrinter.print("__parse_website_url() - {0}".format(str(e)), Level.ERROR)
 
     def __parse_website_groups(self, p_groups: str, p_url: str) -> str:
-        l_groups: list = p_groups.split("|")
-        l_groups_string: str = ', '.join('"{0}"'.format(g) for g in l_groups)
-        l_business_unit: str = self.__map_business_unit(p_url)
+        try:
+            l_groups: list = p_groups.split("|")
+            l_groups_string: str = ', '.join('"{0}"'.format(g) for g in l_groups)
+            l_business_unit: str = self.__map_business_unit(p_url)
 
-        # Add the business unit group based on the URL
-        if l_groups_string:
-            l_groups_string = '{0}, "{1}"'.format(l_groups_string, l_business_unit)
-        else:
-            l_groups_string = '"{0}"'.format(l_business_unit)
+            # Add the business unit group based on the URL
+            if l_groups_string:
+                l_groups_string = '{0}, "{1}"'.format(l_groups_string, l_business_unit)
+            else:
+                l_groups_string = '"{0}"'.format(l_business_unit)
 
-        return l_groups_string
+            return l_groups_string
+        except Exception as e:
+            self.__mPrinter.print("__parse_website_groups() - {0}".format(str(e)), Level.ERROR)
 
     def __parse_website_name(self, p_url: str) -> str:
         # l_name: str = p_name
@@ -1019,6 +1061,63 @@ class API:
             self.__upload_websites(l_sites)
         except Exception as e:
             self.__mPrinter.print("upload_websites() - {0}".format(str(e)), Level.ERROR)
+
+    # ------------------------------------------------------------
+    # Websites Methods
+    # ------------------------------------------------------------
+    def __get_websites_header(self) -> list:
+        return ["Name", "URL", "Technical Contact", "Verified?", "Agent", "Groups"]
+
+    def __parse_websites_json_to_csv(self, p_list: list) -> list:
+        try:
+            l_websites: list = []
+
+            for l_website in p_list:
+                l_groups: list = l_website["Groups"]
+                l_groups_string: str = ""
+                for l_group in l_groups:
+                    l_groups_string = "{},{}".format(l_groups_string, l_group["Name"])
+                l_websites.append([
+                    l_website["Name"], l_website["RootUrl"], l_website["TechnicalContactEmail"],
+                    l_website["IsVerified"], l_website["AgentMode"], l_groups_string[1:]
+                ])
+            return l_websites
+        except Exception as e:
+            self.__mPrinter.print("__parse_websites_json_to_csv() - {0}".format(str(e)), Level.ERROR)
+
+    def __print_websites_csv(self, p_websites: list) -> None:
+        try:
+            l_websites: list = self.__parse_websites_json_to_csv(p_websites)
+            l_header: list = self.__get_websites_header()
+
+            self.__write_csv(l_header, l_websites)
+
+        except Exception as e:
+            self.__mPrinter.print("__print_websites_csv() - {0}".format(str(e)), Level.ERROR)
+
+    def __get_websites(self) -> list:
+        try:
+            l_base_url = "{0}?page={1}&pageSize={2}".format(
+                self.__cWEBSITES_LIST_URL,
+                Parser.page_number, Parser.page_size
+            )
+            return self.__get_paged_data(l_base_url, "websites")
+
+        except Exception as e:
+            self.__mPrinter.print("__get_websites() - {0}".format(str(e)), Level.ERROR)
+
+    def get_websites(self) -> None:
+        try:
+            l_list: list = self.__get_websites()
+
+            if self.__m_output_format == OutputFormat.JSON.value:
+                for l_dict in l_list:
+                    print(l_dict)
+            elif self.__m_output_format == OutputFormat.CSV.value:
+                self.__print_websites_csv(l_list)
+
+        except Exception as e:
+            self.__mPrinter.print("get_websites() - {0}".format(str(e)), Level.ERROR)
 
     # ------------------------------------------------------------
     # Vulnerability Templates Methods
@@ -1147,17 +1246,17 @@ class API:
     def __get_vulnerability_types_header(self) -> list:
         return ["Name"]
 
-    def __parse_vulnerability_types_json_to_csv(self, p_list: list) -> list:
+    def __parse_vulnerability_types_json_to_csv(self, p_json: list) -> list:
         try:
             l_vulnerability_types: list = []
 
-            for l_vulnerability_type in p_list:
+            for l_vulnerability_type in p_json:
                 l_vulnerability_types.append([l_vulnerability_type])
             return l_vulnerability_types
         except Exception as e:
             self.__mPrinter.print("__parse_vulnerability_types_json_to_csv() - {0}".format(str(e)), Level.ERROR)
 
-    def __print_vulnerability_types_csv(self, p_vulnerability_types):
+    def __print_vulnerability_types_csv(self, p_vulnerability_types) -> None:
         try:
             l_header: list = self.__get_vulnerability_types_header()
             l_vulnerability_types: list = self.__parse_vulnerability_types_json_to_csv(p_vulnerability_types)
@@ -1185,70 +1284,13 @@ class API:
             self.__mPrinter.print("get_vulnerability_types() - {0}".format(str(e)), Level.ERROR)
 
     # ------------------------------------------------------------
-    # Websites Methods
-    # ------------------------------------------------------------
-    def __get_websites_header(self) -> list:
-        return ["Name", "URL", "Technical Contact", "Verified?", "Agent", "Groups"]
-
-    def __parse_websites_json_to_csv(self, p_list: list) -> list:
-        try:
-            l_websites: list = []
-
-            for l_website in p_list:
-                l_groups: list = l_website["Groups"]
-                l_groups_string: str = ""
-                for l_group in l_groups:
-                    l_groups_string = "{},{}".format(l_groups_string, l_group["Name"])
-                l_websites.append([
-                    l_website["Name"], l_website["RootUrl"], l_website["TechnicalContactEmail"],
-                    l_website["IsVerified"], l_website["AgentMode"], l_groups_string[1:]
-                ])
-            return l_websites
-        except Exception as e:
-            self.__mPrinter.print("__parse_websites_json_to_csv() - {0}".format(str(e)), Level.ERROR)
-
-    def __print_websites_csv(self, p_websites: list) -> None:
-        try:
-            l_websites: list = self.__parse_websites_json_to_csv(p_websites)
-            l_header: list = self.__get_websites_header()
-
-            self.__write_csv(l_header, l_websites)
-
-        except Exception as e:
-            self.__mPrinter.print("__print_websites_csv() - {0}".format(str(e)), Level.ERROR)
-
-    def __get_websites(self) -> list:
-        try:
-            l_base_url = "{0}?page={1}&pageSize={2}".format(
-                self.__cWEBSITES_LIST_URL,
-                Parser.page_number, Parser.page_size
-            )
-            return self.__get_paged_data(l_base_url, "websites")
-
-        except Exception as e:
-            self.__mPrinter.print("__get_websites() - {0}".format(str(e)), Level.ERROR)
-
-    def get_websites(self) -> None:
-        try:
-            l_list: list = self.__get_websites()
-
-            if self.__m_output_format == OutputFormat.JSON.value:
-                for l_dict in l_list:
-                    print(l_dict)
-            elif self.__m_output_format == OutputFormat.CSV.value:
-                self.__print_websites_csv(l_list)
-
-        except Exception as e:
-            self.__mPrinter.print("get_websites() - {0}".format(str(e)), Level.ERROR)
-
-    # ------------------------------------------------------------
     # Agents Methods
     # ------------------------------------------------------------
     def __get_agents_header(self) -> list:
         return ["Needs Update?", "Name", "IP address", "Status", "Version", "Last Heartbeat",
                 "VDB Version", "Operating System", "Architecture", "ID"]
 
-    def __print_agents_csv(self, p_agents):
+    def __print_agents_csv(self, p_agents) -> None:
         try:
             l_agents: list = self.__parse_agents_json_to_csv(p_agents)
             l_header: list = self.__get_agents_header()
@@ -1267,10 +1309,10 @@ class API:
         except Exception as e:
             self.__mPrinter.print("__output_agents_to_file() - {0}".format(str(e)), Level.ERROR)
 
-    def __parse_agents_json_to_csv(self, p_list: list) -> list:
+    def __parse_agents_json_to_csv(self, p_json: list) -> list:
         try:
             l_agents: list = []
-            for l_agent in p_list:
+            for l_agent in p_json:
                 l_agents.append([
                     l_agent["IsAgentNeedsUpdate"], l_agent["Name"], l_agent["IpAddress"],
                     l_agent["State"], l_agent["Version"], self.__format_datetime(parser.parse(l_agent["Heartbeat"])),

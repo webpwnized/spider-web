@@ -122,12 +122,28 @@
     spider-web -ga
     spider-web --get-account
 
+    spider-web -ga -o JSON
+    spider-web --get-account --output-format JSON
+
+    spider-web -ga -of account.txt
+    spider-web --get-account --output-file account.txt
+
+#### Get License Information
     spider-web -gl
     spider-web --get-license
+
+    spider-web -gl -o JSON
+    spider-web --get-license --output-format JSON
+
+    spider-web -gl -of license.txt
+    spider-web --get-license --output-file license.txt
 
 #### Get Agent Information
     spider-web -aga -pn 1 -ps 200
     spider-web --get-agents --page-number 1 --page-size 200
+
+    spider-web -aga -pn 1 -ps 200 -of agents.txt
+    spider-web --get-agents --page-number 1 --page-size 200 --output-file agents.txt
 
 #### Get Discovered Services Information
     spider-web -dgds -pn 1 -ps 200
@@ -140,13 +156,17 @@
     spider-web -tmgtm -pn 1 -ps 200
     spider-web --get-team-members --page-number 1 --page-size 200
 
-#### Website Information
+    spider-web -tmgtm -pn 1 -ps 200 -of team-members.txt
+    spider-web --get-team-members --page-number 1 --page-size 200 ---output-file team-members.txt
+
+#### Get Website Information
     spider-web -wgw -pn 1 -ps 200
     spider-web --get-websites --page-number 1 --page-size 200
 
     spider-web -wgw -pn 1 -ps 200 -of websites.csv
     spider-web --get-websites --page-number 1 --page-size 200 --output-file websites.csv
 
+#### Upload Website Information
     spider-web -wupw -if groups.csv
     spider-web --upload-websites --input-file websites.csv
     
@@ -154,18 +174,33 @@
     spider-web -wggwg -pn 1 -ps 200
     spider-web --get-website-groups --page-number 1 --page-size 200
 
+    spider-web -wggwg -pn 1 -ps 200 -of website-groups.csv
+    spider-web --get-website-groups --page-number 1 --page-size 200 --output-file website-groups.csv
+
+#### Upload Website Groups Information
     spider-web -wgupwg -if groups.csv
     spider-web --upload-website-groups --input-file groups.csv
 
-#### Get Vulnerability Template Information
+#### Get Vulnerability Templates Information
     spider-web -vgvtemps -rpi 074018e9-02d3-4e47-a937-6f7684e814da
     spider-web --get-vulnerability-templates --report-policy-id 074018e9-02d3-4e47-a937-6f7684e814da
 
+    spider-web -vgvtemps -rpi 074018e9-02d3-4e47-a937-6f7684e814da -of vulnerability-templates.txt
+    spider-web --get-vulnerability-templates --report-policy-id 074018e9-02d3-4e47-a937-6f7684e814da --output-file vulnerability-templates.txt
+
+#### Get Vulnerability Template Information
     spider-web -vgvtemp -vt Xss -rpi 074018e9-02d3-4e47-a937-6f7684e814da
     spider-web --get-vulnerability-template --vulnerability-type Xss --report-policy-id 074018e9-02d3-4e47-a937-6f7684e814da
 
+    spider-web -vgvtemp -vt Xss -rpi 074018e9-02d3-4e47-a937-6f7684e814da -of vulnerability-template.txt
+    spider-web --get-vulnerability-template --vulnerability-type Xss --report-policy-id 074018e9-02d3-4e47-a937-6f7684e814da --output-file vulnerability-template.txt
+
+#### Get Vulnerability Types Information
     spider-web -vgvtypes
     spider-web --get-vulnerability-types
+
+    spider-web -vgvtypes -of vulnerability-types.txt
+    spider-web --get-vulnerability-types --output-file vulnerability-types.txt
 
 #### Auxiliary Features and Reports
     spider-web -auxps
