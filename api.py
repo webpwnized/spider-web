@@ -1408,6 +1408,8 @@ class API:
             l_unresponsive_agents: list = []
             l_now: datetime = datetime.now(timezone.utc)
 
+            Printer.print("Parsing unresponsive agents", Level.INFO)
+
             for l_dict in p_agents:
                 l_heartbeat_time: datetime = parser.parse(l_dict["Heartbeat"])
                 l_diff = (l_now - l_heartbeat_time)
@@ -1420,6 +1422,8 @@ class API:
                             l_diff,
                             l_dict["State"]
                         ), Level.INFO)
+
+            Printer.print("{} unresponsive agents found".format(len(l_unresponsive_agents)), Level.INFO)
             return l_unresponsive_agents
         except Exception as e:
             self.__mPrinter.print("__parse_unresponsive_agents() - {0}".format(str(e)), Level.ERROR)
@@ -1434,8 +1438,6 @@ class API:
             l_unresponsive_agents: list = self.__parse_unresponsive_agents(l_list)
 
             if l_unresponsive_agents:
-                Printer.print("{} unresponsive agents found".format(len(l_unresponsive_agents)), Level.INFO)
-
                 if self.__m_output_format == OutputFormat.JSON.value:
                     print(l_unresponsive_agents)
                 elif self.__m_output_format == OutputFormat.CSV.value:

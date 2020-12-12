@@ -213,8 +213,11 @@
     spider-web -ramh
     spider-web --report-agents-missing-heartbeat
 
-    spider-web -ramh --of netsparker.csv
-    spider-web --report-agents-missing-heartbeat --output-filename netsparker.csv
+    spider-web -ramh -o JSON
+    spider-web --report-agents-missing-heartbeat --output-format JSON
 
-    spider-web -ramh --of netsparker.csv --un
-    spider-web --report-agents-missing-heartbeat --output-filename netsparker.csv --unattended
+    spider-web -ramh --of unresponsive-agents.csv
+    spider-web --report-agents-missing-heartbeat --output-filename unresponsive-agents.csv
+
+    spider-web -ramh --of unresponsive-agents.csv --un
+    spider-web --report-agents-missing-heartbeat --output-filename unresponsive-agents.csv --unattended

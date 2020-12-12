@@ -9,7 +9,7 @@ from argparse import RawTextHelpFormatter
 import argparse
 
 
-l_version = '1.0.1'
+l_version = '1.0.2'
 
 
 def print_example_usage():
@@ -155,12 +155,15 @@ def print_example_usage():
     ----------------------------------------------------------------        
     spider-web -ramh
     spider-web --report-agents-missing-heartbeat
+
+    spider-web -ramh -o JSON
+    spider-web --report-agents-missing-heartbeat --output-format JSON
     
-    spider-web -ramh --of netsparker.csv
-    spider-web --report-agents-missing-heartbeat --output-filename netsparker.csv
+    spider-web -ramh --of unresponsive-agents.csv
+    spider-web --report-agents-missing-heartbeat --output-filename unresponsive-agents.csv
     
-    spider-web -ramh --of netsparker.csv --un
-    spider-web --report-agents-missing-heartbeat --output-filename netsparker.csv --unattended
+    spider-web -ramh --of unresponsive-agents.csv --un
+    spider-web --report-agents-missing-heartbeat --output-filename unresponsive-agents.csv --unattended
 """)
 
 def run_main_program():
