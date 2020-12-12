@@ -102,3 +102,8 @@ class Parser:
         Parser.agent_heartbeat_too_long_seconds = p_config.AGENT_HEARTBEAT_TOO_LONG_SECONDS
         Parser.agent_heartbeat_breadcrumb_filename = p_config.AGENT_HEARTBEAT_BREADCRUMB_FILENAME
         Parser.agent_heartbeat_notification_interval_minutes = p_config.AGENT_HEARTBEAT_NOTIFICATION_INTERVAL_MINUTES
+
+        Parser.report_disabled_agents = p_args.report_disabled_agents
+        Parser.disabled_agents_too_long_seconds = p_config.DISABLED_AGENTS_TOO_LONG_SECONDS
+        Parser.disabled_agents_breadcrumb_filename = p_config.DISABLED_AGENTS_BREADCRUMB_FILENAME
+        Parser.disabled_agents_notification_interval_minutes = p_config.DISABLED_AGENTS_NOTIFICATION_INTERVAL_MINUTES

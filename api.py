@@ -1416,7 +1416,8 @@ class API:
                 if l_diff.seconds > Parser.agent_heartbeat_too_long_seconds:
                     l_unresponsive_agents.append(l_dict)
                     Printer.print(
-                        "Unresponsive agent found. Current time: {}. Last heartbeat: {}. Difference: {}. State: {}".format(
+                        "Unresponsive agent found. {} Current time: {}. Last heartbeat: {}. Difference: {}. State: {}".format(
+                            l_dict["Name"],
                             self.__format_datetime(l_now),
                             self.__format_datetime(l_heartbeat_time),
                             l_diff,
@@ -1431,7 +1432,8 @@ class API:
     def report_agents_missing_heartbeat(self) -> int:
         try:
             if Parser.unattended and self.__already_reported(Parser.agent_heartbeat_breadcrumb_filename, Parser.agent_heartbeat_notification_interval_minutes):
-                Printer.print("Already reported in today. Exiting with status {}".format(self.__format_exitcode(ExitCodes.ALREADY_REPORTED)), Level.INFO)
+                Printer.print("Already reported in today. Exiting with status {}".format(
+                    self.__format_exitcode(ExitCodes.ALREADY_REPORTED)), Level.INFO)
                 return ExitCodes.ALREADY_REPORTED.value
 
             l_list = self.__get_agents()
@@ -1455,6 +1457,53 @@ class API:
 
         except Exception as e:
             self.__mPrinter.print("report_agents_missing_heartbeat() - {0}".format(str(e)), Level.ERROR)
+
+    def __parse_disabled_agents(self, p_agents: list) -> list:
+        try:
+            l_disabled_agents: list = []
+
+            Printer.print("Parsing disabled agents", Level.INFO)
+
+            for l_dict in p_agents:
+                l_state: str = l_dict["State"]
+                if l_state in ["Disabled"]:
+                    l_disabled_agents.append(l_dict)
+                    Printer.print("Disabled agent found. {} State: {}".format(l_dict["Name"], l_state), Level.INFO)
+
+            Printer.print("{} disabled agents found".format(len(l_disabled_agents)), Level.INFO)
+            return l_disabled_agents
+        except Exception as e:
+            self.__mPrinter.print("__parse_disabled_agents() - {0}".format(str(e)), Level.ERROR)
+
+    def report_disabled_agents(self) -> int:
+        try:
+            if Parser.unattended and self.__already_reported(
+                    Parser.disabled_agents_breadcrumb_filename, Parser.disabled_agents_notification_interval_minutes):
+                Printer.print("Already reported in today. Exiting with status {}".format(
+                    self.__format_exitcode(ExitCodes.ALREADY_REPORTED)), Level.INFO)
+                return ExitCodes.ALREADY_REPORTED.value
+
+            l_list = self.__get_agents()
+            l_disabled_agents: list = self.__parse_disabled_agents(l_list)
+
+            if l_disabled_agents:
+                if self.__m_output_format == OutputFormat.JSON.value:
+                    print(l_disabled_agents)
+                elif self.__m_output_format == OutputFormat.CSV.value:
+                    self.__print_agents_csv(l_disabled_agents)
+
+                if Parser.unattended:
+                    self.__create_breadcrumb(Parser.disabled_agents_breadcrumb_filename)
+
+                Printer.print("Exiting with status code {}".format(self.__format_exitcode(ExitCodes.EXIT_NORMAL)), Level.INFO)
+                return ExitCodes.EXIT_NORMAL.value
+            else:
+                Printer.print("No disabled agents found", Level.SUCCESS)
+                Printer.print("Exiting with status code {}".format(self.__format_exitcode(ExitCodes.NOTHING_TO_REPORT)), Level.INFO)
+                return ExitCodes.NOTHING_TO_REPORT.value
+
+        except Exception as e:
+            self.__mPrinter.print("report_disabled_agents() - {0}".format(str(e)), Level.ERROR)
 
     # ------------------------------------------------------------
     # Ping Sites Methods

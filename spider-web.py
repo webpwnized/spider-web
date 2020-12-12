@@ -9,7 +9,7 @@ from argparse import RawTextHelpFormatter
 import argparse
 
 
-l_version = '1.0.2'
+l_version = '1.0.3'
 
 
 def print_example_usage():
@@ -151,7 +151,7 @@ def print_example_usage():
     spider-web --ping-sites-in-file --input-file websites.csv
 
     ----------------------------------------------------------------
-    Reports
+    Reports: Agents Missing Heartbeat
     ----------------------------------------------------------------        
     spider-web -ramh
     spider-web --report-agents-missing-heartbeat
@@ -164,6 +164,21 @@ def print_example_usage():
     
     spider-web -ramh --of unresponsive-agents.csv --un
     spider-web --report-agents-missing-heartbeat --output-filename unresponsive-agents.csv --unattended
+
+    ----------------------------------------------------------------
+    Reports: Disabled Agents
+    ----------------------------------------------------------------        
+    spider-web -rda
+    spider-web --report-disabled-agents
+
+    spider-web -rda -o JSON
+    spider-web --report-disabled-agents --output-format JSON
+    
+    spider-web -rda --of disabled-agents.csv
+    spider-web --report-disabled-agents --output-filename disabled-agents.csv
+    
+    spider-web -rda --of disabled-agents.csv --un
+    spider-web --report-disabled-agents --output-filename disabled-agents.csv --unattended
 """)
 
 def run_main_program():
@@ -194,7 +209,7 @@ def run_main_program():
         Parser.download_discovered_services or Parser.get_website_groups or Parser.upload_website_groups or \
         Parser.get_websites or Parser.upload_websites or Parser.get_vulnerability_templates or Parser.get_vulnerability_template or \
         Parser.get_vulnerability_types or Parser.ping_sites or Parser.ping_sites_in_file \
-        or Parser.report_agents_missing_heartbeat:
+        or Parser.report_agents_missing_heartbeat or Parser.report_disabled_agents:
             l_api = API(p_parser=Parser)
     else:
         lArgParser.print_usage()
@@ -287,6 +302,9 @@ def run_main_program():
 
     if Parser.report_agents_missing_heartbeat:
         exit(l_api.report_agents_missing_heartbeat())
+
+    if Parser.report_disabled_agents:
+        exit(l_api.report_disabled_agents())
 
 if __name__ == '__main__':
     lArgParser = argparse.ArgumentParser(description="""
@@ -429,6 +447,9 @@ if __name__ == '__main__':
     l_report_group = lArgParser.add_argument_group(title="Reports", description="Reports can be output to a file. Output filename is optional. Otherwise output is sent to standard out (STDOUT). Specify output filename with -o, --output-format. Report functions allows unattended mode. In unattended mode, functions will only produce output if the configured amount of time has passed the time contained in the breadcrumb file. Configure the breadcrumb filename and the amount of time in config.py.")
     l_report_group.add_argument('-ramh', '--report-agents-missing-heartbeat',
                                  help='Report agents that have not checked in recently and exit. Number of seconds is configurable on config.py. Exit code is non-zero if all agents are checking in.',
+                                 action='store_true')
+    l_report_group.add_argument('-rda', '--report-disabled-agents',
+                                 help='Report disabled agents and exit. Number of seconds is configurable on config.py. Exit code is non-zero if all agents are enabled.',
                                  action='store_true')
 
     Parser.parse_configuration(p_args=lArgParser.parse_args(), p_config=__config)

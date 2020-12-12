@@ -19,7 +19,7 @@
 
     usage: spider-web [-h] [-v] [-d] [-o {JSON,CSV}] [-e] [-u] [-t] [-pn PAGE_NUMBER] [-ps PAGE_SIZE] [-if INPUT_FILENAME] [-of OUTPUT_FILENAME]
                       [-os OUTPUT_SEPARATOR] [-un] [-ga] [-gl] [-aga] [-dsgds] [-dsdds] [-tmgtm] [-wgw] [-wupw] [-wggwg] [-wgupwg] [-vgvtemps]
-                      [-vgvtemp] [-vgvtypes] [-rpi REPORT_POLICY_ID] [-vt VULNERABILITY_TYPE] [-auxps] [-auxpsif] [-ramh]
+                      [-vgvtemp] [-vgvtypes] [-rpi REPORT_POLICY_ID] [-vt VULNERABILITY_TYPE] [-auxps] [-auxpsif] [-ramh] [-rda]
 
 ### Options
 
@@ -101,7 +101,9 @@
 
         -ramh, --report-agents-missing-heartbeat
                         Report agents that have not checked in recently and exit. Number of seconds is configurable on config.py. Exit code is non-zero if all agents are checking in.
-                        
+        -rda, --report-disabled-agents
+                        Report disabled agents and exit. Number of seconds is configurable on config.py. Exit code is non-zero if all agents are enabled.
+
 ### Examples
 
 #### Get Help
@@ -209,7 +211,7 @@
     spider-web -auxpsif --input-file websites.csv
     spider-web --ping-sites-in-file --input-file websites.csv
 
-#### Reports
+#### Reports: Agents Missing Heartbeat
     spider-web -ramh
     spider-web --report-agents-missing-heartbeat
 
@@ -221,3 +223,16 @@
 
     spider-web -ramh --of unresponsive-agents.csv --un
     spider-web --report-agents-missing-heartbeat --output-filename unresponsive-agents.csv --unattended
+
+#### Reports: Disabled Agents
+    spider-web -rda
+    spider-web --report-disabled-agents
+
+    spider-web -rda -o JSON
+    spider-web --report-disabled-agents --output-format JSON
+    
+    spider-web -rda --of disabled-agents.csv
+    spider-web --report-disabled-agents --output-filename disabled-agents.csv
+    
+    spider-web -rda --of disabled-agents.csv --un
+    spider-web --report-disabled-agents --output-filename disabled-agents.csv --unattended
