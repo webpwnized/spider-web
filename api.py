@@ -566,36 +566,107 @@ class API:
     # ------------------------------------------------------------
     # Common Methods
     # ------------------------------------------------------------
-    def __write_csv(self, p_file, p_header: list, p_data: list) -> None:
+    def __write_csv(self, p_header: list, p_data: list) -> None:
         try:
-            self.__mPrinter.print("Writing {} rows to {}".format(len(p_data), p_file), Level.INFO)
-            l_csv_writer = csv.writer(p_file, quoting=csv.QUOTE_ALL)
+            if Parser.output_filename:
+                self.__mPrinter.print("Opening file {} for writing".format(Parser.output_filename), Level.INFO)
+                l_file = open(Parser.output_filename, FileMode.WRITE_CREATE.value)
+            else:
+                l_file = sys.stdout
+
+            self.__mPrinter.print("Writing {} rows to {}".format(len(p_data), l_file.name), Level.INFO)
+            l_csv_writer = csv.writer(l_file, quoting=csv.QUOTE_ALL)
             l_csv_writer.writerow(p_header)
             l_csv_writer.writerows(p_data)
-            self.__mPrinter.print("Wrote {} rows to {}".format(len(p_data), p_file), Level.INFO)
+            self.__mPrinter.print("Wrote {} rows to {}".format(len(p_data), l_file.name), Level.INFO)
+
+            try:
+                l_file.close()
+            except:
+                pass
+
         except Exception as e:
             self.__mPrinter.print("__write_csv() - {0}".format(str(e)), Level.ERROR)
+
+    def __get_unpaged_data(self, p_url: str, p_endpoint_name: str) -> list:
+        try:
+            self.__mPrinter.print("Fetching {} information".format(p_endpoint_name), Level.INFO)
+
+            l_http_response = self.__connect_to_api(p_url=p_url)
+
+            self.__mPrinter.print("Fetched {} information".format(p_endpoint_name), Level.SUCCESS)
+            self.__mPrinter.print("Parsing {} information".format(p_endpoint_name), Level.INFO)
+            l_json: list = json.loads(l_http_response.text)
+            self.__mPrinter.print("Found {} {}".format(len(l_json), p_endpoint_name), Level.INFO)
+            self.__mPrinter.print("Fetched {} information".format(p_endpoint_name), Level.INFO)
+
+            return l_json
+
+        except Exception as e:
+            self.__mPrinter.print("__get_paged_data() - {0}".format(str(e)), Level.ERROR)
+
+    def __get_paged_data(self, p_url: str, p_endpoint_name: str) -> list:
+        try:
+            self.__mPrinter.print("Fetching {} information".format(p_endpoint_name), Level.INFO)
+
+            l_http_response = self.__connect_to_api(p_url=p_url)
+
+            self.__mPrinter.print("Fetched {} information".format(p_endpoint_name), Level.SUCCESS)
+            self.__mPrinter.print("Parsing {} information".format(p_endpoint_name), Level.INFO)
+            l_json = json.loads(l_http_response.text)
+            l_number_sites: int = l_json["TotalItemCount"]
+            self.__mPrinter.print("Found {} {}".format(l_number_sites, p_endpoint_name), Level.INFO)
+
+            l_list: list = l_json["List"]
+
+            l_next_page = l_json["HasNextPage"]
+            if l_next_page:
+                l_list.extend(self.__get_next_page(p_url, l_json))
+
+            self.__mPrinter.print("Fetched {} information".format(p_endpoint_name), Level.INFO)
+
+            return l_list
+
+        except Exception as e:
+            self.__mPrinter.print("__get_paged_data() - {0}".format(str(e)), Level.ERROR)
 
     # ------------------------------------------------------------
     # Account Methods
     # ------------------------------------------------------------
+    def __get_account_header(self) -> list:
+        return ["Name", "Email", "Time Zone"]
+
+    def __parse_account_json_to_csv(self, p_list: list) -> list:
+        try:
+            l_account: list = []
+            l_account.append([p_list["DisplayName"], p_list["Email"], p_list["TimeZoneInfo"]])
+            return l_account
+        except Exception as e:
+            self.__mPrinter.print("__parse_account_json_to_csv() - {0}".format(str(e)), Level.ERROR)
+
+    def __print_account_csv(self, p_accounts):
+        try:
+            l_header: list = self.__get_account_header()
+            l_account: list = self.__parse_account_json_to_csv(p_accounts)
+
+            self.__write_csv(l_header, l_account)
+        except Exception as e:
+            self.__mPrinter.print("__print_account_csv() - {0}".format(str(e)), Level.ERROR)
+
+    def __get_account(self) -> list:
+        try:
+            return self.__get_unpaged_data(self.__cACCOUNT_ME_URL, "account")
+        except Exception as e:
+            self.__mPrinter.print("__get_account() - {0}".format(str(e)), Level.ERROR)
+
     def get_account(self) -> None:
         try:
-            self.__mPrinter.print("Fetching account information", Level.INFO)
-            l_http_response = self.__connect_to_api(self.__cACCOUNT_ME_URL)
-            self.__mPrinter.print("Fetched account information", Level.SUCCESS)
-            self.__mPrinter.print("Parsing account information", Level.INFO)
-            l_json = json.loads(l_http_response.text)
+            l_list: list = self.__get_account()
 
             if self.__m_output_format == OutputFormat.JSON.value:
-                print(l_json)
-
+                print(l_list)
             elif self.__m_output_format == OutputFormat.CSV.value:
-                l_name: str = l_json["DisplayName"]
-                l_email: str = l_json["Email"]
-                l_timezone: str = l_json["TimeZoneInfo"]
-                print("Name, Email, Time Zone")
-                print("{},{},{}".format(l_name, l_email, l_timezone))
+                self.__print_account_csv(l_list)
 
         except Exception as e:
             self.__mPrinter.print("get_account() - {0}".format(str(e)), Level.ERROR)
@@ -617,19 +688,12 @@ class API:
                 print(l_json)
 
             elif self.__m_output_format == OutputFormat.CSV.value:
-                #l_percent_sites_used: float = 0.0
-                l_percent_credit_used: float = 0.0
-
                 l_site_count: str = l_json["SubscriptionSiteCount"]
                 l_site_limit: str = l_json["SubscriptionMaximumSiteLimit"]
                 l_percent_sites_used: float = round(l_site_count / l_site_limit, TWO_DECIMAL_PLACES) if l_site_limit != 0 else 0.0
                 l_license_start_date: str = l_json["SubscriptionStartDate"]
                 l_license_end_date: str = l_json["SubscriptionEndDate"]
                 l_whitelisted: list = l_json["IsAccountWhitelisted"]
-
-                #l_scan_credit_count: list = l_json["ScanCreditCount"]
-                #l_scan_credit_limit: list = l_json["UsedScanCreditCount"]
-                #l_percent_credit_used: float = round(l_scan_credit_count / l_scan_credit_limit, TWO_DECIMAL_PLACES) if l_scan_credit_limit != 0 else 0.0
 
                 l_license_type: list = l_json["Licenses"][0]["ProductDefinition"]
                 l_license_remaining_days: list = l_json["Licenses"][0]["ValidForDays"]
@@ -956,9 +1020,17 @@ class API:
         except Exception as e:
             self.__mPrinter.print("upload_websites() - {0}".format(str(e)), Level.ERROR)
 
-    def __print_vulnerability_templates_csv(self, p_json):
+    # ------------------------------------------------------------
+    # Vulnerability Templates Methods
+    # ------------------------------------------------------------
+    def __get_vulnerability_templates_header(self) -> list:
+        return ["Type", "Name", "CVSSv3", "Severity"]
+
+    def __parse_vulnerability_templates_json_to_csv(self, p_list: list) -> list:
         try:
-            for l_template in p_json:
+            l_vulnerability_templates: list = []
+
+            for l_template in p_list:
                 l_cvssv3: str = "0.0"
                 try:
                     l_cvssv3 = l_template["Cvss31Vector"]["Base"]["Score"]["Value"]
@@ -969,105 +1041,145 @@ class API:
                         l_cvssv3 = l_template["CvssVector"]["Base"]["Score"]["Value"]
                     except:
                         pass
-                print('"{}",{},{}'.format(
-                    l_template["Description"], l_cvssv3, l_template["Severity"]
-                ))
+                l_vulnerability_templates.append([l_template["Type"], l_template["Description"], l_cvssv3, l_template["Severity"]])
+
+            return l_vulnerability_templates
+        except Exception as e:
+            self.__mPrinter.print("__parse_vulnerability_templates_json_to_csv() - {0}".format(str(e)), Level.ERROR)
+
+    def __print_vulnerability_templates_csv(self, p_vulnerability_templates: list) -> None:
+        try:
+            l_header: list = self.__get_vulnerability_templates_header()
+            l_vulnerability_templates: list = self.__parse_vulnerability_templates_json_to_csv(p_vulnerability_templates)
+
+            self.__write_csv(l_header, l_vulnerability_templates)
         except Exception as e:
             self.__mPrinter.print("__print_vulnerability_templates_csv() - {0}".format(str(e)), Level.ERROR)
 
-    def get_vulnerability_templates(self) -> None:
+    def __get_vulnerability_templates(self) -> list:
         try:
-            self.__mPrinter.print("Fetching vulnerability templates", Level.INFO)
-
             l_base_url = "{0}?reportPolicyId={1}".format(
                 self.__cVULNERABILITY_TEMPLATES_LIST_URL,
                 Parser.report_policy_id
             )
-            l_http_response = self.__connect_to_api(p_url=l_base_url)
+            return self.__get_unpaged_data(l_base_url, "vulnerability templates")
 
-            self.__mPrinter.print("Fetched vulnerability templates", Level.SUCCESS)
-            self.__mPrinter.print("Parsing vulnerability templates", Level.INFO)
-            l_json = json.loads(l_http_response.text)
-            l_number_templates: int = len(l_json)
-            self.__mPrinter.print("Found {} vulnerability templates".format(l_number_templates), Level.INFO)
+        except Exception as e:
+            self.__mPrinter.print("__get_vulnerability_templates() - {0}".format(str(e)), Level.ERROR)
+
+    def get_vulnerability_templates(self) -> None:
+        try:
+            l_list: list = self.__get_vulnerability_templates()
 
             if self.__m_output_format == OutputFormat.JSON.value:
-                print(l_json)
+                for l_dict in l_list:
+                    print(l_dict)
             elif self.__m_output_format == OutputFormat.CSV.value:
-                print("Name, CVSSv3, Severity")
-                self.__print_vulnerability_templates_csv(l_json)
+                self.__print_vulnerability_templates_csv(l_list)
 
         except Exception as e:
             self.__mPrinter.print("get_vulnerability_templates() - {0}".format(str(e)), Level.ERROR)
 
-    def __print_vulnerability_template_csv(self, p_json):
+    # ------------------------------------------------------------
+    # Vulnerability Template Methods
+    # ------------------------------------------------------------
+    def __get_vulnerability_template_header(self) -> list:
+        return ["Name", "CVSSv3", "Severity", "Description"]
+
+    def __parse_vulnerability_template_json_to_csv(self, p_json: list) -> list:
         try:
-            l_dict = p_json[0]
+            l_vulnerability_template: list = []
+
+            l_dict: dict = p_json[0]
             l_cvssv3: str = "0.0"
             try:
-                l_cvssv3 = l_dict["Cvss31Vector"]["Base"]["Score"]["Value"]
+                l_cvssv3 = str(l_dict["Cvss31Vector"]["Base"]["Score"]["Value"])
                 if not l_cvssv3:
                     raise ValueError()
             except:
                 try:
-                    l_cvssv3 = l_dict["CvssVector"]["Base"]["Score"]["Value"]
+                    l_cvssv3 = str(l_dict["CvssVector"]["Base"]["Score"]["Value"])
                 except:
                     pass
 
-            print('"{}",{},{},"{}"'.format(
-                l_dict["Description"], l_cvssv3, l_dict["Severity"], l_dict["Summary"]
-            ))
+            l_vulnerability_template.append([l_dict["Description"], l_cvssv3, l_dict["Severity"], l_dict["Summary"]])
 
+            return l_vulnerability_template
         except Exception as e:
-            self.__mPrinter.print("__print_vulnerability_templates_csv() - {0}".format(str(e)), Level.ERROR)
+            self.__mPrinter.print("__parse_vulnerability_template_json_to_csv() - {0}".format(str(e)), Level.ERROR)
 
-    def get_vulnerability_template(self) -> None:
+    def __print_vulnerability_template_csv(self, p_vulnerability_template: list) -> None:
         try:
-            self.__mPrinter.print("Fetching vulnerability template", Level.INFO)
+            l_header: list = self.__get_vulnerability_template_header()
+            l_vulnerability_template: list = self.__parse_vulnerability_template_json_to_csv(p_vulnerability_template)
 
+            self.__write_csv(l_header, l_vulnerability_template)
+        except Exception as e:
+            self.__mPrinter.print("__print_vulnerability_template_csv() - {0}".format(str(e)), Level.ERROR)
+
+    def __get_vulnerability_template(self) -> list:
+        try:
             l_base_url = "{0}?type={1}&reportPolicyId={2}".format(
                 self.__cVULNERABILITY_TEMPLATE_URL,
                 Parser.vulnerability_type, Parser.report_policy_id
             )
-            l_http_response = self.__connect_to_api(p_url=l_base_url)
+            return self.__get_unpaged_data(l_base_url, "vulnerability template")
 
-            self.__mPrinter.print("Fetched vulnerability template", Level.SUCCESS)
-            self.__mPrinter.print("Parsing vulnerability template", Level.INFO)
-            l_json = json.loads(l_http_response.text)
+        except Exception as e:
+            self.__mPrinter.print("__get_vulnerability_template() - {0}".format(str(e)), Level.ERROR)
+
+    def get_vulnerability_template(self) -> None:
+        try:
+            l_list: list = self.__get_vulnerability_template()
 
             if self.__m_output_format == OutputFormat.JSON.value:
-                print(l_json)
+                for l_dict in l_list:
+                    print(l_dict)
             elif self.__m_output_format == OutputFormat.CSV.value:
-                print("Name, CVSSv3, Severity, Description")
-                self.__print_vulnerability_template_csv(l_json)
+                self.__print_vulnerability_template_csv(l_list)
 
         except Exception as e:
             self.__mPrinter.print("get_vulnerability_template() - {0}".format(str(e)), Level.ERROR)
 
-    def __print_vulnerability_types_csv(self, p_json):
+    # ------------------------------------------------------------
+    # Vulnerability Types Methods
+    # ------------------------------------------------------------
+    def __get_vulnerability_types_header(self) -> list:
+        return ["Name"]
+
+    def __parse_vulnerability_types_json_to_csv(self, p_list: list) -> list:
         try:
-            for l_type in p_json:
-                print(l_type)
+            l_vulnerability_types: list = []
+
+            for l_vulnerability_type in p_list:
+                l_vulnerability_types.append([l_vulnerability_type])
+            return l_vulnerability_types
+        except Exception as e:
+            self.__mPrinter.print("__parse_vulnerability_types_json_to_csv() - {0}".format(str(e)), Level.ERROR)
+
+    def __print_vulnerability_types_csv(self, p_vulnerability_types):
+        try:
+            l_header: list = self.__get_vulnerability_types_header()
+            l_vulnerability_types: list = self.__parse_vulnerability_types_json_to_csv(p_vulnerability_types)
+
+            self.__write_csv(l_header, l_vulnerability_types)
         except Exception as e:
             self.__mPrinter.print("__print_vulnerability_types_csv() - {0}".format(str(e)), Level.ERROR)
 
+    def __get_vulnerability_types(self) -> list:
+        try:
+            return self.__get_unpaged_data(self.__cVULNERABILITY_TEMPLATE_TYPES_URL, "vulnerability types")
+        except Exception as e:
+            self.__mPrinter.print("__get_vulnerability_types() - {0}".format(str(e)), Level.ERROR)
+
     def get_vulnerability_types(self) -> None:
         try:
-            self.__mPrinter.print("Fetching vulnerability types", Level.INFO)
-
-            l_http_response = self.__connect_to_api(p_url=self.__cVULNERABILITY_TEMPLATE_TYPES_URL)
-
-            self.__mPrinter.print("Fetched vulnerability types", Level.SUCCESS)
-            self.__mPrinter.print("Parsing vulnerability types", Level.INFO)
-            l_json = json.loads(l_http_response.text)
-            l_number_types: int = len(l_json)
-            self.__mPrinter.print("Found {} vulnerability types".format(l_number_types), Level.INFO)
+            l_list: list = self.__get_vulnerability_types()
 
             if self.__m_output_format == OutputFormat.JSON.value:
-                print(l_json)
+                print(l_list)
             elif self.__m_output_format == OutputFormat.CSV.value:
-                print("Name")
-                self.__print_vulnerability_types_csv(l_json)
+                self.__print_vulnerability_types_csv(l_list)
 
         except Exception as e:
             self.__mPrinter.print("get_vulnerability_types() - {0}".format(str(e)), Level.ERROR)
@@ -1098,42 +1210,20 @@ class API:
     def __print_websites_csv(self, p_websites: list) -> None:
         try:
             l_websites: list = self.__parse_websites_json_to_csv(p_websites)
+            l_header: list = self.__get_websites_header()
 
-            if Parser.output_filename:
-                self.__mPrinter.print("Opening file {} for writing".format(Parser.output_filename), Level.INFO)
-                with open(Parser.output_filename, FileMode.WRITE_CREATE.value) as l_file:
-                    self.__write_csv(l_file, self.__get_websites_header(), l_websites)
-            else:
-                self.__write_csv(sys.stdout, self.__get_websites_header(), l_websites)
+            self.__write_csv(l_header, l_websites)
 
         except Exception as e:
             self.__mPrinter.print("__print_websites_csv() - {0}".format(str(e)), Level.ERROR)
 
     def __get_websites(self) -> list:
         try:
-            self.__mPrinter.print("Fetching website information", Level.INFO)
-
             l_base_url = "{0}?page={1}&pageSize={2}".format(
                 self.__cWEBSITES_LIST_URL,
                 Parser.page_number, Parser.page_size
             )
-            l_http_response = self.__connect_to_api(p_url=l_base_url)
-
-            self.__mPrinter.print("Fetched website information", Level.SUCCESS)
-            self.__mPrinter.print("Parsing website information", Level.INFO)
-            l_json = json.loads(l_http_response.text)
-            l_number_sites: int = l_json["TotalItemCount"]
-            self.__mPrinter.print("Found {} websites".format(l_number_sites), Level.INFO)
-
-            l_list: list = l_json["List"]
-
-            l_next_page = l_json["HasNextPage"]
-            if l_next_page:
-                l_list.extend(self.__get_next_page(l_base_url, l_json))
-
-            self.__mPrinter.print("Fetched website information", Level.INFO)
-
-            return l_list
+            return self.__get_paged_data(l_base_url, "websites")
 
         except Exception as e:
             self.__mPrinter.print("__get_websites() - {0}".format(str(e)), Level.ERROR)
@@ -1160,7 +1250,10 @@ class API:
 
     def __print_agents_csv(self, p_agents):
         try:
-            self.__write_csv(sys.stdout, self.__get_agents_header(), p_agents)
+            l_agents: list = self.__parse_agents_json_to_csv(p_agents)
+            l_header: list = self.__get_agents_header()
+
+            self.__write_csv(l_header, l_agents)
         except Exception as e:
             self.__mPrinter.print("__print_agents_csv() - {0}".format(str(e)), Level.ERROR)
 
@@ -1190,29 +1283,11 @@ class API:
 
     def __get_agents(self) -> list:
         try:
-            self.__mPrinter.print("Fetching agent information", Level.INFO)
-
             l_base_url = "{0}?page={1}&pageSize={2}".format(
                 self.__cAGENTS_LIST_URL,
                 Parser.page_number, Parser.page_size
             )
-            l_http_response = self.__connect_to_api(p_url=l_base_url)
-
-            self.__mPrinter.print("Fetched agent information", Level.SUCCESS)
-            self.__mPrinter.print("Parsing agent information", Level.INFO)
-            l_json = json.loads(l_http_response.text)
-            l_number_sites: int = l_json["TotalItemCount"]
-            self.__mPrinter.print("Found {} agent".format(l_number_sites), Level.INFO)
-
-            l_list: list = l_json["List"]
-
-            l_next_page = l_json["HasNextPage"]
-            if l_next_page:
-                l_list.extend(self.__get_next_page(l_base_url, l_json))
-
-            self.__mPrinter.print("Fetched agent information", Level.INFO)
-
-            return l_list
+            return self.__get_paged_data(l_base_url, "agents")
 
         except Exception as e:
             self.__mPrinter.print("__get_agents() - {0}".format(str(e)), Level.ERROR)
@@ -1225,8 +1300,7 @@ class API:
                 for l_dict in l_list:
                     print(l_dict)
             elif self.__m_output_format == OutputFormat.CSV.value:
-                l_agents: list = self.__parse_agents_json_to_csv(l_list)
-                self.__print_agents_csv(l_agents)
+                self.__print_agents_csv(l_list)
 
         except Exception as e:
             self.__mPrinter.print("get_agents() - {0}".format(str(e)), Level.ERROR)
