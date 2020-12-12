@@ -586,13 +586,11 @@ class API:
             l_csv_writer.writerows(p_data)
             self.__mPrinter.print("Wrote {} rows to {}".format(len(p_data), l_file.name), Level.INFO)
 
-            try:
-                l_file.close()
-            except:
-                pass
-
         except Exception as e:
             self.__mPrinter.print("__write_csv() - {0}".format(str(e)), Level.ERROR)
+        finally:
+            if Parser.output_filename and l_file:
+                l_file.close()
 
     def __get_unpaged_data(self, p_url: str, p_endpoint_name: str) -> list:
         try:
@@ -1290,25 +1288,6 @@ class API:
         return ["Needs Update?", "Name", "IP address", "Status", "Version", "Last Heartbeat",
                 "VDB Version", "Operating System", "Architecture", "ID"]
 
-    def __print_agents_csv(self, p_agents) -> None:
-        try:
-            l_agents: list = self.__parse_agents_json_to_csv(p_agents)
-            l_header: list = self.__get_agents_header()
-
-            self.__write_csv(l_header, l_agents)
-        except Exception as e:
-            self.__mPrinter.print("__print_agents_csv() - {0}".format(str(e)), Level.ERROR)
-
-    def __output_agents_to_csv_file(self, p_agents: list):
-        try:
-            self.__mPrinter.print("Opening file {} for writing".format(Parser.output_filename), Level.INFO)
-            with open(Parser.output_filename, FileMode.WRITE_CREATE.value) as l_file:
-                self.__write_csv(l_file, self.__get_agents_header(), p_agents)
-            self.__mPrinter.print("Wrote {} agents to file {}".format(len(p_agents), Parser.output_filename),
-                                  Level.INFO)
-        except Exception as e:
-            self.__mPrinter.print("__output_agents_to_file() - {0}".format(str(e)), Level.ERROR)
-
     def __parse_agents_json_to_csv(self, p_json: list) -> list:
         try:
             l_agents: list = []
@@ -1322,6 +1301,15 @@ class API:
             return l_agents
         except Exception as e:
             self.__mPrinter.print("__parse_agents_json_to_csv() - {0}".format(str(e)), Level.ERROR)
+
+    def __print_agents_csv(self, p_agents) -> None:
+        try:
+            l_agents: list = self.__parse_agents_json_to_csv(p_agents)
+            l_header: list = self.__get_agents_header()
+
+            self.__write_csv(l_header, l_agents)
+        except Exception as e:
+            self.__mPrinter.print("__print_agents_csv() - {0}".format(str(e)), Level.ERROR)
 
     def __get_agents(self) -> list:
         try:
@@ -1339,8 +1327,7 @@ class API:
             l_list = self.__get_agents()
 
             if self.__m_output_format == OutputFormat.JSON.value:
-                for l_dict in l_list:
-                    print(l_dict)
+                print(l_list)
             elif self.__m_output_format == OutputFormat.CSV.value:
                 self.__print_agents_csv(l_list)
 
@@ -1416,18 +1403,12 @@ class API:
     # ------------------------------------------------------------
     # Report Methods
     # ------------------------------------------------------------
-    def report_agents_missing_heartbeat(self) -> int:
+    def __parse_unresponsive_agents(self, p_agents: list) -> list:
         try:
             l_unresponsive_agents: list = []
-
-            if Parser.unattended and self.__already_reported(Parser.agent_heartbeat_breadcrumb_filename, Parser.agent_heartbeat_notification_interval_minutes):
-                Printer.print("Already reported in today. Exiting with status {}".format(self.__format_exitcode(ExitCodes.ALREADY_REPORTED)), Level.INFO)
-                return ExitCodes.ALREADY_REPORTED.value
-
-            l_list = self.__get_agents()
-
             l_now: datetime = datetime.now(timezone.utc)
-            for l_dict in l_list:
+
+            for l_dict in p_agents:
                 l_heartbeat_time: datetime = parser.parse(l_dict["Heartbeat"])
                 l_diff = (l_now - l_heartbeat_time)
                 if l_diff.seconds > Parser.agent_heartbeat_too_long_seconds:
@@ -1439,15 +1420,26 @@ class API:
                             l_diff,
                             l_dict["State"]
                         ), Level.INFO)
+            return l_unresponsive_agents
+        except Exception as e:
+            self.__mPrinter.print("__parse_unresponsive_agents() - {0}".format(str(e)), Level.ERROR)
+
+    def report_agents_missing_heartbeat(self) -> int:
+        try:
+            if Parser.unattended and self.__already_reported(Parser.agent_heartbeat_breadcrumb_filename, Parser.agent_heartbeat_notification_interval_minutes):
+                Printer.print("Already reported in today. Exiting with status {}".format(self.__format_exitcode(ExitCodes.ALREADY_REPORTED)), Level.INFO)
+                return ExitCodes.ALREADY_REPORTED.value
+
+            l_list = self.__get_agents()
+            l_unresponsive_agents: list = self.__parse_unresponsive_agents(l_list)
 
             if l_unresponsive_agents:
                 Printer.print("{} unresponsive agents found".format(len(l_unresponsive_agents)), Level.INFO)
 
-                l_agents: list = self.__parse_agents_json_to_csv(l_unresponsive_agents)
-                if Parser.output_filename:
-                    self.__output_agents_to_csv_file(l_agents)
-                else:
-                    self.__print_agents_csv(l_agents)
+                if self.__m_output_format == OutputFormat.JSON.value:
+                    print(l_unresponsive_agents)
+                elif self.__m_output_format == OutputFormat.CSV.value:
+                    self.__print_agents_csv(l_unresponsive_agents)
 
                 if Parser.unattended:
                     self.__create_breadcrumb(Parser.agent_heartbeat_breadcrumb_filename)
