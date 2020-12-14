@@ -908,13 +908,13 @@ class API:
             elif "sttas" in p_url:
                 l_business_unit = 'Business Unit: STTAS'
             elif "upscapital" in p_url:
-                l_business_unit = 'Business Unit: UPS Capital / ParcelPro'
+                l_business_unit = 'Business Unit: UPS Capital / Parcel Pro'
             elif "parcelpro" in p_url:
-                l_business_unit = 'Business Unit: UPS Capital / ParcelPro'
+                l_business_unit = 'Business Unit: UPS Capital / Parcel Pro'
             elif "upsfreight" in p_url:
-                l_business_unit = 'Business Unit: UPS Freight / Overnite Business'
+                l_business_unit = 'Business Unit: UPS Freight / Overnite'
             elif "overnite" in p_url:
-                l_business_unit = 'Business Unit: UPS Freight / Overnite Business'
+                l_business_unit = 'Business Unit: UPS Freight / Overnite'
             elif "cemelog" in p_url:
                 l_business_unit = 'Business Unit: UPS Healthcare Hungary'
             elif "upsstore" in p_url:
@@ -986,7 +986,8 @@ class API:
             l_url: str = ""
             l_groups: str = ""
 
-            l_output_file = open("{}{}{}{}".format(Parser.input_filename, ".failed.", time.strftime(self.__c_DATETIME_FORMAT), ".csv"), FileMode.WRITE_CREATE.value)
+            l_file_timestamp_pattern: str = '%a-%b-%d-%Y-%H-%M-%S'
+            l_output_file = open("{}{}{}{}".format(Parser.input_filename, ".failed.", time.strftime(l_file_timestamp_pattern), ".csv"), FileMode.WRITE_CREATE.value)
             l_csv_writer = csv.writer(l_output_file)
 
             for l_website in p_websites:
