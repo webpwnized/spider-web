@@ -9,7 +9,7 @@ from argparse import RawTextHelpFormatter
 import argparse
 
 
-l_version = '1.0.4'
+l_version = '1.0.5'
 
 
 def print_example_usage():
@@ -278,7 +278,7 @@ def run_main_program():
     if Parser.get_vulnerability_template:
         if not Parser.vulnerability_type:
             lArgParser.print_usage()
-            Printer.print("Required argument --vulnerability-type not provided", Level.ERROR, Force.FORCE, LINES_BEFORE,
+            Printer.print("Required argument -vt, --vulnerability-type not provided", Level.ERROR, Force.FORCE, LINES_BEFORE,
                           LINES_AFTER)
             exit(0)
         l_api.get_vulnerability_template()
@@ -417,10 +417,10 @@ if __name__ == '__main__':
 
     l_vulnerability_group = lArgParser.add_argument_group(title="Vulnerability Endpoint", description=None)
     l_vulnerability_group.add_argument('-vgvtemps', '--get-vulnerability-templates',
-                                 help='List vulnerability templates and exit',
+                                 help='List vulnerability templates and exit. Optionally accepts parameter -rpi, --report-policy-id.',
                                  action='store_true')
     l_vulnerability_group.add_argument('-vgvtemp', '--get-vulnerability-template',
-                                 help='Get the vulnerability template given vulnerability type and exit. Requires -vt, --vulnerability-type',
+                                 help='Get the vulnerability template given vulnerability type and exit. Requires -vt, --vulnerability-type.',
                                  action='store_true')
     l_vulnerability_group.add_argument('-vgvtypes', '--get-vulnerability-types',
                                  help='List vulnerability types and exit',

@@ -79,9 +79,9 @@
     
     Vulnerability Endpoint:
       -vgvtemps, --get-vulnerability-templates
-                            List vulnerability templates and exit
+                            List vulnerability templates and exit. Optionally accepts parameter -rpi, --report-policy-id.
       -vgvtemp, --get-vulnerability-template
-                            Get the vulnerability template given vulnerability type and exit. Requires -vt, --vulnerability-type
+                            Get the vulnerability template given vulnerability type and exit. Requires -vt, --vulnerability-type.
       -vgvtypes, --get-vulnerability-types
                             List vulnerability types and exit
     

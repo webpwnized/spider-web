@@ -1217,7 +1217,7 @@ class API:
 
     def __get_vulnerability_template(self) -> list:
         try:
-            l_base_url = "{0}?type={1}&reportPolicyId={2}".format(
+            l_base_url = "{0}?type={1}".format(
                 self.__cVULNERABILITY_TEMPLATE_URL,
                 Parser.vulnerability_type, Parser.report_policy_id
             )
