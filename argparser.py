@@ -67,6 +67,13 @@ class Parser:
         Parser.output_filename = p_args.output_filename
         Parser.output_separator = p_args.output_separator
 
+        # Scans
+        Parser.get_scans = p_args.get_scans
+        Parser.get_scans_by_website = p_args.get_scans_by_website
+        Parser.website_url = p_args.website_url
+        Parser.target_url = p_args.target_url
+        Parser.initiated_date_sort_direction = p_args.initiated_date_sort_direction
+
         #Team Members
         Parser.get_team_members = p_args.get_team_members
 
@@ -107,3 +114,6 @@ class Parser:
         Parser.disabled_agents_too_long_seconds = p_config.DISABLED_AGENTS_TOO_LONG_SECONDS
         Parser.disabled_agents_breadcrumb_filename = p_config.DISABLED_AGENTS_BREADCRUMB_FILENAME
         Parser.disabled_agents_notification_interval_minutes = p_config.DISABLED_AGENTS_NOTIFICATION_INTERVAL_MINUTES
+
+        # Business Scorecard
+        Parser.report_business_scorecard = p_args.report_business_scorecard

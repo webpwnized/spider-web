@@ -2,14 +2,14 @@
 
 from printer import Printer, Level, Force
 from argparser import Parser
-from api import API, OutputFormat, CSVSeparatorFormat
+from api import API, OutputFormat, CSVSeparatorFormat, SortDirection
 import config as __config
 
 from argparse import RawTextHelpFormatter
 import argparse
 
 
-l_version = '1.0.5'
+l_version = '1.0.6'
 
 
 def print_example_usage():
@@ -73,6 +73,24 @@ def print_example_usage():
 
     spider-web -ddds -of netsparker.csv -os Comma
     spider-web --download-discovered-services --output-filename netsparker.csv --output-separator Comma
+
+    --------------------------------
+    Get Scans
+    --------------------------------
+    spider-web -sgs -pn 1 -ps 200
+    spider-web --get-scans --page-number 1 --page-size 200
+
+    --------------------------------
+    Get Scans by Website
+    --------------------------------
+    spider-web -sgsbw -pn 1 -ps 200 -wurl "https://bc-sec2.acme.org/" -idsd Descending
+    spider-web --get-scans-by-website --page-number 1 --page-size 200 --website-url "https://bc-sec2.acme.org/" --initiated-date-sort-direction Descending
+
+    spider-web -sgsbw -pn 1 -ps 200 -turl "https://bc-sec2.acme.org/" -idsd Descending
+    spider-web --get-scans-by-website --page-number 1 --page-size 200 --target-url "https://bc-sec2.acme.org/" --initiated-date-sort-direction Descending
+
+    spider-web -sgsbw -pn 1 -ps 200 -wurl "https://bc-sec2.acme.org/"-turl "https://bc-sec2.acme.org/" -idsd Descending
+    spider-web --get-scans-by-website --page-number 1 --page-size 200 --website-url "https://bc-sec2.acme.org/" --target-url "https://bc-sec2.acme.org/" --initiated-date-sort-direction Descending
 
     --------------------------------
     Get Team Member Information
@@ -179,6 +197,12 @@ def print_example_usage():
     
     spider-web -rda --of disabled-agents.csv --un
     spider-web --report-disabled-agents --output-filename disabled-agents.csv --unattended
+
+    ----------------------------------------------------------------
+    Reports: Business Scorecard
+    ----------------------------------------------------------------        
+    spider-web -rbsc
+    spider-web --report-business-scorecard
 """)
 
 def run_main_program():
@@ -207,9 +231,10 @@ def run_main_program():
     if Parser.test_connectivity or Parser.get_account or Parser.get_license or Parser.get_agents or \
         Parser.get_team_members or Parser.get_website_groups or Parser.get_discovered_services or \
         Parser.download_discovered_services or Parser.get_website_groups or Parser.upload_website_groups or \
-        Parser.get_websites or Parser.upload_websites or Parser.get_vulnerability_templates or Parser.get_vulnerability_template or \
-        Parser.get_vulnerability_types or Parser.ping_sites or Parser.ping_sites_in_file \
-        or Parser.report_agents_missing_heartbeat or Parser.report_disabled_agents:
+        Parser.get_websites or Parser.upload_websites or Parser.get_vulnerability_templates or \
+        Parser.get_vulnerability_template or Parser.get_vulnerability_types or Parser.ping_sites or \
+        Parser.ping_sites_in_file or Parser.report_agents_missing_heartbeat or Parser.report_disabled_agents or \
+        Parser.report_business_scorecard or Parser.get_scans or Parser.get_scans_by_website:
             l_api = API(p_parser=Parser)
     else:
         lArgParser.print_usage()
@@ -306,6 +331,22 @@ def run_main_program():
     if Parser.report_disabled_agents:
         exit(l_api.report_disabled_agents())
 
+    if Parser.get_scans:
+        l_api.get_scans()
+        exit(0)
+
+    if Parser.get_scans_by_website:
+        if not Parser.website_url and not Parser.target_url:
+            lArgParser.print_usage()
+            Printer.print("Either -wurl, --website-url or -turl, --target-url or both required", Level.ERROR, Force.FORCE, LINES_BEFORE, LINES_AFTER)
+            exit(0)
+        l_api.get_scans_by_website()
+        exit(0)
+
+    if Parser.report_business_scorecard:
+        l_api.report_business_scorecard()
+        exit(0)
+
 if __name__ == '__main__':
     lArgParser = argparse.ArgumentParser(description="""
  _____       _     _             _    _      _     
@@ -394,6 +435,29 @@ if __name__ == '__main__':
                                  help='Download discovered services as CSV file and exit. Output filename is required. Specify output filename with -o, --output-format.',
                                  action='store_true')
 
+    l_scans_group = lArgParser.add_argument_group(title="Scans Endpoints", description=None)
+    l_scans_group.add_argument('-sgs', '--get-scans',
+                                 help='List scans and exit. Output fetched in pages.',
+                                 action='store_true')
+    l_scans_group.add_argument('-sgsbw', '--get-scans-by-website',
+                                 help='List scans by website and exit. Output fetched in pages. Requires either -wurl, --website-url or -turl, --target-url or both. Default sort is descending.',
+                                 action='store_true')
+
+    l_scans_options_group = lArgParser.add_argument_group(title="Scans Endpoints Options", description=None)
+    l_scans_options_group.add_argument('-wurl', '--website-url',
+                                 help='The website URL',
+                                 type=str,
+                                 action='store')
+    l_scans_options_group.add_argument('-turl', '--target-url',
+                                 help='The target URL of the scan',
+                                 type=str,
+                                 action='store')
+    l_scans_options_group.add_argument('-idsd', '--initiated-date-sort-direction',
+                                 help='The scan initiated date sort direction. Choices are {}'.format([i.value for i in SortDirection]),
+                                 default='Descending',
+                                 type=str,
+                                 action='store')
+
     l_team_member_group = lArgParser.add_argument_group(title="Team Member Endpoint", description=None)
     l_team_member_group.add_argument('-tmgtm', '--get-team-members',
                                  help='List users and exit. Output fetched in pages.',
@@ -450,6 +514,9 @@ if __name__ == '__main__':
                                  action='store_true')
     l_report_group.add_argument('-rda', '--report-disabled-agents',
                                  help='Report disabled agents and exit. Number of seconds is configurable on config.py. Exit code is non-zero if all agents are enabled.',
+                                 action='store_true')
+    l_report_group.add_argument('-rbsc', '--report-business-scorecard',
+                                 help='Report business scorecard (BSC) and exit.',
                                  action='store_true')
 
     Parser.parse_configuration(p_args=lArgParser.parse_args(), p_config=__config)

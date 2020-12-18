@@ -120,6 +120,14 @@ class ExitCodes(Enum):
     ALREADY_REPORTED = 8
 
 
+class SortDirection(Enum):
+    ASCENDING = 'Ascending'
+    DECENDING = 'Decending'
+
+    def __str__(self):
+        return self.value
+
+
 class API:
 
     # ---------------------------------
@@ -142,6 +150,9 @@ class API:
     __cACCOUNT_ME_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "account/me")
 
     __cAGENTS_LIST_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "agents/list")
+
+    __cSCANS_LIST_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "scans/list")
+    __cSCANS_LIST_BY_WEBSITE_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "scans/listbywebsite")
 
     __cTEAM_MEMBER_LIST_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "teammembers/list")
 
@@ -648,10 +659,10 @@ class API:
         except Exception as e:
             self.__mPrinter.print("__parse_account_json_to_csv() - {0}".format(str(e)), Level.ERROR)
 
-    def __print_account_csv(self, p_accounts):
+    def __print_account_csv(self, p_json: list):
         try:
             l_header: list = self.__get_account_header()
-            l_account: list = self.__parse_account_json_to_csv(p_accounts)
+            l_account: list = self.__parse_account_json_to_csv(p_json)
 
             self.__write_csv(l_header, l_account)
         except Exception as e:
@@ -758,7 +769,7 @@ class API:
         except Exception as e:
             self.__mPrinter.print("__parse_team_members_json_to_csv() - {0}".format(str(e)), Level.ERROR)
 
-    def __print_team_members_csv(self, p_json) -> None:
+    def __print_team_members_csv(self, p_json: list) -> None:
         try:
             l_header: list = self.__get_team_members_header()
             l_team_members: list = self.__parse_team_members_json_to_csv(p_json)
@@ -804,7 +815,7 @@ class API:
         except Exception as e:
             self.__mPrinter.print("__parse_website_groups_json_to_csv() - {0}".format(str(e)), Level.ERROR)
 
-    def __print_website_groups_csv(self, p_json):
+    def __print_website_groups_csv(self, p_json: list):
         try:
             l_header: list = self.__get_team_members_header()
             l_website_groups: list = self.__parse_website_groups_json_to_csv(p_json)
@@ -1067,11 +1078,11 @@ class API:
     def __get_websites_header(self) -> list:
         return ["Name", "URL", "Technical Contact", "Verified?", "Agent", "Groups"]
 
-    def __parse_websites_json_to_csv(self, p_list: list) -> list:
+    def __parse_websites_json_to_csv(self, p_json: list) -> list:
         try:
             l_websites: list = []
 
-            for l_website in p_list:
+            for l_website in p_json:
                 l_groups: list = l_website["Groups"]
                 l_groups_string: str = ""
                 for l_group in l_groups:
@@ -1084,9 +1095,9 @@ class API:
         except Exception as e:
             self.__mPrinter.print("__parse_websites_json_to_csv() - {0}".format(str(e)), Level.ERROR)
 
-    def __print_websites_csv(self, p_websites: list) -> None:
+    def __print_websites_csv(self, p_json: list) -> None:
         try:
-            l_websites: list = self.__parse_websites_json_to_csv(p_websites)
+            l_websites: list = self.__parse_websites_json_to_csv(p_json)
             l_header: list = self.__get_websites_header()
 
             self.__write_csv(l_header, l_websites)
@@ -1119,16 +1130,172 @@ class API:
             self.__mPrinter.print("get_websites() - {0}".format(str(e)), Level.ERROR)
 
     # ------------------------------------------------------------
+    # Ping Sites Methods
+    # ------------------------------------------------------------
+    def __web_server_is_up(self, p_status_code: int) -> bool:
+        return str(p_status_code)[0] in ["1", "2", "3", "4"]
+
+    def __web_server_is_redirecting(self, p_status_code: int) -> bool:
+        return str(p_status_code)[0] in ["3"]
+
+    def __web_server_is_down(self, p_status_code: int) -> bool:
+        return str(p_status_code)[0] in ["5"]
+
+    def __cannot_resolve_URL(self, p_status_code: int) -> bool:
+        return p_status_code == 502
+
+    def __is_authentication_site(self, l_domain: str) -> bool:
+        return l_domain in Parser.authentication_sites
+
+    def __ping_url(self, p_url:str, p_method: int):
+
+        l_proxies: dict = {}
+        l_site_is_up: bool = False
+
+        self.__mPrinter.print("Testing site {}".format(p_url), Level.INFO)
+
+        if p_method == PingMethod.INITIAL_TEST.value:
+
+            try:
+                if self.__m_use_proxy:
+                    self.__mPrinter.print("Using upstream proxy", Level.INFO)
+                    l_proxies = self.__get_proxies()
+                l_http_response = requests.get(url=p_url, proxies=l_proxies, timeout=self.__m_api_connection_timeout,
+                                               verify=self.__m_verify_https_certificate, allow_redirects=False)
+                l_status_code = l_http_response.status_code
+                l_reason = l_http_response.reason
+                self.__mPrinter.print("HTTP request return status code {0}-{1}".format(l_status_code, l_reason),
+                                      Level.SUCCESS)
+                if self.__web_server_is_down(l_status_code):
+                    raise requests.exceptions.ConnectionError
+                l_site_is_up = True
+            except requests.exceptions.RequestException as e:
+                raise requests.exceptions.ConnectionError
+
+        elif p_method == PingMethod.SECOND_TEST_NO_PROXY.value:
+
+            try:
+                self.__mPrinter.print(
+                    "Since proxy enabled and site not responding, checking if site might be internal",
+                    Level.INFO)
+                l_http_response = requests.get(url=p_url, timeout=self.__m_api_connection_timeout, allow_redirects=False)
+                l_status_code = l_http_response.status_code
+                l_reason = l_http_response.reason
+                self.__mPrinter.print(
+                    "HTTP request return status code {0}-{1}".format(l_status_code, l_reason),
+                    Level.SUCCESS)
+                if self.__web_server_is_up(l_status_code):
+                    self.__mPrinter.print("The site appears to be internal", Level.SUCCESS)
+                l_site_is_up = True
+            except requests.exceptions.RequestException as e:
+                l_site_is_up = False
+                l_status_code = 503
+                l_reason = str(e)
+
+        elif p_method == PingMethod.SECOND_TEST_USE_PROXY.value:
+
+            try:
+                self.__mPrinter.print(
+                    "Since proxy is not enabled and site not responding, checking if site might be external. Using proxy configuration from config.py",
+                    Level.INFO)
+                l_proxies = self.__get_proxies()
+                l_http_response = requests.get(url=p_url, proxies=l_proxies, timeout=self.__m_api_connection_timeout,
+                                               verify=self.__m_verify_https_certificate, allow_redirects=False)
+                l_status_code = l_http_response.status_code
+                l_reason = l_http_response.reason
+                self.__mPrinter.print(
+                    "HTTP request return status code {0}-{1}".format(l_status_code, l_reason),
+                    Level.SUCCESS)
+                if self.__web_server_is_up(l_status_code):
+                    self.__mPrinter.print("The site appears to be external", Level.SUCCESS)
+                l_site_is_up = True
+
+            except requests.exceptions.RequestException as e:
+                l_site_is_up = False
+                l_status_code = 503
+                l_reason = str(e)
+
+        if self.__web_server_is_redirecting(l_status_code):
+            l_current_domain = urlparse(l_http_response.url).hostname
+            l_redirect_domain = urlparse(l_http_response.next.url).hostname
+            self.__mPrinter.print("Server redirected from {} to {}".format(l_current_domain, l_redirect_domain), Level.INFO)
+            if l_current_domain == l_redirect_domain:
+                l_site_is_up = True
+                l_reason = "Server is redirecting to the same domain"
+            elif self.__is_authentication_site(l_redirect_domain):
+                l_site_is_up = True
+                l_reason = "Server is redirecting to an authentication domain {}".format(l_redirect_domain)
+            else:
+                l_site_is_up = False
+                l_reason = "Server is redirecting to a different domain {}".format(l_redirect_domain)
+
+        return l_site_is_up, l_status_code, l_reason
+
+    def __ping_sites(self, p_list: list) -> None:
+        try:
+            l_site_is_up: bool = False
+            l_status_code: int = 0
+            l_reason: str = ""
+
+            self.__mPrinter.print("Beginning site analysis", Level.INFO)
+            print('"Name", "URL", "Status", "Status Code", "Comment"')
+
+            for l_record in p_list:
+                l_name: str = l_record[WebsiteUploadFileFields.NAME.value]
+                l_url: str = l_record[WebsiteUploadFileFields.URL.value]
+
+                try:
+                    self.__mPrinter.print("Initial test for site {}".format(l_url), Level.INFO)
+                    l_site_is_up, l_status_code, l_reason = self.__ping_url(l_url, PingMethod.INITIAL_TEST.value)
+                except requests.exceptions.ConnectionError as e:
+                    # Check our current proxy status and try the opposite
+                    self.__mPrinter.print("Second test for site {}".format(l_url), Level.INFO)
+                    if self.__m_use_proxy:
+                        l_site_is_up, l_status_code, l_reason = self.__ping_url(l_url, PingMethod.SECOND_TEST_NO_PROXY.value)
+                    else:
+                        l_site_is_up, l_status_code, l_reason = self.__ping_url(l_url, PingMethod.SECOND_TEST_USE_PROXY.value)
+
+                l_status:str = "Up" if l_site_is_up else "Down"
+                self.__mPrinter.print("Response for site {} ({}): {} {}. Site is {}".format(l_name, l_url, l_status_code, l_reason, l_status), Level.INFO)
+                print('"{}", "{}", "{}", "{}", "{}"'.format(
+                    l_name, l_url, l_status, l_status_code, l_reason)
+                )
+
+        except Exception as e:
+            self.__mPrinter.print("__ping_sites() - {0}".format(str(e)), Level.ERROR)
+
+    def ping_sites(self) -> None:
+
+        try:
+            l_sites: list = []
+            l_list: list = self.__get_websites()
+            for l_record in l_list:
+                l_sites.append((l_record["Name"], l_record["RootUrl"]))
+            self.__ping_sites(l_sites)
+
+        except Exception as e:
+            self.__mPrinter.print("ping_sites() - {0}".format(str(e)), Level.ERROR)
+
+    def ping_sites_in_file(self) -> None:
+
+        try:
+            l_sites: list = self.__parse_website_upload()
+            self.__ping_sites(l_sites)
+
+        except Exception as e:
+            self.__mPrinter.print("ping_sites_in_file() - {0}".format(str(e)), Level.ERROR)
+
+    # ------------------------------------------------------------
     # Vulnerability Templates Methods
     # ------------------------------------------------------------
     def __get_vulnerability_templates_header(self) -> list:
         return ["Type", "Name", "CVSSv3", "Severity"]
 
-    def __parse_vulnerability_templates_json_to_csv(self, p_list: list) -> list:
+    def __parse_vulnerability_templates_json_to_csv(self, p_json: list) -> list:
         try:
             l_vulnerability_templates: list = []
 
-            for l_template in p_list:
+            for l_template in p_json:
                 l_cvssv3: str = "0.0"
                 try:
                     l_cvssv3 = l_template["Cvss31Vector"]["Base"]["Score"]["Value"]
@@ -1145,10 +1312,10 @@ class API:
         except Exception as e:
             self.__mPrinter.print("__parse_vulnerability_templates_json_to_csv() - {0}".format(str(e)), Level.ERROR)
 
-    def __print_vulnerability_templates_csv(self, p_vulnerability_templates: list) -> None:
+    def __print_vulnerability_templates_csv(self, p_json: list) -> None:
         try:
             l_header: list = self.__get_vulnerability_templates_header()
-            l_vulnerability_templates: list = self.__parse_vulnerability_templates_json_to_csv(p_vulnerability_templates)
+            l_vulnerability_templates: list = self.__parse_vulnerability_templates_json_to_csv(p_json)
 
             self.__write_csv(l_header, l_vulnerability_templates)
         except Exception as e:
@@ -1206,10 +1373,10 @@ class API:
         except Exception as e:
             self.__mPrinter.print("__parse_vulnerability_template_json_to_csv() - {0}".format(str(e)), Level.ERROR)
 
-    def __print_vulnerability_template_csv(self, p_vulnerability_template: list) -> None:
+    def __print_vulnerability_template_csv(self, p_json: list) -> None:
         try:
             l_header: list = self.__get_vulnerability_template_header()
-            l_vulnerability_template: list = self.__parse_vulnerability_template_json_to_csv(p_vulnerability_template)
+            l_vulnerability_template: list = self.__parse_vulnerability_template_json_to_csv(p_json)
 
             self.__write_csv(l_header, l_vulnerability_template)
         except Exception as e:
@@ -1255,10 +1422,10 @@ class API:
         except Exception as e:
             self.__mPrinter.print("__parse_vulnerability_types_json_to_csv() - {0}".format(str(e)), Level.ERROR)
 
-    def __print_vulnerability_types_csv(self, p_vulnerability_types) -> None:
+    def __print_vulnerability_types_csv(self, p_json: list) -> None:
         try:
             l_header: list = self.__get_vulnerability_types_header()
-            l_vulnerability_types: list = self.__parse_vulnerability_types_json_to_csv(p_vulnerability_types)
+            l_vulnerability_types: list = self.__parse_vulnerability_types_json_to_csv(p_json)
 
             self.__write_csv(l_header, l_vulnerability_types)
         except Exception as e:
@@ -1303,9 +1470,9 @@ class API:
         except Exception as e:
             self.__mPrinter.print("__parse_agents_json_to_csv() - {0}".format(str(e)), Level.ERROR)
 
-    def __print_agents_csv(self, p_agents) -> None:
+    def __print_agents_csv(self, p_json: list) -> None:
         try:
-            l_agents: list = self.__parse_agents_json_to_csv(p_agents)
+            l_agents: list = self.__parse_agents_json_to_csv(p_json)
             l_header: list = self.__get_agents_header()
 
             self.__write_csv(l_header, l_agents)
@@ -1325,7 +1492,7 @@ class API:
 
     def get_agents(self) -> None:
         try:
-            l_list = self.__get_agents()
+            l_list: list = self.__get_agents()
 
             if self.__m_output_format == OutputFormat.JSON.value:
                 print(l_list)
@@ -1507,158 +1674,101 @@ class API:
             self.__mPrinter.print("report_disabled_agents() - {0}".format(str(e)), Level.ERROR)
 
     # ------------------------------------------------------------
-    # Ping Sites Methods
+    # Get Scans Methods
     # ------------------------------------------------------------
-    def __web_server_is_up(self, p_status_code: int) -> bool:
-        return str(p_status_code)[0] in ["1", "2", "3", "4"]
+    def __get_scans_header(self) -> list:
+        return ["Website Name", "Website URL", "Target URL",
+                "Initiated At", "Duration", "Agent Name", "Type", "State", "Phase",
+                "Is Complete?", "Total Vulnerability Count", "VulnerabilityCriticalCount",
+                "VulnerabilityHighCount", "VulnerabilityMediumCount", "VulnerabilityLowCount",
+                "VulnerabilityBestPracticeCount", "VulnerabilityInfoCount"]
 
-    def __web_server_is_redirecting(self, p_status_code: int) -> bool:
-        return str(p_status_code)[0] in ["3"]
-
-    def __web_server_is_down(self, p_status_code: int) -> bool:
-        return str(p_status_code)[0] in ["5"]
-
-    def __cannot_resolve_URL(self, p_status_code: int) -> bool:
-        return p_status_code == 502
-
-    def __is_authentication_site(self, l_domain: str) -> bool:
-        return l_domain in Parser.authentication_sites
-
-    def __ping_url(self, p_url:str, p_method: int):
-
-        l_proxies: dict = {}
-        l_site_is_up: bool = False
-
-        self.__mPrinter.print("Testing site {}".format(p_url), Level.INFO)
-
-        if p_method == PingMethod.INITIAL_TEST.value:
-
-            try:
-                if self.__m_use_proxy:
-                    self.__mPrinter.print("Using upstream proxy", Level.INFO)
-                    l_proxies = self.__get_proxies()
-                l_http_response = requests.get(url=p_url, proxies=l_proxies, timeout=self.__m_api_connection_timeout,
-                                               verify=self.__m_verify_https_certificate, allow_redirects=False)
-                l_status_code = l_http_response.status_code
-                l_reason = l_http_response.reason
-                self.__mPrinter.print("HTTP request return status code {0}-{1}".format(l_status_code, l_reason),
-                                      Level.SUCCESS)
-                if self.__web_server_is_down(l_status_code):
-                    raise requests.exceptions.ConnectionError
-                l_site_is_up = True
-            except requests.exceptions.RequestException as e:
-                raise requests.exceptions.ConnectionError
-
-        elif p_method == PingMethod.SECOND_TEST_NO_PROXY.value:
-
-            try:
-                self.__mPrinter.print(
-                    "Since proxy enabled and site not responding, checking if site might be internal",
-                    Level.INFO)
-                l_http_response = requests.get(url=p_url, timeout=self.__m_api_connection_timeout, allow_redirects=False)
-                l_status_code = l_http_response.status_code
-                l_reason = l_http_response.reason
-                self.__mPrinter.print(
-                    "HTTP request return status code {0}-{1}".format(l_status_code, l_reason),
-                    Level.SUCCESS)
-                if self.__web_server_is_up(l_status_code):
-                    self.__mPrinter.print("The site appears to be internal", Level.SUCCESS)
-                l_site_is_up = True
-            except requests.exceptions.RequestException as e:
-                l_site_is_up = False
-                l_status_code = 503
-                l_reason = str(e)
-
-        elif p_method == PingMethod.SECOND_TEST_USE_PROXY.value:
-
-            try:
-                self.__mPrinter.print(
-                    "Since proxy is not enabled and site not responding, checking if site might be external. Using proxy configuration from config.py",
-                    Level.INFO)
-                l_proxies = self.__get_proxies()
-                l_http_response = requests.get(url=p_url, proxies=l_proxies, timeout=self.__m_api_connection_timeout,
-                                               verify=self.__m_verify_https_certificate, allow_redirects=False)
-                l_status_code = l_http_response.status_code
-                l_reason = l_http_response.reason
-                self.__mPrinter.print(
-                    "HTTP request return status code {0}-{1}".format(l_status_code, l_reason),
-                    Level.SUCCESS)
-                if self.__web_server_is_up(l_status_code):
-                    self.__mPrinter.print("The site appears to be external", Level.SUCCESS)
-                l_site_is_up = True
-
-            except requests.exceptions.RequestException as e:
-                l_site_is_up = False
-                l_status_code = 503
-                l_reason = str(e)
-
-        if self.__web_server_is_redirecting(l_status_code):
-            l_current_domain = urlparse(l_http_response.url).hostname
-            l_redirect_domain = urlparse(l_http_response.next.url).hostname
-            self.__mPrinter.print("Server redirected from {} to {}".format(l_current_domain, l_redirect_domain), Level.INFO)
-            if l_current_domain == l_redirect_domain:
-                l_site_is_up = True
-                l_reason = "Server is redirecting to the same domain"
-            elif self.__is_authentication_site(l_redirect_domain):
-                l_site_is_up = True
-                l_reason = "Server is redirecting to an authentication domain {}".format(l_redirect_domain)
-            else:
-                l_site_is_up = False
-                l_reason = "Server is redirecting to a different domain {}".format(l_redirect_domain)
-
-        return l_site_is_up, l_status_code, l_reason
-
-    def __ping_sites(self, p_list: list) -> None:
+    def __parse_scans_json_to_csv(self, p_json: list) -> list:
         try:
-            l_site_is_up: bool = False
-            l_status_code: int = 0
-            l_reason: str = ""
+            l_scans: list = []
+            for l_scan in p_json:
+                l_scans.append([
+                    l_scan["WebsiteName"], l_scan["WebsiteUrl"], l_scan["TargetUrl"],
+                    self.__format_datetime(parser.parse(l_scan["InitiatedAt"])),
+                    l_scan["Duration"], l_scan["AgentName"], l_scan["ScanType"], l_scan["State"],
+                    l_scan["Phase"], l_scan["IsCompleted"], l_scan["TotalVulnerabilityCount"],
+                    l_scan["VulnerabilityCriticalCount"], l_scan["VulnerabilityHighCount"],
+                    l_scan["VulnerabilityMediumCount"], l_scan["VulnerabilityLowCount"],
+                    l_scan["VulnerabilityBestPracticeCount"],l_scan["VulnerabilityInfoCount"]
+                ])
+            return l_scans
+        except Exception as e:
+            self.__mPrinter.print("__parse_scans_json_to_csv() - {0}".format(str(e)), Level.ERROR)
 
-            self.__mPrinter.print("Beginning site analysis", Level.INFO)
-            print('"Name", "URL", "Status", "Status Code", "Comment"')
+    def __print_scans_csv(self, l_json: list) -> None:
+        try:
+            l_scans: list = self.__parse_scans_json_to_csv(l_json)
+            l_header: list = self.__get_scans_header()
 
-            for l_record in p_list:
-                l_name: str = l_record[WebsiteUploadFileFields.NAME.value]
-                l_url: str = l_record[WebsiteUploadFileFields.URL.value]
+            self.__write_csv(l_header, l_scans)
+        except Exception as e:
+            self.__mPrinter.print("__print_scans_csv() - {0}".format(str(e)), Level.ERROR)
 
-                try:
-                    self.__mPrinter.print("Initial test for site {}".format(l_url), Level.INFO)
-                    l_site_is_up, l_status_code, l_reason = self.__ping_url(l_url, PingMethod.INITIAL_TEST.value)
-                except requests.exceptions.ConnectionError as e:
-                    # Check our current proxy status and try the opposite
-                    self.__mPrinter.print("Second test for site {}".format(l_url), Level.INFO)
-                    if self.__m_use_proxy:
-                        l_site_is_up, l_status_code, l_reason = self.__ping_url(l_url, PingMethod.SECOND_TEST_NO_PROXY.value)
-                    else:
-                        l_site_is_up, l_status_code, l_reason = self.__ping_url(l_url, PingMethod.SECOND_TEST_USE_PROXY.value)
-
-                l_status:str = "Up" if l_site_is_up else "Down"
-                self.__mPrinter.print("Response for site {} ({}): {} {}. Site is {}".format(l_name, l_url, l_status_code, l_reason, l_status), Level.INFO)
-                print('"{}", "{}", "{}", "{}", "{}"'.format(
-                    l_name, l_url, l_status, l_status_code, l_reason)
-                )
+    def __get_scans(self) -> list:
+        try:
+            l_base_url = "{0}?page={1}&pageSize={2}".format(
+                self.__cSCANS_LIST_URL,
+                Parser.page_number, Parser.page_size
+            )
+            return self.__get_paged_data(l_base_url, "scans")
 
         except Exception as e:
-            self.__mPrinter.print("__ping_sites() - {0}".format(str(e)), Level.ERROR)
+            self.__mPrinter.print("__get_scans() - {0}".format(str(e)), Level.ERROR)
 
-    def ping_sites(self) -> None:
-
+    def get_scans(self):
         try:
-            l_sites: list = []
-            l_list: list = self.__get_websites()
-            for l_record in l_list:
-                l_sites.append((l_record["Name"], l_record["RootUrl"]))
-            self.__ping_sites(l_sites)
+            l_list: list = self.__get_scans()
+
+            if self.__m_output_format == OutputFormat.JSON.value:
+                print(l_list)
+            elif self.__m_output_format == OutputFormat.CSV.value:
+                self.__print_scans_csv(l_list)
 
         except Exception as e:
-            self.__mPrinter.print("ping_sites() - {0}".format(str(e)), Level.ERROR)
+            self.__mPrinter.print("get_scans() - {0}".format(str(e)), Level.ERROR)
 
-    def ping_sites_in_file(self) -> None:
-
+    # ------------------------------------------------------------
+    # Get Scans by Websites Methods
+    # ------------------------------------------------------------
+    def __get_scans_by_website(self) -> list:
         try:
-            l_sites: list = self.__parse_website_upload()
-            self.__ping_sites(l_sites)
+            l_base_url = "{0}?page={1}&pageSize={2}&initiatedDateSortType={3}".format(
+                self.__cSCANS_LIST_BY_WEBSITE_URL,
+                Parser.page_number, Parser.page_size, Parser.initiated_date_sort_direction
+            )
+            if Parser.website_url:
+                l_base_url = "{}&websiteUrl={}".format(l_base_url, Parser.website_url)
+            if Parser.target_url:
+                l_base_url = "{}&targetUrl={}".format(l_base_url, Parser.target_url)
+            return self.__get_paged_data(l_base_url, "scans")
 
         except Exception as e:
-            self.__mPrinter.print("ping_sites_in_file() - {0}".format(str(e)), Level.ERROR)
+            self.__mPrinter.print("__get_scans_by_website() - {0}".format(str(e)), Level.ERROR)
 
+    def get_scans_by_website(self):
+        try:
+            l_list: list = self.__get_scans_by_website()
+
+            if self.__m_output_format == OutputFormat.JSON.value:
+                print(l_list)
+            elif self.__m_output_format == OutputFormat.CSV.value:
+                self.__print_scans_csv(l_list)
+
+        except Exception as e:
+            self.__mPrinter.print("get_scans_by_wesbsite() - {0}".format(str(e)), Level.ERROR)
+
+    # ------------------------------------------------------------
+    # Business Scorecard Report Methods
+    # ------------------------------------------------------------
+    def report_business_scorecard(self):
+        try:
+            print("Not Implemented. Waiting on scan endpoints.")
+            return 0
+
+        except Exception as e:
+            self.__mPrinter.print("report_business_scorecard() - {0}".format(str(e)), Level.ERROR)

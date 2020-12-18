@@ -18,8 +18,9 @@
 ### Usage
 
     usage: spider-web [-h] [-v] [-d] [-o {JSON,CSV}] [-e] [-u] [-t] [-pn PAGE_NUMBER] [-ps PAGE_SIZE] [-if INPUT_FILENAME] [-of OUTPUT_FILENAME]
-                      [-os OUTPUT_SEPARATOR] [-un] [-ga] [-gl] [-aga] [-dsgds] [-dsdds] [-tmgtm] [-wgw] [-wupw] [-wggwg] [-wgupwg] [-vgvtemps]
-                      [-vgvtemp] [-vgvtypes] [-rpi REPORT_POLICY_ID] [-vt VULNERABILITY_TYPE] [-auxps] [-auxpsif] [-ramh] [-rda]
+                      [-os OUTPUT_SEPARATOR] [-un] [-ga] [-gl] [-aga] [-dsgds] [-dsdds] [-sgs] [-sgsbw] [-wurl WEBSITE_URL] [-turl TARGET_URL]
+                      [-idsd INITIATED_DATE_SORT_DIRECTION] [-tmgtm] [-wgw] [-wupw] [-wggwg] [-wgupwg] [-vgvtemps] [-vgvtemp] [-vgvtypes]
+                      [-rpi REPORT_POLICY_ID] [-vt VULNERABILITY_TYPE] [-auxps] [-auxpsif] [-ramh] [-rda] [-rbsc]
 
 ### Options
 
@@ -61,7 +62,20 @@
                             List discovered services and exit. Output fetched in pages.
       -dsdds, --download-discovered-services
                             Download discovered services as CSV file and exit. Specify optional output filename with -o, --output-format
+
+    Scans Endpoints:
+      -sgs, --get-scans     List scans and exit. Output fetched in pages.
+      -sgsbw, --get-scans-by-website
+                            List scans by website and exit. Output fetched in pages. Requires either -wurl, --website-url or -turl, --target-url or both. Default sort is descending.
     
+    Scans Endpoints Options:
+      -wurl WEBSITE_URL, --website-url WEBSITE_URL
+                            The website URL
+      -turl TARGET_URL, --target-url TARGET_URL
+                            The target URL of the scan
+      -idsd INITIATED_DATE_SORT_DIRECTION, --initiated-date-sort-direction INITIATED_DATE_SORT_DIRECTION
+                            The scan initiated date sort direction. Choices are ['Ascending', 'Decending']
+
     Team Member Endpoint:
       -tmgtm, --get-team-members
                             List users and exit. Output fetched in pages.
@@ -97,12 +111,14 @@
                             Read site from file then report status and exit. Requires properly formatted input file: CSV with fields SITE_NAME, SITE_URL. Include input file with -if, --input-filename
 
     Reports:
-        Reports can be output to a file. Output filename is optional. Otherwise output is sent to standard out (STDOUT). Specify output filename with -o, --output-format. Report functions allows unattended mode. In unattended mode, functions will only produce output if the configured amount of time has passed the time contained in the breadcrumb file. Configure the breadcrumb filename and the amount of time in config.py.
+      Reports can be output to a file. Output filename is optional. Otherwise output is sent to standard out (STDOUT). Specify output filename with -o, --output-format. Report functions allows unattended mode. In unattended mode, functions will only produce output if the configured amount of time has passed the time contained in the breadcrumb file. Configure the breadcrumb filename and the amount of time in config.py.
 
-        -ramh, --report-agents-missing-heartbeat
-                        Report agents that have not checked in recently and exit. Number of seconds is configurable on config.py. Exit code is non-zero if all agents are checking in.
-        -rda, --report-disabled-agents
-                        Report disabled agents and exit. Number of seconds is configurable on config.py. Exit code is non-zero if all agents are enabled.
+      -ramh, --report-agents-missing-heartbeat
+            Report agents that have not checked in recently and exit. Number of seconds is configurable on config.py. Exit code is non-zero if all agents are checking in.
+      -rda, --report-disabled-agents
+            Report disabled agents and exit. Number of seconds is configurable on config.py. Exit code is non-zero if all agents are enabled.
+      -rbsc, --report-business-scorecard
+            Report business scorecard (BSC) and exit.
 
 ### Examples
 
@@ -153,6 +169,20 @@
 
     spider-web -ddds -of netsparker.csv -os Comma
     spider-web --download-discovered-services --output-filename netsparker.csv --output-separator Comma
+
+#### Get Scans
+    spider-web -sgs -pn 1 -ps 200
+    spider-web --get-scans --page-number 1 --page-size 200
+
+#### Get Scans by Website
+    spider-web -sgsbw -pn 1 -ps 200 -wurl "https://bc-sec2.acme.org/" -idsd Descending
+    spider-web --get-scans-by-website --page-number 1 --page-size 200 --website-url "https://bc-sec2.acme.org/" --initiated-date-sort-direction Descending
+
+    spider-web -sgsbw -pn 1 -ps 200 -turl "https://bc-sec2.acme.org/" -idsd Descending
+    spider-web --get-scans-by-website --page-number 1 --page-size 200 --target-url "https://bc-sec2.acme.org/" --initiated-date-sort-direction Descending
+
+    spider-web -sgsbw -pn 1 -ps 200 -wurl "https://bc-sec2.acme.org/"-turl "https://bc-sec2.acme.org/" -idsd Descending
+    spider-web --get-scans-by-website --page-number 1 --page-size 200 --website-url "https://bc-sec2.acme.org/" --target-url "https://bc-sec2.acme.org/" --initiated-date-sort-direction Descending
 
 #### Get Team Member Information
     spider-web -tmgtm -pn 1 -ps 200
@@ -236,3 +266,7 @@
     
     spider-web -rda --of disabled-agents.csv --un
     spider-web --report-disabled-agents --output-filename disabled-agents.csv --unattended
+
+#### Reports: Business Scorecard
+    spider-web -rbsc
+    spider-web --report-business-scorecard
