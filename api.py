@@ -804,20 +804,20 @@ class API:
     # Web Site Groups Methods
     # ------------------------------------------------------------
     def __get_website_groups_header(self) -> list:
-        return ["Name", "Number Websites"]
+        return ["Name", "Number Websites", "ID"]
 
     def __parse_website_groups_json_to_csv(self, p_json: list) -> list:
         try:
             l_website_groups: list = []
             for l_website_group in p_json:
-                l_website_groups.append([l_website_group["Name"], l_website_group["TotalWebsites"]])
+                l_website_groups.append([l_website_group["Name"], l_website_group["TotalWebsites"], l_website_group["Id"]])
             return l_website_groups
         except Exception as e:
             self.__mPrinter.print("__parse_website_groups_json_to_csv() - {0}".format(str(e)), Level.ERROR)
 
     def __print_website_groups_csv(self, p_json: list):
         try:
-            l_header: list = self.__get_team_members_header()
+            l_header: list = self.__get_website_groups_header()
             l_website_groups: list = self.__parse_website_groups_json_to_csv(p_json)
 
             self.__write_csv(l_header, l_website_groups)
