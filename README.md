@@ -18,8 +18,9 @@
 ### Usage
 
     usage: spider-web [-h] [-v] [-d] [-o {JSON,CSV}] [-e] [-u] [-t] [-pn PAGE_NUMBER] [-ps PAGE_SIZE] [-if INPUT_FILENAME] [-of OUTPUT_FILENAME]
-                      [-os OUTPUT_SEPARATOR] [-un] [-ga] [-gl] [-aga] [-dsgds] [-dsdds] [-sgs] [-sgsbw] [-wurl WEBSITE_URL] [-turl TARGET_URL]
-                      [-idsd INITIATED_DATE_SORT_DIRECTION] [-tmgtm] [-wgw] [-wupw] [-wggwg] [-wgupwg] [-vgvtemps] [-vgvtemp] [-vgvtypes]
+                      [-os OUTPUT_SEPARATOR] [-un] [-wurl WEBSITE_URL] [-ga] [-gl] [-aga] [-dsgds] [-dsdds] [-sgs] [-sgsbw] [-turl TARGET_URL]
+                      [-idsd INITIATED_DATE_SORT_DIRECTION] [-tmgtm] [-wgwbu] [-wgwbn] [-wgwbid] [-wn WEBSITE_NAME] [-wid WEBSITE_ID] [-wgw] [-wgwbgn]
+                      [-wgwbgid] [-wupw] [-wgn WEBSITE_GROUP_NAME] [-wgid WEBSITE_GROUP_ID] [-wggwg] [-wgupwg] [-vgvtemps] [-vgvtemp] [-vgvtypes]
                       [-rpi REPORT_POLICY_ID] [-vt VULNERABILITY_TYPE] [-auxps] [-auxpsif] [-ramh] [-rda] [-rbsc]
 
 ### Options
@@ -49,6 +50,8 @@
                             Output separator for downloaded CSV files. Default is comma. Choices are ['Comma', 'Semicolon', 'Pipe', 'Tab']
       -un UNATTENDED, --unattended UNATTENDED
                             Unattended mode. In unattended mode, reporting functions will check for breadcrumb files and only report if the specified time has passed since the last report. The specified time is set in the config.py file.
+      -wurl WEBSITE_URL, --website-url WEBSITE_URL
+                            The website URL to search by
 
     Account Endpoint:
       -ga, --get-account    Get current user account information and exit
@@ -69,8 +72,6 @@
                             List scans by website and exit. Output fetched in pages. Requires either -wurl, --website-url or -turl, --target-url or both. Default sort is descending.
     
     Scans Endpoints Options:
-      -wurl WEBSITE_URL, --website-url WEBSITE_URL
-                            The website URL
       -turl TARGET_URL, --target-url TARGET_URL
                             The target URL of the scan
       -idsd INITIATED_DATE_SORT_DIRECTION, --initiated-date-sort-direction INITIATED_DATE_SORT_DIRECTION
@@ -80,11 +81,35 @@
       -tmgtm, --get-team-members
                             List users and exit. Output fetched in pages.
     
-    Website Endpoint:
+    Website Endpoints:
+      -wgwbu, --get-website-by-url
+                            List website and exit. Output fetched in pages. Requires -wurl, --website-url.
+      -wgwbn, --get-website-by-name
+                            List website and exit. Output fetched in pages. Requires -wn, --website-name.
+      -wgwbid, --get-website-by-id
+                            List website and exit. Output fetched in pages. Requires -wid, --website-id.
+    
+    Website Endpoints Options:
+      -wn WEBSITE_NAME, --website-name WEBSITE_NAME
+                            The website name to search by
+      -wid WEBSITE_ID, --website-id WEBSITE_ID
+                            The website ID to search by
+    
+    Websites Endpoints:
       -wgw, --get-websites  List websites and exit. Output fetched in pages.
+      -wgwbgn, --get-websites-by-group-name
+                            List websites and exit. Output fetched in pages. Requires -wgn, --website-group-name.
+      -wgwbgid, --get-websites-by-group-id
+                            List websites and exit. Output fetched in pages. Requires -wgid, --website-group-id.
       -wupw, --upload-websites
                             Create websites and exit. Requires properly formatted input file: CSV with fields SITE_NAME, SITE_URL, SITE_GROUPS. SITE_GROUPS must be pipe delimited. Include input file with -if, --input-filename
     
+    Websites Endpoints Options:
+      -wgn WEBSITE_GROUP_NAME, --website-group-name WEBSITE_GROUP_NAME
+                            The website group name to search by
+      -wgid WEBSITE_GROUP_ID, --website-group-id WEBSITE_GROUP_ID
+                            The website group ID to search by
+
     Website Groups Endpoint:
       -wggwg, --get-website-groups
                             List website groups and exit. Output fetched in pages.
@@ -192,12 +217,33 @@
     spider-web --get-team-members --page-number 1 --page-size 200 ---output-file team-members.txt
 
 #### Get Website Information
+    spider-web -wgwbu -pn 1 -ps 200 -wurl "https://www.acme.com"
+    spider-web --get-website-by-url --page-number 1 --page-size 200 --website-url "https://www.acme.com"
+    
+    spider-web -wgwbn -pn 1 -ps 200 -wn www.acme.com
+    spider-web --get-website-by-name --page-number 1 --page-size 200 --website-name www.acme.com
+    
+    spider-web -wgwbid -pn 1 -ps 200 -wid e47d8465-8aed-48ea-a19b-b02371931e38
+    spider-web --get-website-by-id --page-number 1 --page-size 200 --website-id e47d8465-8aed-48ea-a19b-b02371931e38
+        
+#### Get Websites Information
     spider-web -wgw -pn 1 -ps 200
     spider-web --get-websites --page-number 1 --page-size 200
 
     spider-web -wgw -pn 1 -ps 200 -of websites.csv
     spider-web --get-websites --page-number 1 --page-size 200 --output-file websites.csv
 
+    spider-web -wgwbgn -pn 1 -ps 200 -wgn "On Balanced Score Card (BSC)"
+    spider-web --get-websites-by-group-name --page-number 1 --page-size 200 --website-group-name "On Balanced Score Card (BSC)"
+
+    spider-web -wgwbgn -pn 1 -ps 200 -of websites.csv -wgn "On Balanced Score Card (BSC)"
+    spider-web --get-websites-by-group-name --page-number 1 --page-size 200 --website-group-name "On Balanced Score Card (BSC)" --output-file websites.csv
+
+    spider-web -wgwbgid -pn 1 -ps 200 -wgid "On Balanced Score Card (BSC)"
+    spider-web --get-websites-by-group-id --page-number 1 --page-size 200 --website-group-id "b9d6581c-9ebe-4e56-3313-ac4e038c2393"
+
+    spider-web -wgwbgid -pn 1 -ps 200 -of websites.csv -wgid "On Balanced Score Card (BSC)"
+    spider-web --get-websites-by-group-id --page-number 1 --page-size 200 --website-group-id "b9d6581c-9ebe-4e56-3313-ac4e038c2393" --output-file websites.csv
 #### Upload Website Information
     spider-web -wupw -if groups.csv
     spider-web --upload-websites --input-file websites.csv

@@ -77,9 +77,33 @@ class Parser:
         #Team Members
         Parser.get_team_members = p_args.get_team_members
 
+        # Website
+        Parser.get_website_by_url = p_args.get_website_by_url
+        Parser.get_website_by_name = p_args.get_website_by_name
+        Parser.get_website_by_id = p_args.get_website_by_id
+
+        Parser.website_url = p_args.website_url
+        Parser.website_name = p_args.website_name
+        Parser.website_id = p_args.website_id
+
+        if Parser.get_website_by_url:
+            Parser.query = Parser.website_url
+        if Parser.get_website_by_name:
+            Parser.query = Parser.website_name
+
         # Websites
         Parser.get_websites = p_args.get_websites
         Parser.upload_websites = p_args.upload_websites
+        Parser.get_websites_by_group_name = p_args.get_websites_by_group_name
+        Parser.get_websites_by_group_id = p_args.get_websites_by_group_id
+
+        Parser.website_group_name = p_args.website_group_name
+        Parser.website_group_id = p_args.website_group_id
+
+        if Parser.get_websites_by_group_name:
+            Parser.query = Parser.website_group_name
+        if Parser.get_websites_by_group_id:
+            Parser.query = Parser.website_group_id
 
         #Website Groups
         Parser.get_website_groups = p_args.get_website_groups

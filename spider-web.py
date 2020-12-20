@@ -9,7 +9,7 @@ from argparse import RawTextHelpFormatter
 import argparse
 
 
-l_version = '1.0.7'
+l_version = '1.0.8'
 
 
 def print_example_usage():
@@ -100,9 +100,21 @@ def print_example_usage():
 
     spider-web -tmgtm -pn 1 -ps 200 -of team-members.txt
     spider-web --get-team-members --page-number 1 --page-size 200 ---output-file team-members.txt
-    
+
     --------------------------------
     Get Website Information
+    --------------------------------
+    spider-web -wgwbu -pn 1 -ps 200 -wurl "https://www.acme.com"
+    spider-web --get-website-by-url --page-number 1 --page-size 200 --website-url "https://www.acme.com"
+    
+    spider-web -wgwbn -pn 1 -ps 200 -wn www.acme.com
+    spider-web --get-website-by-name --page-number 1 --page-size 200 --website-name www.acme.com
+    
+    spider-web -wgwbid -pn 1 -ps 200 -wid e47d8465-8aed-48ea-a19b-b02371931e38
+    spider-web --get-website-by-id --page-number 1 --page-size 200 --website-id e47d8465-8aed-48ea-a19b-b02371931e38
+        
+    --------------------------------
+    Get Websites Information
     --------------------------------
     spider-web -wgw -pn 1 -ps 200
     spider-web --get-websites --page-number 1 --page-size 200
@@ -110,6 +122,18 @@ def print_example_usage():
     spider-web -wgw -pn 1 -ps 200 -of websites.csv
     spider-web --get-websites --page-number 1 --page-size 200 --output-file websites.csv
 
+    spider-web -wgwbgn -pn 1 -ps 200 -wgn "On Balanced Score Card (BSC)"
+    spider-web --get-websites-by-group-name --page-number 1 --page-size 200 --website-group-name "On Balanced Score Card (BSC)"
+
+    spider-web -wgwbgn -pn 1 -ps 200 -of websites.csv -wgn "On Balanced Score Card (BSC)"
+    spider-web --get-websites-by-group-name --page-number 1 --page-size 200 --website-group-name "On Balanced Score Card (BSC)" --output-file websites.csv
+
+    spider-web -wgwbgid -pn 1 -ps 200 -wgid "On Balanced Score Card (BSC)"
+    spider-web --get-websites-by-group-id --page-number 1 --page-size 200 --website-group-id "b9d6581c-9ebe-4e56-3313-ac4e038c2393"
+
+    spider-web -wgwbgid -pn 1 -ps 200 -of websites.csv -wgid "On Balanced Score Card (BSC)"
+    spider-web --get-websites-by-group-id --page-number 1 --page-size 200 --website-group-id "b9d6581c-9ebe-4e56-3313-ac4e038c2393" --output-file websites.csv
+ 
     --------------------------------
     Upload Website Information
     --------------------------------
@@ -234,7 +258,9 @@ def run_main_program():
         Parser.get_websites or Parser.upload_websites or Parser.get_vulnerability_templates or \
         Parser.get_vulnerability_template or Parser.get_vulnerability_types or Parser.ping_sites or \
         Parser.ping_sites_in_file or Parser.report_agents_missing_heartbeat or Parser.report_disabled_agents or \
-        Parser.report_business_scorecard or Parser.get_scans or Parser.get_scans_by_website:
+        Parser.report_business_scorecard or Parser.get_scans or Parser.get_scans_by_website or \
+        Parser.get_website_by_url or Parser.get_website_by_name or Parser.get_website_by_id or \
+        Parser.get_websites_by_group_name or Parser.get_websites_by_group_id:
             l_api = API(p_parser=Parser)
     else:
         lArgParser.print_usage()
@@ -284,8 +310,48 @@ def run_main_program():
         l_api.download_discovered_services()
         exit(0)
 
+    if Parser.get_website_by_url:
+        if not Parser.website_url:
+            lArgParser.print_usage()
+            Printer.print("Required argument -wurl, --website-url not provided", Level.ERROR, Force.FORCE, LINES_BEFORE, LINES_AFTER)
+            exit(0)
+        l_api.get_website_by_url()
+        exit(0)
+
+    if Parser.get_website_by_name:
+        if not Parser.website_name:
+            lArgParser.print_usage()
+            Printer.print("Required argument -wn, --website-name not provided", Level.ERROR, Force.FORCE, LINES_BEFORE, LINES_AFTER)
+            exit(0)
+        l_api.get_website_by_name()
+        exit(0)
+
+    if Parser.get_website_by_id:
+        if not Parser.website_id:
+            lArgParser.print_usage()
+            Printer.print("Required argument -wid, --website-id not provided", Level.ERROR, Force.FORCE, LINES_BEFORE, LINES_AFTER)
+            exit(0)
+        l_api.get_website_by_id()
+        exit(0)
+
     if Parser.get_websites:
         l_api.get_websites()
+        exit(0)
+
+    if Parser.get_websites_by_group_name:
+        if not Parser.website_group_name:
+            lArgParser.print_usage()
+            Printer.print("Required argument -wgn, --website-group-name not provided", Level.ERROR, Force.FORCE, LINES_BEFORE, LINES_AFTER)
+            exit(0)
+        l_api.get_websites_by_group_name()
+        exit(0)
+
+    if Parser.get_websites_by_group_id:
+        if not Parser.website_group_id:
+            lArgParser.print_usage()
+            Printer.print("Required argument -wgid, --website-group-id not provided", Level.ERROR, Force.FORCE, LINES_BEFORE, LINES_AFTER)
+            exit(0)
+        l_api.get_websites_by_group_id()
         exit(0)
 
     if Parser.upload_websites:
@@ -413,6 +479,10 @@ if __name__ == '__main__':
     l_universal_endpoint_group.add_argument('-un', '--unattended',
                                 help='Unattended mode. In unattended mode, reporting functions will check for breadcrumb files and only report if the specified time has passed since the last report. The specified time is set in the config.py file.',
                                 action='store_true')
+    l_universal_endpoint_group.add_argument('-wurl', '--website-url',
+                                 help='The website URL to search by',
+                                 type=str,
+                                 action='store')
 
     l_account_group = lArgParser.add_argument_group(title="Account Endpoint", description=None)
     l_account_group.add_argument('-ga', '--get-account',
@@ -444,10 +514,6 @@ if __name__ == '__main__':
                                  action='store_true')
 
     l_scans_options_group = lArgParser.add_argument_group(title="Scans Endpoints Options", description=None)
-    l_scans_options_group.add_argument('-wurl', '--website-url',
-                                 help='The website URL',
-                                 type=str,
-                                 action='store')
     l_scans_options_group.add_argument('-turl', '--target-url',
                                  help='The target URL of the scan',
                                  type=str,
@@ -458,18 +524,55 @@ if __name__ == '__main__':
                                  type=str,
                                  action='store')
 
-    l_team_member_group = lArgParser.add_argument_group(title="Team Member Endpoint", description=None)
+    l_team_member_group = lArgParser.add_argument_group(title="Team Member Endpoints", description=None)
     l_team_member_group.add_argument('-tmgtm', '--get-team-members',
                                  help='List users and exit. Output fetched in pages.',
                                  action='store_true')
 
-    l_website_groups_group = lArgParser.add_argument_group(title="Website Endpoint", description=None)
-    l_website_groups_group.add_argument('-wgw', '--get-websites',
+    l_website_group = lArgParser.add_argument_group(title="Website Endpoints", description=None)
+    l_website_group.add_argument('-wgwbu', '--get-website-by-url',
+                                 help='List website and exit. Output fetched in pages. Requires -wurl, --website-url.',
+                                 action='store_true')
+    l_website_group.add_argument('-wgwbn', '--get-website-by-name',
+                                 help='List website and exit. Output fetched in pages. Requires -wn, --website-name.',
+                                 action='store_true')
+    l_website_group.add_argument('-wgwbid', '--get-website-by-id',
+                                 help='List website and exit. Output fetched in pages. Requires -wid, --website-id.',
+                                 action='store_true')
+
+    l_website_group_options_group = lArgParser.add_argument_group(title="Website Endpoints Options", description=None)
+    l_website_group_options_group.add_argument('-wn', '--website-name',
+                                 help='The website name to search by',
+                                 type=str,
+                                 action='store')
+    l_website_group_options_group.add_argument('-wid', '--website-id',
+                                 help='The website ID to search by',
+                                 type=str,
+                                 action='store')
+
+    l_websites_group = lArgParser.add_argument_group(title="Websites Endpoints", description=None)
+    l_websites_group.add_argument('-wgw', '--get-websites',
                                  help='List websites and exit. Output fetched in pages.',
                                  action='store_true')
-    l_website_groups_group.add_argument('-wupw', '--upload-websites',
+    l_websites_group.add_argument('-wgwbgn', '--get-websites-by-group-name',
+                                 help='List websites and exit. Output fetched in pages. Requires -wgn, --website-group-name.',
+                                 action='store_true')
+    l_websites_group.add_argument('-wgwbgid', '--get-websites-by-group-id',
+                                 help='List websites and exit. Output fetched in pages. Requires -wgid, --website-group-id.',
+                                 action='store_true')
+    l_websites_group.add_argument('-wupw', '--upload-websites',
                                  help='Create websites and exit. Requires properly formatted input file: CSV with fields SITE_NAME, SITE_URL, SITE_GROUPS. SITE_GROUPS must be pipe delimited. Include input file with -if, --input-filename',
                                  action='store_true')
+
+    l_websites_group_options_group = lArgParser.add_argument_group(title="Websites Endpoints Options", description=None)
+    l_websites_group_options_group.add_argument('-wgn', '--website-group-name',
+                                 help='The website group name to search by',
+                                 type=str,
+                                 action='store')
+    l_websites_group_options_group.add_argument('-wgid', '--website-group-id',
+                                 help='The website group ID to search by',
+                                 type=str,
+                                 action='store')
 
     l_website_groups_group = lArgParser.add_argument_group(title="Website Groups Endpoint", description=None)
     l_website_groups_group.add_argument('-wggwg', '--get-website-groups',

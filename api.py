@@ -160,7 +160,9 @@ class API:
     __cDISCOVERED_SERVICES_DOWNLOAD_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "discovery/export")
 
     __cWEBSITES_LIST_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "websites/list")
+    __cWEBSITES_GET_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "websites/get")
     __cWEBSITES_UPLOAD_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "websites/new")
+    __cWEBSITES_BY_GROUP_LIST_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "websites/getwebsitesbygroup")
 
     __cWEBSITE_GROUPS_LIST_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "websitegroups/list")
     __cWEBSITE_GROUPS_UPLOAD_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "websitegroups/new")
@@ -1073,11 +1075,86 @@ class API:
             self.__mPrinter.print("upload_websites() - {0}".format(str(e)), Level.ERROR)
 
     # ------------------------------------------------------------
-    # Websites Methods
+    # Common Web Site Methods
     # ------------------------------------------------------------
     def __get_websites_header(self) -> list:
-        return ["Name", "URL", "Technical Contact", "Verified?", "Agent", "Groups"]
+        return ["Name", "URL", "Technical Contact", "Verified?", "Agent", "Groups", "ID"]
 
+    # ------------------------------------------------------------
+    # Web Site Methods
+    # ------------------------------------------------------------
+    def __parse_website_json_to_csv(self, p_json: list) -> list:
+        try:
+            l_websites: list = []
+
+            l_groups: list = p_json["Groups"]
+            l_groups_string: str = ""
+            for l_group in l_groups:
+                l_groups_string = "{},{}".format(l_groups_string, l_group["Name"])
+            l_websites.append([
+                p_json["Name"], p_json["RootUrl"], p_json["TechnicalContactEmail"],
+                p_json["IsVerified"], p_json["AgentMode"], l_groups_string[1:],
+                p_json["Id"]
+            ])
+            return l_websites
+        except Exception as e:
+            self.__mPrinter.print("__parse_websites_json_to_csv() - {0}".format(str(e)), Level.ERROR)
+
+    def __print_website_csv(self, p_json: list) -> None:
+        try:
+            l_websites: list = self.__parse_website_json_to_csv(p_json)
+            l_header: list = self.__get_websites_header()
+
+            self.__write_csv(l_header, l_websites)
+
+        except Exception as e:
+            self.__mPrinter.print("__print_website_csv() - {0}".format(str(e)), Level.ERROR)
+
+    def __handle_website(self, p_list: list) -> None:
+        try:
+            if self.__m_output_format == OutputFormat.JSON.value:
+                print(p_list)
+            elif self.__m_output_format == OutputFormat.CSV.value:
+                self.__print_website_csv(p_list)
+
+        except Exception as e:
+            self.__mPrinter.print("__handle_website() - {0}".format(str(e)), Level.ERROR)
+
+    def get_website_by_url(self) -> None:
+        try:
+            l_list: list = self.__get_website_by_name_or_url()
+            self.__handle_website(l_list)
+        except Exception as e:
+            self.__mPrinter.print("get_website_by_url() - {0}".format(str(e)), Level.ERROR)
+
+    def get_website_by_name(self) -> None:
+        try:
+            l_list: list = self.__get_website_by_name_or_url()
+            self.__handle_website(l_list)
+        except Exception as e:
+            self.__mPrinter.print("get_website_by_name() - {0}".format(str(e)), Level.ERROR)
+
+    def __get_website_by_id(self) -> list:
+        try:
+            l_base_url = "{0}?page={1}&pageSize={2}".format(
+                "{}/{}".format(self.__cWEBSITES_GET_URL, Parser.website_id),
+                Parser.page_number, Parser.page_size
+            )
+            return self.__get_unpaged_data(l_base_url, "websites")
+
+        except Exception as e:
+            self.__mPrinter.print("__get_website_by_id() - {0}".format(str(e)), Level.ERROR)
+
+    def get_website_by_id(self) -> None:
+        try:
+            l_list: list = self.__get_website_by_id()
+            self.__handle_website(l_list)
+        except Exception as e:
+            self.__mPrinter.print("get_website_by_id() - {0}".format(str(e)), Level.ERROR)
+
+    # ------------------------------------------------------------
+    # Web Sites Methods
+    # ------------------------------------------------------------
     def __parse_websites_json_to_csv(self, p_json: list) -> list:
         try:
             l_websites: list = []
@@ -1089,7 +1166,8 @@ class API:
                     l_groups_string = "{},{}".format(l_groups_string, l_group["Name"])
                 l_websites.append([
                     l_website["Name"], l_website["RootUrl"], l_website["TechnicalContactEmail"],
-                    l_website["IsVerified"], l_website["AgentMode"], l_groups_string[1:]
+                    l_website["IsVerified"], l_website["AgentMode"], l_groups_string[1:],
+                    l_website["Id"]
                 ])
             return l_websites
         except Exception as e:
@@ -1116,18 +1194,60 @@ class API:
         except Exception as e:
             self.__mPrinter.print("__get_websites() - {0}".format(str(e)), Level.ERROR)
 
+    def __handle_websites(self, p_list: list) -> None:
+        try:
+            if self.__m_output_format == OutputFormat.JSON.value:
+                print(p_list)
+            elif self.__m_output_format == OutputFormat.CSV.value:
+                self.__print_websites_csv(p_list)
+
+        except Exception as e:
+            self.__mPrinter.print("__handle_websites() - {0}".format(str(e)), Level.ERROR)
+
     def get_websites(self) -> None:
         try:
             l_list: list = self.__get_websites()
-
-            if self.__m_output_format == OutputFormat.JSON.value:
-                for l_dict in l_list:
-                    print(l_dict)
-            elif self.__m_output_format == OutputFormat.CSV.value:
-                self.__print_websites_csv(l_list)
-
+            self.__handle_websites(l_list)
         except Exception as e:
             self.__mPrinter.print("get_websites() - {0}".format(str(e)), Level.ERROR)
+
+    def __get_website_by_name_or_url(self) -> list:
+        try:
+            l_base_url = "{0}?page={1}&pageSize={2}&query={3}".format(
+                self.__cWEBSITES_GET_URL,
+                Parser.page_number, Parser.page_size, Parser.query
+            )
+            return self.__get_unpaged_data(l_base_url, "websites")
+
+        except Exception as e:
+            self.__mPrinter.print("__get_website_by_name_or_url() - {0}".format(str(e)), Level.ERROR)
+
+    # ------------------------------------------------------------
+    # Get Websites by Group Name or ID
+    # ------------------------------------------------------------
+    def __get_websites_by_group(self) -> list:
+        try:
+            l_base_url = "{0}?page={1}&pageSize={2}&query={3}".format(
+                self.__cWEBSITES_BY_GROUP_LIST_URL,
+                Parser.page_number, Parser.page_size, Parser.query
+            )
+            return self.__get_paged_data(l_base_url, "websites")
+
+        except Exception as e:
+            self.__mPrinter.print("__get_websites_by_group() - {0}".format(str(e)), Level.ERROR)
+
+    def __get_websites_by_group(self) -> None:
+        try:
+            l_list: list = self.__get_websites_by_group()
+            self.__handle_websites()
+        except Exception as e:
+            self.__mPrinter.print("get_websites_by_group() - {0}".format(str(e)), Level.ERROR)
+
+    def get_websites_by_group_name(self) -> None:
+        self.__get_websites_by_group()
+
+    def get_websites_by_group_id(self) -> None:
+        self.__get_websites_by_group()
 
     # ------------------------------------------------------------
     # Ping Sites Methods
@@ -1337,8 +1457,7 @@ class API:
             l_list: list = self.__get_vulnerability_templates()
 
             if self.__m_output_format == OutputFormat.JSON.value:
-                for l_dict in l_list:
-                    print(l_dict)
+                print(l_list)
             elif self.__m_output_format == OutputFormat.CSV.value:
                 self.__print_vulnerability_templates_csv(l_list)
 
@@ -1398,8 +1517,7 @@ class API:
             l_list: list = self.__get_vulnerability_template()
 
             if self.__m_output_format == OutputFormat.JSON.value:
-                for l_dict in l_list:
-                    print(l_dict)
+                print(l_dict)
             elif self.__m_output_format == OutputFormat.CSV.value:
                 self.__print_vulnerability_template_csv(l_list)
 
