@@ -559,7 +559,7 @@ class API:
         try:
             l_url_pattern = re.compile(
                 r'^(?:http)s?://'  # http:// or https://
-                r'(?:(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+(?:[A-Z]{2,6}\.?|[A-Z0-9-]{2,}\.?))'  # domain...
+                r'(?:(?:[A-Z0-9](?:[A-Z0-9-_]{0,61}[A-Z0-9])?\.)+(?:[A-Z]{2,6}\.?|[A-Z0-9-_]{2,}\.?))'  # domain...
                 r'(?::\d+)?'  # optional port
                 r'(?:/?|[/?]\S+)$', re.IGNORECASE)
             return re.match(l_url_pattern, p_url)
@@ -1121,12 +1121,11 @@ class API:
             with open(Parser.input_filename, FileMode.READ.value) as l_input_file:
                 l_csv_reader = csv.reader(l_input_file)
 
-                l_name: str = ""
                 l_sites: list = []
                 for l_row in l_csv_reader:
                     if l_row:
                         l_sites.append((
-                            l_name,
+                            l_row[WebsiteUploadFileFields.NAME.value],
                             l_row[WebsiteUploadFileFields.URL.value],
                             l_row[WebsiteUploadFileFields.GROUPS.value])
                         )
