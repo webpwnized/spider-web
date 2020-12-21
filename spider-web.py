@@ -9,7 +9,7 @@ from argparse import RawTextHelpFormatter
 import argparse
 
 
-l_version = '1.0.8'
+l_version = '1.0.9'
 
 
 def print_example_usage():
@@ -110,8 +110,8 @@ def print_example_usage():
     spider-web -wgwbn -pn 1 -ps 200 -wn www.acme.com
     spider-web --get-website-by-name --page-number 1 --page-size 200 --website-name www.acme.com
     
-    spider-web -wgwbid -pn 1 -ps 200 -wid e47d8465-8aed-48ea-a19b-b02371931e38
-    spider-web --get-website-by-id --page-number 1 --page-size 200 --website-id e47d8465-8aed-48ea-a19b-b02371931e38
+    spider-web -wgwbid -pn 1 -ps 200 -wid 51e8e4db-5705-460a-613e-ac79036dd4ed
+    spider-web --get-website-by-id --page-number 1 --page-size 200 --website-id 51e8e4db-5705-460a-613e-ac79036dd4ed
         
     --------------------------------
     Get Websites Information
@@ -122,16 +122,20 @@ def print_example_usage():
     spider-web -wgw -pn 1 -ps 200 -of websites.csv
     spider-web --get-websites --page-number 1 --page-size 200 --output-file websites.csv
 
+    --------------------------------
+    Get Websites by Group
+    --------------------------------
+
     spider-web -wgwbgn -pn 1 -ps 200 -wgn "On Balanced Score Card (BSC)"
     spider-web --get-websites-by-group-name --page-number 1 --page-size 200 --website-group-name "On Balanced Score Card (BSC)"
 
     spider-web -wgwbgn -pn 1 -ps 200 -of websites.csv -wgn "On Balanced Score Card (BSC)"
     spider-web --get-websites-by-group-name --page-number 1 --page-size 200 --website-group-name "On Balanced Score Card (BSC)" --output-file websites.csv
 
-    spider-web -wgwbgid -pn 1 -ps 200 -wgid "On Balanced Score Card (BSC)"
+    spider-web -wgwbgid -pn 1 -ps 200 -wgid "b9d6581c-9ebe-4e56-3313-ac4e038c2393"
     spider-web --get-websites-by-group-id --page-number 1 --page-size 200 --website-group-id "b9d6581c-9ebe-4e56-3313-ac4e038c2393"
 
-    spider-web -wgwbgid -pn 1 -ps 200 -of websites.csv -wgid "On Balanced Score Card (BSC)"
+    spider-web -wgwbgid -pn 1 -ps 200 -of websites.csv -wgid "b9d6581c-9ebe-4e56-3313-ac4e038c2393"
     spider-web --get-websites-by-group-id --page-number 1 --page-size 200 --website-group-id "b9d6581c-9ebe-4e56-3313-ac4e038c2393" --output-file websites.csv
  
     --------------------------------

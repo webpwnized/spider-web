@@ -1223,9 +1223,9 @@ class API:
             self.__mPrinter.print("__get_website_by_name_or_url() - {0}".format(str(e)), Level.ERROR)
 
     # ------------------------------------------------------------
-    # Get Websites by Group Name or ID
+    # Get Websites by Group (Name or ID)
     # ------------------------------------------------------------
-    def __get_websites_by_group(self) -> list:
+    def ____get_websites_by_group(self) -> list:
         try:
             l_base_url = "{0}?page={1}&pageSize={2}&query={3}".format(
                 self.__cWEBSITES_BY_GROUP_LIST_URL,
@@ -1234,14 +1234,14 @@ class API:
             return self.__get_paged_data(l_base_url, "websites")
 
         except Exception as e:
-            self.__mPrinter.print("__get_websites_by_group() - {0}".format(str(e)), Level.ERROR)
+            self.__mPrinter.print("____get_websites_by_group() - {0}".format(str(e)), Level.ERROR)
 
     def __get_websites_by_group(self) -> None:
         try:
-            l_list: list = self.__get_websites_by_group()
-            self.__handle_websites()
+            l_list: list = self.____get_websites_by_group()
+            self.__handle_websites(l_list)
         except Exception as e:
-            self.__mPrinter.print("get_websites_by_group() - {0}".format(str(e)), Level.ERROR)
+            self.__mPrinter.print("__get_websites_by_group() - {0}".format(str(e)), Level.ERROR)
 
     def get_websites_by_group_name(self) -> None:
         self.__get_websites_by_group()
