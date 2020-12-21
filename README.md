@@ -18,20 +18,20 @@
 ### Usage
 
     usage: spider-web [-h] [-v] [-d] [-o {JSON,CSV}] [-e] [-u] [-t] [-pn PAGE_NUMBER] [-ps PAGE_SIZE] [-if INPUT_FILENAME] [-of OUTPUT_FILENAME]
-                      [-os OUTPUT_SEPARATOR] [-un] [-wurl WEBSITE_URL] [-ga] [-gl] [-aga] [-dsgds] [-dsdds] [-sgs] [-sgsbw] [-turl TARGET_URL]
-                      [-idsd INITIATED_DATE_SORT_DIRECTION] [-tmgtm] [-wgwbu] [-wgwbn] [-wgwbid] [-wn WEBSITE_NAME] [-wid WEBSITE_ID] [-wgw] [-wgwbgn]
-                      [-wgwbgid] [-wupw] [-wgn WEBSITE_GROUP_NAME] [-wgid WEBSITE_GROUP_ID] [-wggwg] [-wgupwg] [-vgvtemps] [-vgvtemp] [-vgvtypes]
-                      [-rpi REPORT_POLICY_ID] [-vt VULNERABILITY_TYPE] [-auxps] [-auxpsif] [-ramh] [-rda] [-rbsc]
+                      [-os OUTPUT_SEPARATOR] [-un] [-wurl WEBSITE_URL] [-wn WEBSITE_NAME] [-ga] [-gl] [-aga] [-dsgds] [-dsdds] [-sgs] [-sgsbw]
+                      [-turl TARGET_URL] [-idsd INITIATED_DATE_SORT_DIRECTION] [-tmgtm] [-tgt] [-tgot] [-tn TECHNOLOGY_NAME] [-wgwbu] [-wgwbn] [-wgwbid]
+                      [-wid WEBSITE_ID] [-wgw] [-wgwbgn] [-wgwbgid] [-wupw] [-wgn WEBSITE_GROUP_NAME] [-wgid WEBSITE_GROUP_ID] [-wggwg] [-wgupwg]
+                      [-vgvtemps] [-vgvtemp] [-vgvtypes] [-rpi REPORT_POLICY_ID] [-vt VULNERABILITY_TYPE] [-auxps] [-auxpsif] [-ramh] [-rda] [-rbsc]
 
 ### Options
 
     optional arguments:
       -h, --help            show this help message and exit
-      -v, --verbose         Enable verbose output such as current progress and duration
+      -v, --verbose         Enable verbose output
       -d, --debug           Show debug output
       -o {JSON,CSV}, --output-format {JSON,CSV}
                             Output format
-
+    
     Utilities:
       -e, --examples        Show various examples and exit
       -u, --usage           Show brief usage and exit
@@ -48,11 +48,12 @@
                             Output filename. For methods that support output files, the method will output to the filename if -of, --output-filename if present.
       -os OUTPUT_SEPARATOR, --output-separator OUTPUT_SEPARATOR
                             Output separator for downloaded CSV files. Default is comma. Choices are ['Comma', 'Semicolon', 'Pipe', 'Tab']
-      -un UNATTENDED, --unattended UNATTENDED
-                            Unattended mode. In unattended mode, reporting functions will check for breadcrumb files and only report if the specified time has passed since the last report. The specified time is set in the config.py file.
+      -un, --unattended     Unattended mode. In unattended mode, reporting functions will check for breadcrumb files and only report if the specified time has passed since the last report. The specified time is set in the config.py file.
       -wurl WEBSITE_URL, --website-url WEBSITE_URL
                             The website URL to search by
-
+      -wn WEBSITE_NAME, --website-name WEBSITE_NAME
+                            The website name to search by
+    
     Account Endpoint:
       -ga, --get-account    Get current user account information and exit
       -gl, --get-license    Get system license information and exit
@@ -64,8 +65,8 @@
       -dsgds, --get-discovered-services
                             List discovered services and exit. Output fetched in pages.
       -dsdds, --download-discovered-services
-                            Download discovered services as CSV file and exit. Specify optional output filename with -o, --output-format
-
+                            Download discovered services as CSV file and exit. Output filename is required. Specify output filename with -o, --output-format.
+    
     Scans Endpoints:
       -sgs, --get-scans     List scans and exit. Output fetched in pages.
       -sgsbw, --get-scans-by-website
@@ -76,10 +77,20 @@
                             The target URL of the scan
       -idsd INITIATED_DATE_SORT_DIRECTION, --initiated-date-sort-direction INITIATED_DATE_SORT_DIRECTION
                             The scan initiated date sort direction. Choices are ['Ascending', 'Decending']
-
-    Team Member Endpoint:
+    
+    Team Member Endpoints:
       -tmgtm, --get-team-members
                             List users and exit. Output fetched in pages.
+    
+    Technologies Endpoints:
+      -tgt, --get-technologies
+                            List technologies and exit. Optionally search by -wn, --website-name or -tn, --technology-name or both. Output fetched in pages.
+      -tgot, --get-obsolete-technologies
+                            List obsolete technologies and exit. Optionally search by -wn, --website-name or -tn, --technology-name or both. Output fetched in pages.
+    
+    Technologies Endpoints Options:
+      -tn TECHNOLOGY_NAME, --technology-name TECHNOLOGY_NAME
+                            The technology name to search by
     
     Website Endpoints:
       -wgwbu, --get-website-by-url
@@ -90,8 +101,6 @@
                             List website and exit. Output fetched in pages. Requires -wid, --website-id.
     
     Website Endpoints Options:
-      -wn WEBSITE_NAME, --website-name WEBSITE_NAME
-                            The website name to search by
       -wid WEBSITE_ID, --website-id WEBSITE_ID
                             The website ID to search by
     
@@ -109,7 +118,7 @@
                             The website group name to search by
       -wgid WEBSITE_GROUP_ID, --website-group-id WEBSITE_GROUP_ID
                             The website group ID to search by
-
+    
     Website Groups Endpoint:
       -wggwg, --get-website-groups
                             List website groups and exit. Output fetched in pages.
@@ -134,16 +143,16 @@
       -auxps, --ping-sites  Fetch sites from NetSparker API then report status and exit
       -auxpsif, --ping-sites-in-file
                             Read site from file then report status and exit. Requires properly formatted input file: CSV with fields SITE_NAME, SITE_URL. Include input file with -if, --input-filename
-
+    
     Reports:
       Reports can be output to a file. Output filename is optional. Otherwise output is sent to standard out (STDOUT). Specify output filename with -o, --output-format. Report functions allows unattended mode. In unattended mode, functions will only produce output if the configured amount of time has passed the time contained in the breadcrumb file. Configure the breadcrumb filename and the amount of time in config.py.
-
+    
       -ramh, --report-agents-missing-heartbeat
-            Report agents that have not checked in recently and exit. Number of seconds is configurable on config.py. Exit code is non-zero if all agents are checking in.
+                            Report agents that have not checked in recently and exit. Number of seconds is configurable on config.py. Exit code is non-zero if all agents are checking in.
       -rda, --report-disabled-agents
-            Report disabled agents and exit. Number of seconds is configurable on config.py. Exit code is non-zero if all agents are enabled.
+                            Report disabled agents and exit. Number of seconds is configurable on config.py. Exit code is non-zero if all agents are enabled.
       -rbsc, --report-business-scorecard
-            Report business scorecard (BSC) and exit.
+                            Report business scorecard (BSC) and exit.
 
 ### Examples
 
@@ -215,6 +224,25 @@
 
     spider-web -tmgtm -pn 1 -ps 200 -of team-members.txt
     spider-web --get-team-members --page-number 1 --page-size 200 ---output-file team-members.txt
+
+#### Get Technologies Information
+    spider-web -tgt -pn 1 -ps 200 -wn www.acme.com
+    spider-web --get-technologies --page-number 1 --page-size 200 --website-name www.acme.com
+
+    spider-web -tgt -pn 1 -ps 200 -tn jQuery
+    spider-web --get-technologies --page-number 1 --page-size 200 --technology-name jQuery
+
+    spider-web -tgt -pn 1 -ps 200 -of technologies.txt -wn www.acme.com
+    spider-web --get-technologies --page-number 1 --page-size 200 --website-name www.acme.com --output-file technologies.txt
+
+    spider-web -tgot -pn 1 -ps 200 -wn www.acme.com
+    spider-web --get-obsolete-technologies --page-number 1 --page-size 200 --website-name www.acme.com
+
+    spider-web -tgot -pn 1 -ps 200 -tn jQuery
+    spider-web --get-obsolete-technologies --page-number 1 --page-size 200 --technology-name jQuery
+    
+    spider-web -tgot -pn 1 -ps 200 -of technologies.txt
+    spider-web --get-obsolete-technologies --page-number 1 --page-size 200 --website-name www.acme.com ---output-file technologies.txt
 
 #### Get Website Information
     spider-web -wgwbu -pn 1 -ps 200 -wurl "https://www.acme.com"

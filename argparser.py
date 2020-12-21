@@ -77,6 +77,11 @@ class Parser:
         #Team Members
         Parser.get_team_members = p_args.get_team_members
 
+        # Technologies
+        Parser.get_technologies = p_args.get_technologies
+        Parser.get_obsolete_technologies = p_args.get_obsolete_technologies
+        Parser.technology_name = p_args.technology_name
+
         # Website
         Parser.get_website_by_url = p_args.get_website_by_url
         Parser.get_website_by_name = p_args.get_website_by_name

@@ -159,6 +159,9 @@ class API:
     __cDISCOVERED_SERVICES_LIST_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "discovery/list")
     __cDISCOVERED_SERVICES_DOWNLOAD_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "discovery/export")
 
+    __cTECHNOLOGIES_LIST_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "technologies/list")
+    __cOBSOLETE_TECHNOLOGIES_LIST_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "technologies/outofdatetechnologies")
+
     __cWEBSITES_LIST_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "websites/list")
     __cWEBSITES_GET_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "websites/get")
     __cWEBSITES_UPLOAD_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "websites/new")
@@ -803,6 +806,78 @@ class API:
             self.__mPrinter.print("get_team_members() - {0}".format(str(e)), Level.ERROR)
 
     # ------------------------------------------------------------
+    # Technologies Methods
+    # ------------------------------------------------------------
+    def __get_technologies_header(self) -> list:
+        return ["Website Name", "Category", "Name", "Display Name", " Identified Version", "End of Life?",
+                "Out of Date?", "Critical Issues", "High Issues", "Medium Issues", "Low Issues",
+                "Info Issues", "Latest Version", "Last Seen", "ID", "Website ID", "Scan ID"]
+
+    def __parse_technologies_json_to_csv(self, p_json: list) -> list:
+        try:
+            l_technologies: list = []
+            for l_technology in p_json:
+                l_technologies.append([l_technology["WebsiteName"], l_technology["Category"], l_technology["Name"],
+                                       l_technology["DisplayName"], l_technology["IdentifiedVersion"],
+                                       l_technology["EndOfLife"], l_technology["IsOutofDate"],
+                                       l_technology["IssueCriticalCount"], l_technology["IssueHighCount"],
+                                       l_technology["IssueMediumCount"], l_technology["IssueLowCount"],
+                                       l_technology["IssueInfoCount"], l_technology["LatestVersion"],
+                                       l_technology["LastSeenDate"], l_technology["Id"], l_technology["WebsiteId"],
+                                       l_technology["ScanTaskId"]
+                ])
+            return l_technologies
+        except Exception as e:
+            self.__mPrinter.print("__parse_technologies_json_to_csv() - {0}".format(str(e)), Level.ERROR)
+
+    def __print_technologies_csv(self, p_json: list) -> None:
+        try:
+            l_header: list = self.__get_technologies_header()
+            l_team_members: list = self.__parse_technologies_json_to_csv(p_json)
+
+            self.__write_csv(l_header, l_team_members)
+        except Exception as e:
+            self.__mPrinter.print("__print_technologies_csv() - {0}".format(str(e)), Level.ERROR)
+
+    def __handle_technologies(self, p_list: list) -> None:
+        try:
+            if self.__m_output_format == OutputFormat.JSON.value:
+                print(p_list)
+            elif self.__m_output_format == OutputFormat.CSV.value:
+                self.__print_technologies_csv(p_list)
+
+        except Exception as e:
+            self.__mPrinter.print("__handle_technologies() - {0}".format(str(e)), Level.ERROR)
+
+    def __get_technologies(self, p_url: str) -> list:
+        try:
+            l_base_url = "{0}?page={1}&pageSize={2}".format(
+                p_url, Parser.page_number, Parser.page_size
+            )
+            if Parser.website_name:
+                l_base_url = "{}&webSiteName={}".format(l_base_url, Parser.website_name)
+            if Parser.technology_name:
+                l_base_url = "{}&technologyName={}".format(l_base_url, Parser.technology_name)
+
+            return self.__get_paged_data(l_base_url, "technologies")
+        except Exception as e:
+            self.__mPrinter.print("__get_technologies() - {0}".format(str(e)), Level.ERROR)
+
+    def get_technologies(self) -> None:
+        try:
+            l_json: list = self.__get_technologies(self.__cTECHNOLOGIES_LIST_URL)
+            self.__handle_technologies(l_json)
+        except Exception as e:
+            self.__mPrinter.print("get_technologies() - {0}".format(str(e)), Level.ERROR)
+
+    def get_obsolete_technologies(self) -> None:
+        try:
+            l_json: list = self.__get_technologies(self.__cOBSOLETE_TECHNOLOGIES_LIST_URL)
+            self.__handle_technologies(l_json)
+        except Exception as e:
+            self.__mPrinter.print("get_obsolete_technologies() - {0}".format(str(e)), Level.ERROR)
+
+    # ------------------------------------------------------------
     # Web Site Groups Methods
     # ------------------------------------------------------------
     def __get_website_groups_header(self) -> list:
@@ -1080,22 +1155,27 @@ class API:
     def __get_websites_header(self) -> list:
         return ["Name", "URL", "Technical Contact", "Verified?", "Agent", "Groups", "ID"]
 
+    def __parse_website_json(self, p_json: list) -> list:
+        try:
+            l_groups: list = p_json["Groups"]
+            l_groups_string: str = ""
+            for l_group in l_groups:
+                l_groups_string = "{},{}".format(l_groups_string, l_group["Name"])
+            return [
+                p_json["Name"], p_json["RootUrl"], p_json["TechnicalContactEmail"],
+                p_json["IsVerified"], p_json["AgentMode"], l_groups_string[1:],
+                p_json["Id"]
+            ]
+        except Exception as e:
+            self.__mPrinter.print("__parse_websites_json_to_csv() - {0}".format(str(e)), Level.ERROR)
+
     # ------------------------------------------------------------
     # Web Site Methods
     # ------------------------------------------------------------
     def __parse_website_json_to_csv(self, p_json: list) -> list:
         try:
             l_websites: list = []
-
-            l_groups: list = p_json["Groups"]
-            l_groups_string: str = ""
-            for l_group in l_groups:
-                l_groups_string = "{},{}".format(l_groups_string, l_group["Name"])
-            l_websites.append([
-                p_json["Name"], p_json["RootUrl"], p_json["TechnicalContactEmail"],
-                p_json["IsVerified"], p_json["AgentMode"], l_groups_string[1:],
-                p_json["Id"]
-            ])
+            l_websites.append(self.__parse_website_json(p_json))
             return l_websites
         except Exception as e:
             self.__mPrinter.print("__parse_websites_json_to_csv() - {0}".format(str(e)), Level.ERROR)
@@ -1120,6 +1200,16 @@ class API:
         except Exception as e:
             self.__mPrinter.print("__handle_website() - {0}".format(str(e)), Level.ERROR)
 
+    def __get_website_by_name_or_url(self) -> list:
+        try:
+            l_base_url = "{0}?query={1}".format(
+                self.__cWEBSITES_GET_URL, Parser.query
+            )
+            return self.__get_unpaged_data(l_base_url, "websites")
+
+        except Exception as e:
+            self.__mPrinter.print("__get_website_by_name_or_url() - {0}".format(str(e)), Level.ERROR)
+
     def get_website_by_url(self) -> None:
         try:
             l_list: list = self.__get_website_by_name_or_url()
@@ -1136,10 +1226,7 @@ class API:
 
     def __get_website_by_id(self) -> list:
         try:
-            l_base_url = "{0}?page={1}&pageSize={2}".format(
-                "{}/{}".format(self.__cWEBSITES_GET_URL, Parser.website_id),
-                Parser.page_number, Parser.page_size
-            )
+            l_base_url = "{}/{}".format(self.__cWEBSITES_GET_URL, Parser.website_id)
             return self.__get_unpaged_data(l_base_url, "websites")
 
         except Exception as e:
@@ -1158,17 +1245,8 @@ class API:
     def __parse_websites_json_to_csv(self, p_json: list) -> list:
         try:
             l_websites: list = []
-
             for l_website in p_json:
-                l_groups: list = l_website["Groups"]
-                l_groups_string: str = ""
-                for l_group in l_groups:
-                    l_groups_string = "{},{}".format(l_groups_string, l_group["Name"])
-                l_websites.append([
-                    l_website["Name"], l_website["RootUrl"], l_website["TechnicalContactEmail"],
-                    l_website["IsVerified"], l_website["AgentMode"], l_groups_string[1:],
-                    l_website["Id"]
-                ])
+                l_websites.append(self.__parse_website_json(l_website))
             return l_websites
         except Exception as e:
             self.__mPrinter.print("__parse_websites_json_to_csv() - {0}".format(str(e)), Level.ERROR)
@@ -1210,17 +1288,6 @@ class API:
             self.__handle_websites(l_list)
         except Exception as e:
             self.__mPrinter.print("get_websites() - {0}".format(str(e)), Level.ERROR)
-
-    def __get_website_by_name_or_url(self) -> list:
-        try:
-            l_base_url = "{0}?page={1}&pageSize={2}&query={3}".format(
-                self.__cWEBSITES_GET_URL,
-                Parser.page_number, Parser.page_size, Parser.query
-            )
-            return self.__get_unpaged_data(l_base_url, "websites")
-
-        except Exception as e:
-            self.__mPrinter.print("__get_website_by_name_or_url() - {0}".format(str(e)), Level.ERROR)
 
     # ------------------------------------------------------------
     # Get Websites by Group (Name or ID)

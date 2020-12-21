@@ -9,7 +9,7 @@ from argparse import RawTextHelpFormatter
 import argparse
 
 
-l_version = '1.0.9'
+l_version = '1.0.10'
 
 
 def print_example_usage():
@@ -100,6 +100,27 @@ def print_example_usage():
 
     spider-web -tmgtm -pn 1 -ps 200 -of team-members.txt
     spider-web --get-team-members --page-number 1 --page-size 200 ---output-file team-members.txt
+
+    --------------------------------
+    Get Technologies
+    --------------------------------
+    spider-web -tgt -pn 1 -ps 200 -wn www.acme.com
+    spider-web --get-technologies --page-number 1 --page-size 200 --website-name www.acme.com
+
+    spider-web -tgt -pn 1 -ps 200 -tn jQuery
+    spider-web --get-technologies --page-number 1 --page-size 200 --technology-name jQuery
+
+    spider-web -tgt -pn 1 -ps 200 -of technologies.txt -wn www.acme.com
+    spider-web --get-technologies --page-number 1 --page-size 200 --website-name www.acme.com --output-file technologies.txt
+
+    spider-web -tgot -pn 1 -ps 200 -wn www.acme.com
+    spider-web --get-obsolete-technologies --page-number 1 --page-size 200 --website-name www.acme.com
+
+    spider-web -tgot -pn 1 -ps 200 -tn jQuery
+    spider-web --get-obsolete-technologies --page-number 1 --page-size 200 --technology-name jQuery
+    
+    spider-web -tgot -pn 1 -ps 200 -of technologies.txt
+    spider-web --get-obsolete-technologies --page-number 1 --page-size 200 --website-name www.acme.com ---output-file technologies.txt
 
     --------------------------------
     Get Website Information
@@ -264,7 +285,8 @@ def run_main_program():
         Parser.ping_sites_in_file or Parser.report_agents_missing_heartbeat or Parser.report_disabled_agents or \
         Parser.report_business_scorecard or Parser.get_scans or Parser.get_scans_by_website or \
         Parser.get_website_by_url or Parser.get_website_by_name or Parser.get_website_by_id or \
-        Parser.get_websites_by_group_name or Parser.get_websites_by_group_id:
+        Parser.get_websites_by_group_name or Parser.get_websites_by_group_id or Parser.get_technologies or \
+        Parser.get_obsolete_technologies:
             l_api = API(p_parser=Parser)
     else:
         lArgParser.print_usage()
@@ -288,6 +310,14 @@ def run_main_program():
 
     if Parser.get_team_members:
         l_api.get_team_members()
+        exit(0)
+
+    if Parser.get_technologies:
+        l_api.get_technologies()
+        exit(0)
+
+    if Parser.get_obsolete_technologies:
+        l_api.get_obsolete_technologies()
         exit(0)
 
     if Parser.get_website_groups:
@@ -487,6 +517,10 @@ if __name__ == '__main__':
                                  help='The website URL to search by',
                                  type=str,
                                  action='store')
+    l_universal_endpoint_group.add_argument('-wn', '--website-name',
+                                 help='The website name to search by',
+                                 type=str,
+                                 action='store')
 
     l_account_group = lArgParser.add_argument_group(title="Account Endpoint", description=None)
     l_account_group.add_argument('-ga', '--get-account',
@@ -533,6 +567,20 @@ if __name__ == '__main__':
                                  help='List users and exit. Output fetched in pages.',
                                  action='store_true')
 
+    l_technologies_group = lArgParser.add_argument_group(title="Technologies Endpoints", description=None)
+    l_technologies_group.add_argument('-tgt', '--get-technologies',
+                                 help='List technologies and exit. Optionally search by -wn, --website-name or -tn, --technology-name or both. Output fetched in pages.',
+                                 action='store_true')
+    l_technologies_group.add_argument('-tgot', '--get-obsolete-technologies',
+                                 help='List obsolete technologies and exit. Optionally search by -wn, --website-name or -tn, --technology-name or both. Output fetched in pages.',
+                                 action='store_true')
+
+    l_technologies_group_options_group = lArgParser.add_argument_group(title="Technologies Endpoints Options", description=None)
+    l_technologies_group_options_group.add_argument('-tn', '--technology-name',
+                                 help='The technology name to search by',
+                                 type=str,
+                                 action='store')
+
     l_website_group = lArgParser.add_argument_group(title="Website Endpoints", description=None)
     l_website_group.add_argument('-wgwbu', '--get-website-by-url',
                                  help='List website and exit. Output fetched in pages. Requires -wurl, --website-url.',
@@ -545,10 +593,6 @@ if __name__ == '__main__':
                                  action='store_true')
 
     l_website_group_options_group = lArgParser.add_argument_group(title="Website Endpoints Options", description=None)
-    l_website_group_options_group.add_argument('-wn', '--website-name',
-                                 help='The website name to search by',
-                                 type=str,
-                                 action='store')
     l_website_group_options_group.add_argument('-wid', '--website-id',
                                  help='The website ID to search by',
                                  type=str,
