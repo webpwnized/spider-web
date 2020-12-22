@@ -1442,7 +1442,7 @@ class API:
                     l_reason = "Server is redirecting to login page {}".format(l_redirect_url)
                 else:
                     l_site_is_up = True
-                    l_reason = "Server is redirecting within same domain to page {}".format(l_redirect_path)
+                    l_reason = "Make sure NetSparker is configured to scan the correct page. Server is redirecting within same domain to page {}".format(l_redirect_path)
             elif self.__is_authentication_site(l_redirect_domain):
                 l_site_is_up = True
                 l_reason = "Server is redirecting to an authentication domain {}".format(l_redirect_domain)
