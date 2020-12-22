@@ -1318,6 +1318,28 @@ class API:
     # ------------------------------------------------------------
     # Ping Sites Methods
     # ------------------------------------------------------------
+    def __get_ping_site_results_header(self) -> list:
+        return ["Name", "URL", "Status", "Status Code", "Comment"]
+
+    def __print_ping_site_results_csv(self, p_json: list) -> None:
+        try:
+            l_header: list = self.__get_ping_site_results_header()
+            l_sites: list = self.__parse_ping_site_results_json_to_csv(p_json)
+
+            self.__write_csv(l_header, l_sites)
+
+        except Exception as e:
+            self.__mPrinter.print("__print_ping_site_results_csv() - {0}".format(str(e)), Level.ERROR)
+
+    def __handle_ping_sites_results(self, p_list: list) -> None:
+        try:
+            if self.__m_output_format == OutputFormat.JSON.value:
+                print(p_list)
+            elif self.__m_output_format == OutputFormat.CSV.value:
+                self.__print_ping_site_results_csv(p_list)
+        except Exception as e:
+            self.__mPrinter.print("__handle_ping_sites_results() - {0}".format(str(e)), Level.ERROR)
+
     def __web_server_is_up(self, p_status_code: int) -> bool:
         return str(p_status_code)[0] in ["1", "2", "3", "4"]
 
@@ -1396,6 +1418,10 @@ class API:
                     self.__mPrinter.print("The site appears to be external", Level.SUCCESS)
                 l_site_is_up = True
 
+            except requests.exceptions.ProxyError as e:
+                l_site_is_up = False
+                l_status_code = 503
+                l_reason = "Proxy error. Make sure proxy is configured correctly in config.py. {}".format(str(e))
             except requests.exceptions.RequestException as e:
                 l_site_is_up = False
                 l_status_code = 503
@@ -1403,28 +1429,31 @@ class API:
 
         if self.__web_server_is_redirecting(l_status_code):
             l_current_domain = urlparse(l_http_response.url).hostname
-            l_redirect_domain = urlparse(l_http_response.next.url).hostname
+            l_redirect_url = l_http_response.next.url.lower()
+            l_redirect_path = urlparse(l_redirect_url).path
+            l_redirect_domain = urlparse(l_redirect_url).hostname
             self.__mPrinter.print("Server redirected from {} to {}".format(l_current_domain, l_redirect_domain), Level.INFO)
             if l_current_domain == l_redirect_domain:
-                l_site_is_up = True
-                l_reason = "Server is redirecting to the same domain"
+                if "login" in l_redirect_url or "logon" in l_redirect_url or "account" in l_redirect_url or "returnurl" in l_redirect_url or "authorize" in l_redirect_url:
+                    l_site_is_up = True
+                    l_reason = "Server is redirecting to a login page {}".format(l_redirect_url)
+                else:
+                    l_site_is_up = True
+                    l_reason = "Server is redirecting within same domain to page {}".format(l_redirect_path)
             elif self.__is_authentication_site(l_redirect_domain):
                 l_site_is_up = True
                 l_reason = "Server is redirecting to an authentication domain {}".format(l_redirect_domain)
             else:
                 l_site_is_up = False
-                l_reason = "Server is redirecting to a different domain {}".format(l_redirect_domain)
+                l_reason = "Domain may be black-holed. Server is redirecting to a different domain to page {}".format(l_redirect_url)
 
         return l_site_is_up, l_status_code, l_reason
 
-    def __ping_sites(self, p_list: list) -> None:
+    def __ping_sites(self, p_list: list) -> list:
         try:
-            l_site_is_up: bool = False
-            l_status_code: int = 0
-            l_reason: str = ""
+            l_results: list = []
 
             self.__mPrinter.print("Beginning site analysis", Level.INFO)
-            print('"Name", "URL", "Status", "Status Code", "Comment"')
 
             for l_record in p_list:
                 l_name: str = l_record[WebsiteUploadFileFields.NAME.value]
@@ -1443,9 +1472,9 @@ class API:
 
                 l_status:str = "Up" if l_site_is_up else "Down"
                 self.__mPrinter.print("Response for site {} ({}): {} {}. Site is {}".format(l_name, l_url, l_status_code, l_reason, l_status), Level.INFO)
-                print('"{}", "{}", "{}", "{}", "{}"'.format(
-                    l_name, l_url, l_status, l_status_code, l_reason)
-                )
+                l_results.append([l_name, l_url, l_status, l_status_code, l_reason])
+
+            return l_results
 
         except Exception as e:
             self.__mPrinter.print("__ping_sites() - {0}".format(str(e)), Level.ERROR)
@@ -1457,8 +1486,8 @@ class API:
             l_list: list = self.__get_websites()
             for l_record in l_list:
                 l_sites.append((l_record["Name"], l_record["RootUrl"]))
-            self.__ping_sites(l_sites)
-
+            l_results: list = self.__ping_sites(l_sites)
+            self.__handle_ping_sites_results(l_results)
         except Exception as e:
             self.__mPrinter.print("ping_sites() - {0}".format(str(e)), Level.ERROR)
 
@@ -1466,8 +1495,8 @@ class API:
 
         try:
             l_sites: list = self.__parse_website_upload()
-            self.__ping_sites(l_sites)
-
+            l_results = self.__ping_sites(l_sites)
+            self.__handle_ping_sites_results(l_results)
         except Exception as e:
             self.__mPrinter.print("ping_sites_in_file() - {0}".format(str(e)), Level.ERROR)
 
