@@ -1352,8 +1352,11 @@ class API:
     def __cannot_resolve_URL(self, p_status_code: int) -> bool:
         return p_status_code == 502
 
-    def __is_authentication_site(self, l_domain: str) -> bool:
-        return l_domain in Parser.authentication_sites
+    def __is_authentication_site(self, p_domain: str) -> bool:
+        return p_domain in Parser.authentication_sites
+
+    def __is_authentication_page(self, p_url: str) -> bool:
+        return "login" in p_url or "logon" in p_url or "account" in p_url or "returnurl" in p_url or "backurl" in p_url or "authorize" in p_url
 
     def __ping_url(self, p_url:str, p_method: int):
 
@@ -1434,9 +1437,9 @@ class API:
             l_redirect_domain = urlparse(l_redirect_url).hostname
             self.__mPrinter.print("Server redirected from {} to {}".format(l_current_domain, l_redirect_domain), Level.INFO)
             if l_current_domain == l_redirect_domain:
-                if "login" in l_redirect_url or "logon" in l_redirect_url or "account" in l_redirect_url or "returnurl" in l_redirect_url or "authorize" in l_redirect_url:
+                if self.__is_authentication_page(l_redirect_url):
                     l_site_is_up = True
-                    l_reason = "Server is redirecting to a login page {}".format(l_redirect_url)
+                    l_reason = "Server is redirecting to login page {}".format(l_redirect_url)
                 else:
                     l_site_is_up = True
                     l_reason = "Server is redirecting within same domain to page {}".format(l_redirect_path)
