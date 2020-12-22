@@ -1124,8 +1124,9 @@ class API:
                 l_sites: list = []
                 for l_row in l_csv_reader:
                     if l_row:
+                        l_name: str = l_row[WebsiteUploadFileFields.NAME.value]
                         l_sites.append((
-                            l_row[WebsiteUploadFileFields.NAME.value],
+                            l_name,
                             l_row[WebsiteUploadFileFields.URL.value],
                             l_row[WebsiteUploadFileFields.GROUPS.value])
                         )
