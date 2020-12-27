@@ -1526,7 +1526,7 @@ class API:
                         l_site_is_up, l_site_is_interesting, l_status_code, l_reason = self.__ping_url(l_url, PingMethod.SECOND_TEST_USE_PROXY.value)
 
                 l_status:str = "Up" if l_site_is_up else "Down"
-                self.__mPrinter.print("Response for site {} ({}): {} {}. Site is {}".format(l_name, l_url, l_status_code, l_reason, l_status), Level.INFO)
+                self.__mPrinter.print("Site is {}. Response for site {} ({}): {} {}.".format(l_name, l_url, l_status_code, l_reason, l_status), Level.INFO)
                 l_results.append({"Name": l_name, "URL": l_url, "Status": l_status, "Interesting": l_site_is_interesting, "StatusCode": l_status_code, "Reason": l_reason})
 
             return l_results
