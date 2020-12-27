@@ -1320,15 +1320,23 @@ class API:
     # Ping Sites Methods
     # ------------------------------------------------------------
     def __get_ping_site_results_header(self) -> list:
-        return ["Name", "URL", "Status", "Status Code", "Comment"]
+        return ["Name", "URL", "Status", "Interesting?", "Status Code", "Comment"]
+
+    def __parse_ping_site_results_json_to_csv(self, p_json: list) -> list:
+        try:
+            l_results: list = []
+            for l_result in p_json:
+                l_results.append([l_result["Name"], l_result["URL"], l_result["Status"],
+                                 l_result["Interesting"], l_result["StatusCode"], l_result["Reason"]])
+            return l_results
+        except Exception as e:
+            self.__mPrinter.print("__parse_ping_site_results_json_to_csv() - {0}".format(str(e)), Level.ERROR)
 
     def __print_ping_site_results_csv(self, p_json: list) -> None:
         try:
             l_header: list = self.__get_ping_site_results_header()
             l_sites: list = self.__parse_ping_site_results_json_to_csv(p_json)
-
             self.__write_csv(l_header, l_sites)
-
         except Exception as e:
             self.__mPrinter.print("__print_ping_site_results_csv() - {0}".format(str(e)), Level.ERROR)
 
@@ -1359,10 +1367,37 @@ class API:
     def __is_authentication_page(self, p_url: str) -> bool:
         return "login" in p_url or "logon" in p_url or "account" in p_url or "returnurl" in p_url or "backurl" in p_url or "authorize" in p_url
 
+    def __handle_tls_error(self, p_url: str, p_error: str):
+        l_site_is_up = True
+        l_site_is_interesting = True
+        l_status_code = 503
+        l_reason = ""
+        if "CERTIFICATE_VERIFY_FAILED" in p_error:
+            l_reason = "The SSL certificate is not valid. Consider opening a bug bounty. {}".format(p_error)
+        else:
+            l_reason = "The domain {} is not listed in the SSL certificate. Consider opening a bug bounty. {}".format(
+                p_url, p_error)
+        return l_site_is_up, l_site_is_interesting, l_status_code, l_reason
+
+    def __handle_site_connection_failure(self, p_status_code:str, p_error: str):
+        l_site_is_up = False
+        l_site_is_interesting = True
+        l_status_code = p_status_code
+        l_reason = p_error
+        return l_site_is_up, l_site_is_interesting, l_status_code, l_reason
+
+    def __handle_proxy_connection_failure(self, p_error: str):
+        l_site_is_up = False
+        l_site_is_interesting = True
+        l_status_code = 503
+        l_reason = "Proxy error. Make sure proxy is configured correctly in config.py. {}".format(p_error)
+        return l_site_is_up, l_site_is_interesting, l_status_code, l_reason
+
     def __ping_url(self, p_url:str, p_method: int):
 
         l_proxies: dict = {}
         l_site_is_up: bool = False
+        l_site_is_interesting: bool = False
 
         self.__mPrinter.print("Testing site {}".format(p_url), Level.INFO)
 
@@ -1381,6 +1416,11 @@ class API:
                 if self.__web_server_is_down(l_status_code):
                     raise requests.exceptions.ConnectionError
                 l_site_is_up = True
+                l_site_is_interesting = False
+            except requests.exceptions.SSLError as e:
+                l_site_is_up, l_site_is_interesting, l_status_code, l_reason = self.__handle_tls_error(p_url, str(e))
+            except requests.exceptions.ProxyError as e:
+                raise requests.exceptions.ConnectionError
             except requests.exceptions.RequestException as e:
                 raise requests.exceptions.ConnectionError
 
@@ -1398,11 +1438,16 @@ class API:
                     Level.SUCCESS)
                 if self.__web_server_is_up(l_status_code):
                     self.__mPrinter.print("The site appears to be internal", Level.SUCCESS)
-                l_site_is_up = True
+                    l_site_is_up = True
+                    l_site_is_interesting = False
+                else:
+                    l_error = "Cannot connect to site {}. {}".format(p_url, l_reason)
+                    l_site_is_up, l_site_is_interesting, l_status_code, l_reason = self.__handle_site_connection_failure(
+                        l_status_code, l_error)
+            except requests.exceptions.SSLError as e:
+                l_site_is_up, l_site_is_interesting, l_status_code, l_reason = self.__handle_tls_error(p_url, str(e))
             except requests.exceptions.RequestException as e:
-                l_site_is_up = False
-                l_status_code = 503
-                l_reason = str(e)
+                l_site_is_up, l_site_is_interesting, l_status_code, l_reason = self.__handle_site_connection_failure(l_status_code, str(e))
 
         elif p_method == PingMethod.SECOND_TEST_USE_PROXY.value:
 
@@ -1420,38 +1465,44 @@ class API:
                     Level.SUCCESS)
                 if self.__web_server_is_up(l_status_code):
                     self.__mPrinter.print("The site appears to be external", Level.SUCCESS)
-                l_site_is_up = True
-
+                    l_site_is_up = True
+                    l_site_is_interesting = False
+                else:
+                    l_error = "Cannot connect to site {}. {}".format(p_url, l_reason)
+                    l_site_is_up, l_site_is_interesting, l_status_code, l_reason = self.__handle_site_connection_failure(
+                        l_status_code, l_error)
+            except requests.exceptions.SSLError as e:
+                l_site_is_up, l_site_is_interesting, l_status_code, l_reason = self.__handle_tls_error(p_url, str(e))
             except requests.exceptions.ProxyError as e:
-                l_site_is_up = False
-                l_status_code = 503
-                l_reason = "Proxy error. Make sure proxy is configured correctly in config.py. {}".format(str(e))
+                l_site_is_up, l_site_is_interesting, l_status_code, l_reason = self.__handle_proxy_connection_failure(str(e))
             except requests.exceptions.RequestException as e:
-                l_site_is_up = False
-                l_status_code = 503
-                l_reason = str(e)
+                l_site_is_up, l_site_is_interesting, l_status_code, l_reason = self.__handle_site_connection_failure(l_status_code, str(e))
 
         if self.__web_server_is_redirecting(l_status_code):
             l_current_domain = urlparse(l_http_response.url).hostname
             l_redirect_url = l_http_response.next.url.lower()
             l_redirect_path = urlparse(l_redirect_url).path
             l_redirect_domain = urlparse(l_redirect_url).hostname
-            self.__mPrinter.print("Server redirected from {} to {}".format(l_current_domain, l_redirect_domain), Level.INFO)
+            self.__mPrinter.print("Server redirected from {} to {}".format(l_current_domain, l_redirect_url), Level.INFO)
             if l_current_domain == l_redirect_domain:
                 if self.__is_authentication_page(l_redirect_url):
                     l_site_is_up = True
+                    l_site_is_interesting = False
                     l_reason = "Server is redirecting to login page {}".format(l_redirect_url)
                 else:
                     l_site_is_up = True
-                    l_reason = "Make sure NetSparker is configured to scan the correct page. NetSparker should not redirect if already pointed to the correct starting URL. Server is redirecting within same domain to page {}".format(l_redirect_path)
+                    l_site_is_interesting = True
+                    l_reason = "Server is redirecting within same domain to page {}. Make sure NetSparker is configured to scan the correct page. NetSparker should not redirect if already pointed to the correct starting URL.".format(l_redirect_path)
             elif self.__is_authentication_site(l_redirect_domain):
                 l_site_is_up = True
+                l_site_is_interesting = False
                 l_reason = "Server is redirecting to an authentication domain {}".format(l_redirect_domain)
             else:
                 l_site_is_up = False
+                l_site_is_interesting = True
                 l_reason = "Domain may be black-holed. Server is redirecting to a different domain to page {}".format(l_redirect_url)
 
-        return l_site_is_up, l_status_code, l_reason
+        return l_site_is_up, l_site_is_interesting, l_status_code, l_reason
 
     def __ping_sites(self, p_list: list) -> list:
         try:
@@ -1465,18 +1516,18 @@ class API:
 
                 try:
                     self.__mPrinter.print("Initial test for site {}".format(l_url), Level.INFO)
-                    l_site_is_up, l_status_code, l_reason = self.__ping_url(l_url, PingMethod.INITIAL_TEST.value)
+                    l_site_is_up, l_site_is_interesting, l_status_code, l_reason = self.__ping_url(l_url, PingMethod.INITIAL_TEST.value)
                 except requests.exceptions.ConnectionError as e:
                     # Check our current proxy status and try the opposite
                     self.__mPrinter.print("Second test for site {}".format(l_url), Level.INFO)
                     if self.__m_use_proxy:
-                        l_site_is_up, l_status_code, l_reason = self.__ping_url(l_url, PingMethod.SECOND_TEST_NO_PROXY.value)
+                        l_site_is_up, l_site_is_interesting, l_status_code, l_reason = self.__ping_url(l_url, PingMethod.SECOND_TEST_NO_PROXY.value)
                     else:
-                        l_site_is_up, l_status_code, l_reason = self.__ping_url(l_url, PingMethod.SECOND_TEST_USE_PROXY.value)
+                        l_site_is_up, l_site_is_interesting, l_status_code, l_reason = self.__ping_url(l_url, PingMethod.SECOND_TEST_USE_PROXY.value)
 
                 l_status:str = "Up" if l_site_is_up else "Down"
                 self.__mPrinter.print("Response for site {} ({}): {} {}. Site is {}".format(l_name, l_url, l_status_code, l_reason, l_status), Level.INFO)
-                l_results.append([l_name, l_url, l_status, l_status_code, l_reason])
+                l_results.append({"Name": l_name, "URL": l_url, "Status": l_status, "Interesting": l_site_is_interesting, "StatusCode": l_status_code, "Reason": l_reason})
 
             return l_results
 
