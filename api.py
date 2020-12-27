@@ -1507,10 +1507,15 @@ class API:
     def __ping_sites(self, p_list: list) -> list:
         try:
             l_results: list = []
+            l_number_sites: int = len(p_list)
+            l_current_site: int = l_number_sites
 
-            self.__mPrinter.print("Beginning site analysis", Level.INFO)
+            self.__mPrinter.print("Beginning site analysis of {} sites".format(l_number_sites), Level.INFO)
 
             for l_record in p_list:
+                self.__mPrinter.print("Working on site {} out of {}".format(l_current_site, l_number_sites), Level.INFO)
+                l_current_site = l_current_site - 1
+
                 l_name: str = l_record[WebsiteUploadFileFields.NAME.value]
                 l_url: str = l_record[WebsiteUploadFileFields.URL.value]
 
