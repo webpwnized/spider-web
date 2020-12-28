@@ -58,7 +58,7 @@ class Parser:
         Parser.get_account = p_args.get_account
         Parser.get_license = p_args.get_license
 
-        #Agents
+        # Agents
         Parser.get_agents = p_args.get_agents
 
         # Discovered Services
@@ -74,7 +74,7 @@ class Parser:
         Parser.target_url = p_args.target_url
         Parser.initiated_date_sort_direction = p_args.initiated_date_sort_direction
 
-        #Team Members
+        # Team Members
         Parser.get_team_members = p_args.get_team_members
 
         # Technologies
@@ -110,27 +110,28 @@ class Parser:
         if Parser.get_websites_by_group_id:
             Parser.query = Parser.website_group_id
 
-        #Website Groups
+        # Website Groups
         Parser.get_website_groups = p_args.get_website_groups
         Parser.upload_website_groups = p_args.upload_website_groups
 
-        #Vulnerabilities
+        # Vulnerabilities
         Parser.get_vulnerability_templates = p_args.get_vulnerability_templates
         Parser.get_vulnerability_template = p_args.get_vulnerability_template
         Parser.get_vulnerability_types = p_args.get_vulnerability_types
 
-        #Vulnerabilities Options
+        # Vulnerabilities Options
         Parser.report_policy_id = p_args.report_policy_id or ""
         Parser.vulnerability_type = p_args.vulnerability_type
 
         Parser.output_format = p_args.output_format.value.upper() if hasattr(p_args.output_format, 'value') else None
 
-        #Auxiliary Features
+        # Auxiliary Features
         Parser.ping_sites = p_args.ping_sites
         Parser.ping_sites_in_file = p_args.ping_sites_in_file
 
-        #Authetication Sites
+        # Authetication Sites and Pages
         Parser.authentication_sites = p_config.AUTHENTICATION_SITES
+        Parser.authentication_page_keywords = p_config.AUTHENTICATION_PAGE_KEYWORDS
 
         #Reporting Options
         Parser.unattended = p_args.unattended

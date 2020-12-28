@@ -1365,18 +1365,20 @@ class API:
         return p_domain in Parser.authentication_sites
 
     def __is_authentication_page(self, p_url: str) -> bool:
-        return "login" in p_url or "logon" in p_url or "account" in p_url or "returnurl" in p_url or "backurl" in p_url or "authorize" in p_url
+        for l_keyword in Parser.authentication_page_keywords:
+            if l_keyword in p_url:
+                return True
+        return False
 
     def __handle_tls_error(self, p_url: str, p_error: str):
         l_site_is_up = True
         l_site_is_interesting = True
         l_status_code = 503
-        l_reason = ""
         if "CERTIFICATE_VERIFY_FAILED" in p_error:
             l_reason = "The SSL certificate is not valid. Consider opening a bug bounty. {}".format(p_error)
         else:
             l_reason = "The domain {} is not listed in the SSL certificate. Consider opening a bug bounty. {}".format(
-                p_url, p_error)
+                urlparse(p_url).hostname, p_error)
         return l_site_is_up, l_site_is_interesting, l_status_code, l_reason
 
     def __handle_site_connection_failure(self, p_error: str):
@@ -1412,7 +1414,7 @@ class API:
                 l_status_code = l_http_response.status_code
                 l_reason = l_http_response.reason
                 self.__mPrinter.print("HTTP request return status code {0}-{1}".format(l_status_code, l_reason),
-                                      Level.SUCCESS)
+                                      Level.INFO)
                 if self.__web_server_is_down(l_status_code):
                     raise requests.exceptions.ConnectionError
                 l_site_is_up = True
@@ -1476,7 +1478,7 @@ class API:
             except requests.exceptions.RequestException as e:
                 l_site_is_up, l_site_is_interesting, l_status_code, l_reason = self.__handle_site_connection_failure(str(e))
 
-        if self.__web_server_is_redirecting(l_status_code):
+        if self.__web_server_is_redirecting(l_status_code): # then careful analysis is needed to understand why
             l_current_domain = urlparse(l_http_response.url).hostname
             l_redirect_url = l_http_response.next.url.lower()
             l_redirect_path = urlparse(l_redirect_url).path
@@ -1495,7 +1497,7 @@ class API:
                 else:
                     l_site_is_up = True
                     l_site_is_interesting = True
-                    l_reason = "Server is redirecting within same domain to page {}. Make sure NetSparker is configured to scan the correct page. NetSparker should not redirect if already pointed to the correct starting URL.".format(l_redirect_path)
+                    l_reason = "Server is redirecting within same domain to page {}. Make sure NetSparker is configured to scan the correct page. NetSparker should not redirect if already pointed to the correct starting URL. If the page is an authentication page, tell the developers so they can add this pattern into the configuration.".format(l_redirect_path)
             else: # Redirecting to different domain
                 if self.__is_authentication_page(l_redirect_url):
                     l_site_is_up = True
@@ -1513,13 +1515,13 @@ class API:
         try:
             l_results: list = []
             l_number_sites: int = len(p_list)
-            l_current_site: int = l_number_sites
+            l_current_site: int = 1
 
             self.__mPrinter.print("Beginning site analysis of {} sites".format(l_number_sites), Level.INFO)
 
             for l_record in p_list:
                 self.__mPrinter.print("Working on site {} out of {}".format(l_current_site, l_number_sites), Level.INFO)
-                l_current_site = l_current_site - 1
+                l_current_site = l_current_site + 1
 
                 l_name: str = l_record[WebsiteUploadFileFields.NAME.value]
                 l_url: str = l_record[WebsiteUploadFileFields.URL.value]
