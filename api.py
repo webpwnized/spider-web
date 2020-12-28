@@ -1379,10 +1379,10 @@ class API:
                 p_url, p_error)
         return l_site_is_up, l_site_is_interesting, l_status_code, l_reason
 
-    def __handle_site_connection_failure(self, p_status_code:str, p_error: str):
+    def __handle_site_connection_failure(self, p_error: str):
         l_site_is_up = False
         l_site_is_interesting = True
-        l_status_code = p_status_code
+        l_status_code = 503
         l_reason = p_error
         return l_site_is_up, l_site_is_interesting, l_status_code, l_reason
 
@@ -1476,7 +1476,7 @@ class API:
             except requests.exceptions.ProxyError as e:
                 l_site_is_up, l_site_is_interesting, l_status_code, l_reason = self.__handle_proxy_connection_failure(str(e))
             except requests.exceptions.RequestException as e:
-                l_site_is_up, l_site_is_interesting, l_status_code, l_reason = self.__handle_site_connection_failure(l_status_code, str(e))
+                l_site_is_up, l_site_is_interesting, l_status_code, l_reason = self.__handle_site_connection_failure(str(e))
 
         if self.__web_server_is_redirecting(l_status_code):
             l_current_domain = urlparse(l_http_response.url).hostname
