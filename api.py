@@ -1507,7 +1507,7 @@ class API:
                 else:
                     l_site_is_up = False
                     l_site_is_interesting = True
-                    l_reason = "Domain may be black-holed. Server is redirecting to a different domain to page {}".format(
+                    l_reason = "Domain may be black-holed. Server is redirecting to a different domain to page {}. Otherwise NetSparker is misconfigured with the wrong starting URL.".format(
                         l_redirect_url)
 
         return l_site_is_up, l_site_is_interesting, l_status_code, l_reason
