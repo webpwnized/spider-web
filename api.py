@@ -1367,6 +1367,7 @@ class API:
     def __is_authentication_page(self, p_url: str) -> bool:
         for l_keyword in Parser.authentication_page_keywords:
             if l_keyword in p_url:
+                self.__mPrinter.print("Authentication page found. Matched on keyword '{}' within URL {}".format(l_keyword, p_url), Level.INFO)
                 return True
         return False
 

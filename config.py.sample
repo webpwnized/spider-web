@@ -29,7 +29,7 @@ AUTHENTICATION_SITES = ["login.microsoftonline.com", "access.coyote.com", "acces
 # Ensure any keywords that indicate the URL is a login page are listed here. These are used
 # by ping-site to know when the application has redirected to an authentication
 # page
-AUTHENTICATION_PAGE_KEYWORDS = ["login", "logon", "account", "returnurl", "backurl", "authorize", "/auth", "saml", "signin"]
+AUTHENTICATION_PAGE_KEYWORDS = ["login", "logon", "account", "returnurl", "backurl", "auth", "saml", "signin"]
 
 AGENT_HEARTBEAT_TOO_LONG_SECONDS = 600      # How long as agent can fail to check-in before being reported
 AGENT_HEARTBEAT_BREADCRUMB_FILENAME = "agent-heartbeat-report.breadcrumb"
