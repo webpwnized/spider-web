@@ -1442,12 +1442,11 @@ class API:
                     l_site_is_interesting = False
                 else:
                     l_error = "Cannot connect to site {}. {}".format(p_url, l_reason)
-                    l_site_is_up, l_site_is_interesting, l_status_code, l_reason = self.__handle_site_connection_failure(
-                        l_status_code, l_error)
+                    l_site_is_up, l_site_is_interesting, l_status_code, l_reason = self.__handle_site_connection_failure(l_error)
             except requests.exceptions.SSLError as e:
                 l_site_is_up, l_site_is_interesting, l_status_code, l_reason = self.__handle_tls_error(p_url, str(e))
             except requests.exceptions.RequestException as e:
-                l_site_is_up, l_site_is_interesting, l_status_code, l_reason = self.__handle_site_connection_failure(l_status_code, str(e))
+                l_site_is_up, l_site_is_interesting, l_status_code, l_reason = self.__handle_site_connection_failure(str(e))
 
         elif p_method == PingMethod.SECOND_TEST_USE_PROXY.value:
 
@@ -1469,8 +1468,7 @@ class API:
                     l_site_is_interesting = False
                 else:
                     l_error = "Cannot connect to site {}. {}".format(p_url, l_reason)
-                    l_site_is_up, l_site_is_interesting, l_status_code, l_reason = self.__handle_site_connection_failure(
-                        l_status_code, l_error)
+                    l_site_is_up, l_site_is_interesting, l_status_code, l_reason = self.__handle_site_connection_failure(l_error)
             except requests.exceptions.SSLError as e:
                 l_site_is_up, l_site_is_interesting, l_status_code, l_reason = self.__handle_tls_error(p_url, str(e))
             except requests.exceptions.ProxyError as e:
@@ -1531,7 +1529,8 @@ class API:
                         l_site_is_up, l_site_is_interesting, l_status_code, l_reason = self.__ping_url(l_url, PingMethod.SECOND_TEST_USE_PROXY.value)
 
                 l_status:str = "Up" if l_site_is_up else "Down"
-                self.__mPrinter.print("Site is {}. Response for site {} ({}): {} {}.".format(l_name, l_url, l_status_code, l_reason, l_status), Level.INFO)
+                self.__mPrinter.print("Site {} is {}".format(l_name, l_status), Level.INFO)
+                self.__mPrinter.print("Response for site {} ({}): {} {}.".format(l_name, l_url, l_status_code, l_reason), Level.INFO)
                 l_results.append({"Name": l_name, "URL": l_url, "Status": l_status, "Interesting": l_site_is_interesting, "StatusCode": l_status_code, "Reason": l_reason})
 
             return l_results
