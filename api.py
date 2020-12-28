@@ -1361,7 +1361,7 @@ class API:
     def __cannot_resolve_URL(self, p_status_code: int) -> bool:
         return p_status_code == 502
 
-    def __is_authentication_site(self, p_domain: str) -> bool:
+    def __is_authentication_domain(self, p_domain: str) -> bool:
         return p_domain in Parser.authentication_sites
 
     def __is_authentication_page(self, p_url: str) -> bool:
@@ -1482,23 +1482,30 @@ class API:
             l_redirect_path = urlparse(l_redirect_url).path
             l_redirect_domain = urlparse(l_redirect_url).hostname
             self.__mPrinter.print("Server redirected from {} to {}".format(l_current_domain, l_redirect_url), Level.INFO)
-            if l_current_domain == l_redirect_domain:
+
+            if self.__is_authentication_domain(l_redirect_domain):
+                l_site_is_up = True
+                l_site_is_interesting = False
+                l_reason = "Server is redirecting to an authentication domain {}".format(l_redirect_domain)
+            elif l_current_domain == l_redirect_domain:
                 if self.__is_authentication_page(l_redirect_url):
                     l_site_is_up = True
                     l_site_is_interesting = False
-                    l_reason = "Server is redirecting to login page {}".format(l_redirect_url)
+                    l_reason = "Server is redirecting to login page {}".format(l_redirect_path)
                 else:
                     l_site_is_up = True
                     l_site_is_interesting = True
                     l_reason = "Server is redirecting within same domain to page {}. Make sure NetSparker is configured to scan the correct page. NetSparker should not redirect if already pointed to the correct starting URL.".format(l_redirect_path)
-            elif self.__is_authentication_site(l_redirect_domain):
-                l_site_is_up = True
-                l_site_is_interesting = False
-                l_reason = "Server is redirecting to an authentication domain {}".format(l_redirect_domain)
-            else:
-                l_site_is_up = False
-                l_site_is_interesting = True
-                l_reason = "Domain may be black-holed. Server is redirecting to a different domain to page {}".format(l_redirect_url)
+            else: # Redirecting to different domain
+                if self.__is_authentication_page(l_redirect_url):
+                    l_site_is_up = True
+                    l_site_is_interesting = True
+                    l_reason = "Server is redirecting to different domain to login page {}. This could be an undocumented authentication domain that is not configured in config.py. Inform the programming team.".format(l_redirect_url)
+                else:
+                    l_site_is_up = False
+                    l_site_is_interesting = True
+                    l_reason = "Domain may be black-holed. Server is redirecting to a different domain to page {}".format(
+                        l_redirect_url)
 
         return l_site_is_up, l_site_is_interesting, l_status_code, l_reason
 
