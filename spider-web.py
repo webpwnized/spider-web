@@ -9,7 +9,7 @@ from argparse import RawTextHelpFormatter
 import argparse
 
 
-l_version = '1.0.26'
+l_version = '1.0.27'
 
 
 def print_example_usage():
@@ -700,10 +700,10 @@ if __name__ == '__main__':
 
     l_auxiliary_group = lArgParser.add_argument_group(title="Auxiliary Features", description=None)
     l_auxiliary_group.add_argument('-auxps', '--ping-sites',
-                                 help='Fetch sites from NetSparker API then report status and exit',
+                                 help='Fetch Scan Profile Target URL from NetSparker API then report status and exit',
                                  action='store_true')
     l_auxiliary_group.add_argument('-auxpsif', '--ping-sites-in-file',
-                                 help='Read site from file then report status and exit. Requires properly formatted input file: CSV with fields SITE_NAME, SITE_URL. Include input file with -if, --input-filename',
+                                 help='Read URL from file then report status and exit. Requires properly formatted input file: CSV with fields SITE_NAME, SITE_URL. Include input file with -if, --input-filename',
                                  action='store_true')
 
     l_report_group = lArgParser.add_argument_group(title="Reports", description="Reports can be output to a file. Output filename is optional. Otherwise output is sent to standard out (STDOUT). Specify output filename with -o, --output-format. Report functions allows unattended mode. In unattended mode, functions will only produce output if the configured amount of time has passed the time contained in the breadcrumb file. Configure the breadcrumb filename and the amount of time in config.py.")

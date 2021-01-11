@@ -163,9 +163,9 @@
                             The vulnerability type
     
     Auxiliary Features:
-      -auxps, --ping-sites  Fetch sites from NetSparker API then report status and exit
+      -auxps, --ping-sites  Fetch Scan Profile Target URL from NetSparker API then report status and exit
       -auxpsif, --ping-sites-in-file
-                            Read site from file then report status and exit. Requires properly formatted input file: CSV with fields SITE_NAME, SITE_URL. Include input file with -if, --input-filename
+                            Read URL from file then report status and exit. Requires properly formatted input file: CSV with fields SITE_NAME, SITE_URL. Include input file with -if, --input-filename
     
     Reports:
       Reports can be output to a file. Output filename is optional. Otherwise output is sent to standard out (STDOUT). Specify output filename with -o, --output-format. Report functions allows unattended mode. In unattended mode, functions will only produce output if the configured amount of time has passed the time contained in the breadcrumb file. Configure the breadcrumb filename and the amount of time in config.py.

@@ -1695,9 +1695,9 @@ class API:
 
         try:
             l_sites: list = []
-            l_list: list = self.__get_websites()
+            l_list: list = self.__get_scan_profiles()
             for l_record in l_list:
-                l_sites.append((l_record["Name"], l_record["RootUrl"]))
+                l_sites.append((l_record["ProfileName"], l_record["TargetUri"]))
             l_results: list = self.__ping_sites(l_sites)
             self.__handle_ping_sites_results(l_results)
         except Exception as e:
