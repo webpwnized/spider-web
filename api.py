@@ -152,9 +152,6 @@ class API:
 
     __cAGENTS_LIST_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "agents/list")
 
-    __cSCANS_LIST_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "scans/list")
-    __cSCANS_LIST_BY_WEBSITE_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "scans/listbywebsite")
-
     __cTEAM_MEMBER_LIST_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "teammembers/list")
 
     __cDISCOVERED_SERVICES_LIST_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "discovery/list")
@@ -178,6 +175,9 @@ class API:
     __cSCAN_PROFILES_LIST_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "scanprofiles/list")
     __cSCAN_PROFILES_LIST_BY_ID_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "scanprofiles/get")
     __cSCAN_PROFILES_LIST_BY_NAME_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "scanprofiles/get")
+
+    __cSCANS_LIST_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "scans/list")
+    __cSCANS_LIST_BY_WEBSITE_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "scans/listbywebsite")
 
     __m_script_directory: str = os.path.dirname(__file__)
 
@@ -1525,6 +1525,13 @@ class API:
                 urlparse(p_url).hostname, p_error)
         return l_site_is_up, l_site_is_interesting, l_status_code, l_reason
 
+    def __handle_http_error(self):
+        l_site_is_up = False
+        l_site_is_interesting = True
+        l_status_code = 405
+        l_reason = "Policy violation. The site is not using TLS and HTTPS."
+        return l_site_is_up, l_site_is_interesting, l_status_code, l_reason
+
     def __handle_site_connection_failure(self, p_error: str):
         l_site_is_up = False
         l_site_is_interesting = True
@@ -1550,6 +1557,8 @@ class API:
         if p_method == PingMethod.INITIAL_TEST.value:
 
             try:
+                if not self.__url_is_secure(p_url):
+                    raise requests.exceptions.InvalidSchema
                 if self.__m_use_proxy:
                     self.__mPrinter.print("Using upstream proxy", Level.INFO)
                     l_proxies = self.__get_proxies()
@@ -1563,6 +1572,8 @@ class API:
                     raise requests.exceptions.ConnectionError
                 l_site_is_up = True
                 l_site_is_interesting = False
+            except requests.exceptions.InvalidSchema as e:
+                l_site_is_up, l_site_is_interesting, l_status_code, l_reason = self.__handle_http_error()
             except requests.exceptions.SSLError as e:
                 l_site_is_up, l_site_is_interesting, l_status_code, l_reason = self.__handle_tls_error(p_url, str(e))
             except requests.exceptions.ProxyError as e:
