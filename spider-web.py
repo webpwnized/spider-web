@@ -9,7 +9,7 @@ from argparse import RawTextHelpFormatter
 import argparse
 
 
-l_version = '1.0.24'
+l_version = '1.0.25'
 
 
 def print_example_usage():
@@ -91,6 +91,18 @@ def print_example_usage():
 
     spider-web -sgsbw -pn 1 -ps 200 -wurl "https://bc-sec2.acme.org/"-turl "https://bc-sec2.acme.org/" -idsd Descending
     spider-web --get-scans-by-website --page-number 1 --page-size 200 --website-url "https://bc-sec2.acme.org/" --target-url "https://bc-sec2.acme.org/" --initiated-date-sort-direction Descending
+
+    --------------------------------
+    Get Scan Profiles
+    --------------------------------
+    spider-web -spgsp -pn 1 -ps 200
+    spider-web --get-scan-profiles --page-number 1 --page-size 200
+
+    spider-web -spgsp -spid a43fe0f6-cbb0-49de-4b8c-ac93026a2403 -pn 1 -ps 200
+    spider-web --get-scan-profiles --scan-profile-id a43fe0f6-cbb0-49de-4b8c-ac93026a2403 --page-number 1 --page-size 200
+
+    spider-web -spgsp -spn 'Development: TEC Workspaceone Arm-Diad' -pn 1 -ps 200
+    spider-web --get-scan-profiles --scan-profile-name 'Development: TEC Workspaceone Arm-Diad' --page-number 1 --page-size 200
 
     --------------------------------
     Get Team Member Information
@@ -286,7 +298,7 @@ def run_main_program():
         Parser.report_business_scorecard or Parser.get_scans or Parser.get_scans_by_website or \
         Parser.get_website_by_url or Parser.get_website_by_name or Parser.get_website_by_id or \
         Parser.get_websites_by_group_name or Parser.get_websites_by_group_id or Parser.get_technologies or \
-        Parser.get_obsolete_technologies:
+        Parser.get_obsolete_technologies or Parser.get_scan_profiles or Parser.get_scan_profile:
             l_api = API(p_parser=Parser)
     else:
         lArgParser.print_usage()
@@ -443,6 +455,18 @@ def run_main_program():
         l_api.get_scans_by_website()
         exit(0)
 
+    if Parser.get_scan_profile:
+        if not Parser.scan_profile_id and not Parser.scan_profile_name:
+            lArgParser.print_usage()
+            Printer.print("Either -spid, --scan-profile-id or -spn, --scan-profile-name required", Level.ERROR, Force.FORCE, LINES_BEFORE, LINES_AFTER)
+            exit(0)
+        l_api.get_scan_profile()
+        exit(0)
+
+    if Parser.get_scan_profiles:
+        l_api.get_scan_profiles()
+        exit(0)
+
     if Parser.report_business_scorecard:
         l_api.report_business_scorecard()
         exit(0)
@@ -561,6 +585,26 @@ if __name__ == '__main__':
                                  default='Descending',
                                  type=str,
                                  action='store')
+
+    l_scan_profiles_group = lArgParser.add_argument_group(title="Scans Profile Endpoints", description=None)
+    l_scan_profiles_group.add_argument('-spgsp', '--get-scan-profile',
+                                 help='List scan profiles and exit. Requires -spid, --scan-profile-id or spn, --scan-profile-name which filters results accordingly. Scan Profile ID takes precedence.',
+                                 action='store_true')
+
+    l_scan_profiles_options_group = lArgParser.add_argument_group(title="Scans Profile Endpoints Options", description=None)
+    l_scan_profiles_options_group.add_argument('-spid', '--scan-profile-id',
+                                 help='The scan profile ID',
+                                 type=str,
+                                 action='store')
+    l_scan_profiles_options_group.add_argument('-spn', '--scan-profile-name',
+                                 help='The scan profile name',
+                                 type=str,
+                                 action='store')
+
+    l_scan_profiles_group = lArgParser.add_argument_group(title="Scans Profiles Endpoints", description=None)
+    l_scan_profiles_group.add_argument('-spgsps', '--get-scan-profiles',
+                                 help='List scan profiles and exit. Output fetched in pages.',
+                                 action='store_true')
 
     l_team_member_group = lArgParser.add_argument_group(title="Team Member Endpoints", description=None)
     l_team_member_group.add_argument('-tmgtm', '--get-team-members',

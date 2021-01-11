@@ -4,6 +4,7 @@ from enum import Enum
 from database import SQLite
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
 from urllib.parse import urlparse
+from urllib import parse
 from datetime import datetime
 from datetime import timezone
 from dateutil import parser
@@ -173,6 +174,10 @@ class API:
     __cVULNERABILITY_TEMPLATES_LIST_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "vulnerability/list")
     __cVULNERABILITY_TEMPLATE_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "vulnerability/template")
     __cVULNERABILITY_TEMPLATE_TYPES_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "vulnerability/types")
+
+    __cSCAN_PROFILES_LIST_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "scanprofiles/list")
+    __cSCAN_PROFILES_LIST_BY_ID_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "scanprofiles/get")
+    __cSCAN_PROFILES_LIST_BY_NAME_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "scanprofiles/get")
 
     __m_script_directory: str = os.path.dirname(__file__)
 
@@ -1315,6 +1320,144 @@ class API:
 
     def get_websites_by_group_id(self) -> None:
         self.__get_websites_by_group()
+
+    # ------------------------------------------------------------
+    # Get Scan Profile
+    # ------------------------------------------------------------
+    def __get_scan_profile_header(self) -> list:
+        return ["Profile Name", "Target URI", "Profile ID", "Policy ID",
+                "Report Policy ID", "User ID", "Agent ID", "Agent Group ID"]
+
+    def __parse_scan_profile_json_to_csv(self, p_json: list) -> list:
+        try:
+            return [self.__parse_scan_profiles_json(p_json)]
+        except Exception as e:
+            self.__mPrinter.print("__parse_scan_profile_json_to_csv() - {0}".format(str(e)), Level.ERROR)
+
+    def __print_scan_profile_csv(self, p_json: list) -> None:
+        try:
+            l_scan_profile: list = self.__parse_scan_profile_json_to_csv(p_json)
+            l_header: list = self.__get_scan_profile_header()
+
+            self.__write_csv(l_header, l_scan_profile)
+
+        except Exception as e:
+            self.__mPrinter.print("__print_scan_profile_csv() - {0}".format(str(e)), Level.ERROR)
+
+    def __handle_scan_profile(self, p_list: list) -> None:
+        try:
+            if self.__m_output_format == OutputFormat.JSON.value:
+                print(p_list)
+            elif self.__m_output_format == OutputFormat.CSV.value:
+                self.__print_scan_profile_csv(p_list)
+
+        except Exception as e:
+            self.__mPrinter.print("__handle_scan_profile() - {0}".format(str(e)), Level.ERROR)
+
+    def ____get_scan_profile_by_id(self) -> list:
+        try:
+            l_base_url = "{0}/{1}".format(
+                self.__cSCAN_PROFILES_LIST_BY_ID_URL, parse.quote(Parser.scan_profile_id)
+            )
+            return self.__get_unpaged_data(l_base_url, "scan profiles")
+
+        except Exception as e:
+            self.__mPrinter.print("____get_scan_profile_by_id() - {0}".format(str(e)), Level.ERROR)
+
+    def __get_scan_profile_by_id(self) -> None:
+        try:
+            l_list: list = self.____get_scan_profile_by_id()
+            self.__handle_scan_profile(l_list)
+        except Exception as e:
+            self.__mPrinter.print("__get_scan_profile_by_id() - {0}".format(str(e)), Level.ERROR)
+
+    def ____get_scan_profile_by_name(self) -> list:
+        try:
+            l_base_url = "{0}?name={1}".format(
+                self.__cSCAN_PROFILES_LIST_BY_NAME_URL, parse.quote(Parser.scan_profile_name)
+            )
+            return self.__get_unpaged_data(l_base_url, "scan profiles")
+
+        except Exception as e:
+            self.__mPrinter.print("____get_scan_profile_by_name() - {0}".format(str(e)), Level.ERROR)
+
+    def __get_scan_profile_by_name(self) -> None:
+        try:
+            l_list: list = self.____get_scan_profile_by_name()
+            self.__handle_scan_profile(l_list)
+        except Exception as e:
+            self.__mPrinter.print("__get_scan_profile_by_name() - {0}".format(str(e)), Level.ERROR)
+
+    def get_scan_profile(self) -> None:
+        try:
+            if Parser.scan_profile_id:
+                self.__get_scan_profile_by_id()
+            elif Parser.scan_profile_name:
+                self.__get_scan_profile_by_name()
+            else:
+                raise ValueError("Looking up a Scan Profile requires that either Scan Profile ID or Scan Profile Name be provided.")
+        except Exception as e:
+            self.__mPrinter.print("get_scan_profile() - {0}".format(str(e)), Level.ERROR)
+
+    # ------------------------------------------------------------
+    # Get Scan Profiles
+    # ------------------------------------------------------------
+    def __parse_scan_profiles_json(self, p_json: list) -> list:
+        try:
+            return [
+                p_json["ProfileName"], p_json["TargetUri"], p_json["ProfileId"],
+                p_json["PolicyId"], p_json["ReportPolicyId"], p_json["UserId"],
+                p_json["AgentId"], p_json["AgentGroupId"]
+            ]
+        except Exception as e:
+            self.__mPrinter.print("__parse_scan_profiles_json_to_csv() - {0}".format(str(e)), Level.ERROR)
+
+    def __parse_scan_profiles_json_to_csv(self, p_json: list) -> list:
+        try:
+            l_scan_profiles: list = []
+            for l_scan_profile in p_json:
+                l_scan_profiles.append(self.__parse_scan_profiles_json(l_scan_profile))
+            return l_scan_profiles
+        except Exception as e:
+            self.__mPrinter.print("__parse_scan_profiles_json_to_csv() - {0}".format(str(e)), Level.ERROR)
+
+    def __print_scan_profiles_csv(self, p_json: list) -> None:
+        try:
+            l_scan_profiles: list = self.__parse_scan_profiles_json_to_csv(p_json)
+            l_header: list = self.__get_scan_profile_header()
+
+            self.__write_csv(l_header, l_scan_profiles)
+
+        except Exception as e:
+            self.__mPrinter.print("__print_scan_profiles_csv() - {0}".format(str(e)), Level.ERROR)
+
+    def __handle_scan_profiles(self, p_list: list) -> None:
+        try:
+            if self.__m_output_format == OutputFormat.JSON.value:
+                print(p_list)
+            elif self.__m_output_format == OutputFormat.CSV.value:
+                self.__print_scan_profiles_csv(p_list)
+
+        except Exception as e:
+            self.__mPrinter.print("__handle_scan_profiles() - {0}".format(str(e)), Level.ERROR)
+
+    def __get_scan_profiles(self) -> list:
+        try:
+            l_base_url = "{0}?page={1}&pageSize={2}".format(
+                self.__cSCAN_PROFILES_LIST_URL,
+                Parser.page_number, Parser.page_size
+            )
+            return self.__get_paged_data(l_base_url, "scan profiles")
+
+        except Exception as e:
+            self.__mPrinter.print("__get_scan_profiles() - {0}".format(str(e)), Level.ERROR)
+
+    def get_scan_profiles(self) -> None:
+        try:
+            l_list: list = self.__get_scan_profiles()
+            self.__handle_scan_profiles(l_list)
+        except Exception as e:
+            self.__mPrinter.print("get_scan_profiles() - {0}".format(str(e)), Level.ERROR)
 
     # ------------------------------------------------------------
     # Ping Sites Methods

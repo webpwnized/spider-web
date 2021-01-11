@@ -74,6 +74,12 @@ class Parser:
         Parser.target_url = p_args.target_url
         Parser.initiated_date_sort_direction = p_args.initiated_date_sort_direction
 
+        # Scan Profiles
+        Parser.get_scan_profiles = p_args.get_scan_profiles
+        Parser.get_scan_profile = p_args.get_scan_profile
+        Parser.scan_profile_id = p_args.scan_profile_id
+        Parser.scan_profile_name = p_args.scan_profile_name
+
         # Team Members
         Parser.get_team_members = p_args.get_team_members
 
