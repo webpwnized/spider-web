@@ -17,11 +17,20 @@
 
 ### Usage
 
-    usage: spider-web [-h] [-v] [-d] [-o {JSON,CSV}] [-e] [-u] [-t] [-pn PAGE_NUMBER] [-ps PAGE_SIZE] [-if INPUT_FILENAME] [-of OUTPUT_FILENAME]
-                      [-os OUTPUT_SEPARATOR] [-un] [-wurl WEBSITE_URL] [-wn WEBSITE_NAME] [-ga] [-gl] [-aga] [-dsgds] [-dsdds] [-sgs] [-sgsbw]
-                      [-turl TARGET_URL] [-idsd INITIATED_DATE_SORT_DIRECTION] [-tmgtm] [-tgt] [-tgot] [-tn TECHNOLOGY_NAME] [-wgwbu] [-wgwbn] [-wgwbid]
-                      [-wid WEBSITE_ID] [-wgw] [-wgwbgn] [-wgwbgid] [-wupw] [-wgn WEBSITE_GROUP_NAME] [-wgid WEBSITE_GROUP_ID] [-wggwg] [-wgupwg]
-                      [-vgvtemps] [-vgvtemp] [-vgvtypes] [-rpi REPORT_POLICY_ID] [-vt VULNERABILITY_TYPE] [-auxps] [-auxpsif] [-ramh] [-rda] [-rbsc]
+    usage: spider-web [-h] [-v] [-d] [-o {JSON,CSV}] [-e] [-u] [-t]
+                      [-pn PAGE_NUMBER] [-ps PAGE_SIZE] [-if INPUT_FILENAME]
+                      [-of OUTPUT_FILENAME] [-os OUTPUT_SEPARATOR] [-un]
+                      [-wurl WEBSITE_URL] [-wn WEBSITE_NAME] [-ga] [-gl] [-aga]
+                      [-dsgds] [-dsdds] [-sgs] [-sgsbw] [-turl TARGET_URL]
+                      [-idsd INITIATED_DATE_SORT_DIRECTION] [-spgsp]
+                      [-spid SCAN_PROFILE_ID] [-spn SCAN_PROFILE_NAME] [-spgsps]
+                      [-tmgtm] [-tgt] [-tgot] [-tn TECHNOLOGY_NAME] [-wgwbu]
+                      [-wgwbn] [-wgwbid] [-wid WEBSITE_ID] [-wgw] [-wgwbgn]
+                      [-wgwbgid] [-wupw] [-wgn WEBSITE_GROUP_NAME]
+                      [-wgid WEBSITE_GROUP_ID] [-wggwg] [-wgupwg] [-vgvtemps]
+                      [-vgvtemp] [-vgvtypes] [-rpi REPORT_POLICY_ID]
+                      [-vt VULNERABILITY_TYPE] [-auxps] [-auxpsif] [-ramh] [-rda]
+                      [-rbsc]
 
 ### Options
 
@@ -77,7 +86,21 @@
                             The target URL of the scan
       -idsd INITIATED_DATE_SORT_DIRECTION, --initiated-date-sort-direction INITIATED_DATE_SORT_DIRECTION
                             The scan initiated date sort direction. Choices are ['Ascending', 'Decending']
+
+    Scans Profile Endpoints:
+      -spgsp, --get-scan-profile
+                            List scan profiles and exit. Requires -spid, --scan-profile-id or spn, --scan-profile-name which filters results accordingly. Scan Profile ID takes precedence.
     
+    Scans Profile Endpoints Options:
+      -spid SCAN_PROFILE_ID, --scan-profile-id SCAN_PROFILE_ID
+                            The scan profile ID
+      -spn SCAN_PROFILE_NAME, --scan-profile-name SCAN_PROFILE_NAME
+                            The scan profile name
+    
+    Scans Profiles Endpoints:
+      -spgsps, --get-scan-profiles
+                            List scan profiles and exit. Output fetched in pages.
+
     Team Member Endpoints:
       -tmgtm, --get-team-members
                             List users and exit. Output fetched in pages.
@@ -217,6 +240,17 @@
 
     spider-web -sgsbw -pn 1 -ps 200 -wurl "https://bc-sec2.acme.org/"-turl "https://bc-sec2.acme.org/" -idsd Descending
     spider-web --get-scans-by-website --page-number 1 --page-size 200 --website-url "https://bc-sec2.acme.org/" --target-url "https://bc-sec2.acme.org/" --initiated-date-sort-direction Descending
+
+#### Get Scan Profiles
+    spider-web -spgsp -spid a43fe0f6-cbb0-49de-4b8c-ac93026a2403 -pn 1 -ps 200
+    spider-web --get-scan-profile --scan-profile-id a43fe0f6-cbb0-49de-4b8c-ac93026a2403 --page-number 1 --page-size 200
+
+    spider-web -spgsp -spn 'Development: TEC Workspaceone Arm-Diad' -pn 1 -ps 200
+    spider-web --get-scan-profile --scan-profile-name 'Development: TEC Workspaceone Arm-Diad' --page-number 1 --page-size 200
+
+#### Get Scan Profiles
+    spider-web -spgsps -pn 1 -ps 200
+    spider-web --get-scan-profiles --page-number 1 --page-size 200
 
 #### Get Team Member Information
     spider-web -tmgtm -pn 1 -ps 200

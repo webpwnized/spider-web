@@ -9,7 +9,7 @@ from argparse import RawTextHelpFormatter
 import argparse
 
 
-l_version = '1.0.25'
+l_version = '1.0.26'
 
 
 def print_example_usage():
@@ -95,14 +95,17 @@ def print_example_usage():
     --------------------------------
     Get Scan Profiles
     --------------------------------
-    spider-web -spgsp -pn 1 -ps 200
-    spider-web --get-scan-profiles --page-number 1 --page-size 200
-
     spider-web -spgsp -spid a43fe0f6-cbb0-49de-4b8c-ac93026a2403 -pn 1 -ps 200
-    spider-web --get-scan-profiles --scan-profile-id a43fe0f6-cbb0-49de-4b8c-ac93026a2403 --page-number 1 --page-size 200
+    spider-web --get-scan-profile --scan-profile-id a43fe0f6-cbb0-49de-4b8c-ac93026a2403 --page-number 1 --page-size 200
 
     spider-web -spgsp -spn 'Development: TEC Workspaceone Arm-Diad' -pn 1 -ps 200
-    spider-web --get-scan-profiles --scan-profile-name 'Development: TEC Workspaceone Arm-Diad' --page-number 1 --page-size 200
+    spider-web --get-scan-profile --scan-profile-name 'Development: TEC Workspaceone Arm-Diad' --page-number 1 --page-size 200
+
+    --------------------------------
+    Get Scan Profiles
+    --------------------------------
+    spider-web -spgsps -pn 1 -ps 200
+    spider-web --get-scan-profiles --page-number 1 --page-size 200
 
     --------------------------------
     Get Team Member Information
