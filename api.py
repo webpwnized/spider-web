@@ -128,6 +128,9 @@ class SortDirection(Enum):
     def __str__(self):
         return self.value
 
+class WebsiteGroups(Enum):
+    ON_BALANCED_SCORECARD = 'b9d6581c-9ebe-4e56-3313-ac4e038c2393'
+
 
 class API:
 
@@ -505,10 +508,10 @@ class API:
         try:
             l_content_disposition = l_http_response.headers.get('content-disposition')
             if not l_content_disposition:
-                return None
+                return ""
             l_filename = re.findall('filename=(.+)', l_content_disposition)
             if not l_filename:
-                return None
+                return ""
             return l_filename[0]
         except Exception as e:
             self.__mPrinter.print("__get_filename_from_content_disposition() - {0}".format(str(e)), Level.ERROR)
@@ -1835,7 +1838,7 @@ class API:
             l_list: list = self.__get_vulnerability_template()
 
             if self.__m_output_format == OutputFormat.JSON.value:
-                print(l_dict)
+                print(l_list)
             elif self.__m_output_format == OutputFormat.CSV.value:
                 self.__print_vulnerability_template_csv(l_list)
 
@@ -2203,8 +2206,79 @@ class API:
     # ------------------------------------------------------------
     def report_business_scorecard(self):
         try:
-            print("Not Implemented. Waiting on scan endpoints.")
+            l_scorecards: dict = {}
+
+            Parser.initiated_date_sort_direction = SortDirection.DECENDING.value
+
+            self.__mPrinter.print("Fetching websites on Business Scorecard".format(), Level.INFO)
+            Parser.query = WebsiteGroups.ON_BALANCED_SCORECARD.value
+            l_websites: list = self.____get_websites_by_group()
+            self.__mPrinter.print("Fetched {} websites on Business Scorecard".format(len(l_websites)), Level.INFO)
+
+            for l_website in l_websites:
+                Parser.website_url = l_website["RootUrl"]
+                self.__mPrinter.print("Fetching scans for site {}".format(Parser.website_url), Level.INFO)
+                l_scans: list = self.__get_scans_by_website()
+                self.__mPrinter.print("Fetched {} scans for site {}".format(len(l_scans), Parser.website_url), Level.INFO)
+
+                l_potential_scorecards: Scans = Scans()
+                for l_scan in l_scans:
+                    l_potential_scorecards.keep_if_better(l_scan)
+
+                l_scorecards.update(l_potential_scorecards)
+
+            self.__mPrinter.print("Done".format(len(l_websites)), Level.INFO)
             return 0
 
         except Exception as e:
             self.__mPrinter.print("report_business_scorecard() - {0}".format(str(e)), Level.ERROR)
+
+class Scan():
+
+    _m_initiated_at: str = ""
+    _m_target_url: str = ""
+    _m_total_vulnerability_count: int = 0
+    _m_scan_profile_id:str = ""
+    _m_is_completed: bool = False
+    _m_vulnerability_critical_count: int = 0
+    _m_vulnerability_high_count: int = 0
+    _m_vulnerability_info_count: int = 0
+    _m_vulnerability_best_practice_count: int = 0
+    _m_vulnerability_low_count: int = 0
+    _m_vulnerability_medium_count: int = 0
+    _m_website_id: str = ""
+
+    def __init__(self, p_scan: dict) -> None:
+        _m_initiated_at = p_scan["InitiatedAt"]
+        _m_target_url = p_scan["TargetUrl"]
+        _m_total_vulnerability_count = p_scan["TotalVulnerabilityCount"]
+        _m_scan_profile_id = p_scan["ScanTaskProfileId"]
+        _m_is_completed = p_scan["IsCompleted"]
+        _m_vulnerability_critical_count = p_scan["VulnerabilityCriticalCount"]
+        _m_vulnerability_high_count = p_scan["VulnerabilityHighCount"]
+        _m_vulnerability_info_count = p_scan["VulnerabilityInfoCount"]
+        _m_vulnerability_best_practice_count = p_scan["VulnerabilityBestPracticeCount"]
+        _m_vulnerability_low_count = p_scan["VulnerabilityLowCount"]
+        _m_vulnerability_medium_count = p_scan["VulnerabilityMediumCount"]
+        _m_website_id = p_scan["WebsiteId"]
+
+class Scans():
+
+    _m_scans: dict = {}
+
+    def keep_if_better(self, p_scan: dict):
+        if p_scan["IsCompleted"]:
+            l_scan_matched: bool = False
+            for l_scan in self._m_scans:
+                if p_scan["ScanTaskProfileId"] == l_scan._m_scan_profile_id:
+                    l_scan_matched = True
+                    if p_scan["InitiatedAt"] > l_scan._m_initiated_at:
+                        self._m_scans[l_scan._m_scan_profile_id] = Scan(p_scan)
+            if not l_scan_matched:
+                self._m_scans[l_scan._m_scan_profile_id] = Scan(p_scan)
+
+
+
+
+
+
