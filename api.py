@@ -2213,22 +2213,21 @@ class API:
             self.__mPrinter.print("Fetching websites on Business Scorecard".format(), Level.INFO)
             Parser.query = WebsiteGroups.ON_BALANCED_SCORECARD.value
             l_websites: list = self.____get_websites_by_group()
-            self.__mPrinter.print("Fetched {} websites on Business Scorecard".format(len(l_websites)), Level.INFO)
+            self.__mPrinter.print("Fetched {} websites on Business Scorecard (BSC)".format(len(l_websites)), Level.INFO)
 
             for l_website in l_websites:
                 Parser.website_url = l_website["RootUrl"]
                 self.__mPrinter.print("Fetching scans for site {}".format(Parser.website_url), Level.INFO)
                 l_scans: list = self.__get_scans_by_website()
-                self.__mPrinter.print("Fetched {} scans for site {}".format(len(l_scans), Parser.website_url), Level.INFO)
+                l_number_scans: int = len(l_scans)
+                self.__mPrinter.print("Fetched {} scans for site {}".format(l_number_scans, Parser.website_url), Level.INFO)
 
-                l_potential_scorecards: Scans = Scans()
-                for l_scan in l_scans:
-                    l_potential_scorecards.keep_if_better(l_scan)
+                if l_number_scans:
+                    l_potential_scorecards: Scans = Scans()
+                    for l_scan in l_scans:
+                        l_potential_scorecards.keep_if_better(l_scan)
 
-                l_scorecards.update(l_potential_scorecards)
-
-            self.__mPrinter.print("Done".format(len(l_websites)), Level.INFO)
-            return 0
+                    l_scorecards.update(l_potential_scorecards)
 
         except Exception as e:
             self.__mPrinter.print("report_business_scorecard() - {0}".format(str(e)), Level.ERROR)
@@ -2251,9 +2250,9 @@ class Scan():
     def __init__(self, p_scan: dict) -> None:
         _m_initiated_at = p_scan["InitiatedAt"]
         _m_target_url = p_scan["TargetUrl"]
-        _m_total_vulnerability_count = p_scan["TotalVulnerabilityCount"]
         _m_scan_profile_id = p_scan["ScanTaskProfileId"]
         _m_is_completed = p_scan["IsCompleted"]
+        _m_total_vulnerability_count = p_scan["TotalVulnerabilityCount"]
         _m_vulnerability_critical_count = p_scan["VulnerabilityCriticalCount"]
         _m_vulnerability_high_count = p_scan["VulnerabilityHighCount"]
         _m_vulnerability_info_count = p_scan["VulnerabilityInfoCount"]
@@ -2262,23 +2261,73 @@ class Scan():
         _m_vulnerability_medium_count = p_scan["VulnerabilityMediumCount"]
         _m_website_id = p_scan["WebsiteId"]
 
+    @property  # getter method
+    def initiated_at(self) -> str:
+        return self._m_initiated_at
+
+    @property  # getter method
+    def target_url(self) -> str:
+        return self._m_target_url
+
+    @property  # getter method
+    def scan_profile_id(self) -> str:
+        return self._m_scan_profile_id
+
+    @property  # getter method
+    def is_completed(self) -> bool:
+        return self._m_is_completed
+
+    @property  # getter method
+    def total_vulnerability_count(self) -> int:
+        return self._m_total_vulnerability_count
+
+    @property  # getter method
+    def vulnerability_critical_count(self) -> int:
+        return self._m_vulnerability_critical_count
+
+    @property  # getter method
+    def vulnerability_high_count(self) -> int:
+        return self._m_vulnerability_high_count
+
+    @property  # getter method
+    def vulnerability_info_count(self) -> int:
+        return self._m_vulnerability_info_count
+
+    @property  # getter method
+    def vulnerability_best_practice_count(self) -> int:
+        return self._m_vulnerability_best_practice_count
+
+    @property  # getter method
+    def vulnerability_low_count(self) -> int:
+        return self._m_vulnerability_low_count
+
+    @property  # getter method
+    def vulnerability_medium_count(self) -> int:
+        return self._m_vulnerability_medium_count
+
+    @property  # getter method
+    def website_id(self) -> str:
+        return self._m_website_id
+
 class Scans():
 
-    _m_scans: dict = {}
+    _m_scans: list = []
+
+    def scans(self):
+        return self._m_scans
+
+    def count(self):
+        return len(self._m_scans)
 
     def keep_if_better(self, p_scan: dict):
         if p_scan["IsCompleted"]:
             l_scan_matched: bool = False
+            l_scan_profile_id: str = p_scan["ScanTaskProfileId"]
             for l_scan in self._m_scans:
-                if p_scan["ScanTaskProfileId"] == l_scan._m_scan_profile_id:
+                if l_scan_profile_id == l_scan["ScanProfileID"]:
                     l_scan_matched = True
-                    if p_scan["InitiatedAt"] > l_scan._m_initiated_at:
-                        self._m_scans[l_scan._m_scan_profile_id] = Scan(p_scan)
+                    #TODO: Convert to date objects and compare times instead of strings
+                    if p_scan["InitiatedAt"] > l_scan["ScanObject"]._m_initiated_at:
+                        self._m_scans.append({"ScanProfileID": l_scan_profile_id, "ScanObject": Scan(p_scan)})
             if not l_scan_matched:
-                self._m_scans[l_scan._m_scan_profile_id] = Scan(p_scan)
-
-
-
-
-
-
+                self._m_scans.append({"ScanProfileID": l_scan_profile_id, "ScanObject": Scan(p_scan)})
