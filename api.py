@@ -128,8 +128,17 @@ class SortDirection(Enum):
     def __str__(self):
         return self.value
 
+
 class WebsiteGroups(Enum):
     ON_BALANCED_SCORECARD = 'b9d6581c-9ebe-4e56-3313-ac4e038c2393'
+
+
+class TeamMemberTypes(Enum):
+    ALL_ACCOUNTS = "All Accounts"
+    ADMIN_ACCOUNTS = "Administrator Accounts"
+    API_ACCOUNTS = "API Accounts"
+    SCAN_ACCOUNTS = "Scan Accounts"
+    DISABLED_ACCOUNTS = "Disabled Accounts"
 
 
 class API:
@@ -791,7 +800,7 @@ class API:
         except Exception as e:
             self.__mPrinter.print("__print_team_members_csv() - {0}".format(str(e)), Level.ERROR)
 
-    def __get_team_members(self) -> list:
+    def ____get_team_members(self) -> list:
         try:
             l_base_url = "{0}?page={1}&pageSize={2}".format(
                 self.__cTEAM_MEMBER_LIST_URL,
@@ -799,19 +808,75 @@ class API:
             )
             return self.__get_paged_data(l_base_url, "team members")
         except Exception as e:
+            self.__mPrinter.print("____get_team_members() - {0}".format(str(e)), Level.ERROR)
+
+    def __filter_team_members(self, p_json: list, p_type: TeamMemberTypes) -> list:
+
+        l_accounts: list = []
+
+        if p_type.name == TeamMemberTypes.ALL_ACCOUNTS.name:
+            return p_json
+        elif p_type.name == TeamMemberTypes.ADMIN_ACCOUNTS.name:
+            for l_account in p_json:
+                if l_account["CanManageTeam"]:
+                    l_accounts.append(l_account)
+        elif p_type.name == TeamMemberTypes.API_ACCOUNTS.name:
+            for l_account in p_json:
+                if l_account["IsApiAccessEnabled"]:
+                    l_accounts.append(l_account)
+        elif p_type.name == TeamMemberTypes.SCAN_ACCOUNTS.name:
+            for l_account in p_json:
+                if l_account["CanStartScan"]:
+                    l_accounts.append(l_account)
+        elif p_type.name == TeamMemberTypes.DISABLED_ACCOUNTS.name:
+            for l_account in p_json:
+                if l_account["UserState"] == "Disabled":
+                    l_accounts.append(l_account)
+
+        return l_accounts
+
+    def __get_team_members(self, p_type: TeamMemberTypes) -> list:
+        try:
+            l_json: list = self.____get_team_members()
+            l_team_members: list = self.__filter_team_members(l_json, p_type)
+
+            if self.__m_output_format == OutputFormat.JSON.value:
+                print(l_team_members)
+            elif self.__m_output_format == OutputFormat.CSV.value:
+                self.__print_team_members_csv(l_team_members)
+
+        except Exception as e:
             self.__mPrinter.print("__get_team_members() - {0}".format(str(e)), Level.ERROR)
 
     def get_team_members(self) -> None:
         try:
-            l_json: list = self.__get_team_members()
-
-            if self.__m_output_format == OutputFormat.JSON.value:
-                print(l_json)
-            elif self.__m_output_format == OutputFormat.CSV.value:
-                self.__print_team_members_csv(l_json)
-
+            self.__get_team_members(TeamMemberTypes.ALL)
         except Exception as e:
             self.__mPrinter.print("get_team_members() - {0}".format(str(e)), Level.ERROR)
+
+    def get_admin_accounts(self) -> None:
+        try:
+            self.__get_team_members(TeamMemberTypes.ADMIN_ACCOUNTS)
+        except Exception as e:
+            self.__mPrinter.print("get_admin_accounts() - {0}".format(str(e)), Level.ERROR)
+
+    def get_api_accounts(self) -> None:
+        try:
+            self.__get_team_members(TeamMemberTypes.API_ACCOUNTS)
+        except Exception as e:
+            self.__mPrinter.print("get_api_accounts() - {0}".format(str(e)), Level.ERROR)
+
+    def get_scan_accounts(self) -> None:
+        try:
+            self.__get_team_members(TeamMemberTypes.SCAN_ACCOUNTS)
+        except Exception as e:
+            self.__mPrinter.print("get_scan_accounts() - {0}".format(str(e)), Level.ERROR)
+
+    def get_disabled_accounts(self) -> None:
+        try:
+            self.__get_team_members(TeamMemberTypes.DISABLED_ACCOUNTS)
+        except Exception as e:
+            self.__mPrinter.print("get_disabled_accounts() - {0}".format(str(e)), Level.ERROR)
 
     # ------------------------------------------------------------
     # Technologies Methods

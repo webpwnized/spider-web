@@ -17,20 +17,12 @@
 
 ### Usage
 
-    usage: spider-web [-h] [-v] [-d] [-o {JSON,CSV}] [-e] [-u] [-t]
-                      [-pn PAGE_NUMBER] [-ps PAGE_SIZE] [-if INPUT_FILENAME]
-                      [-of OUTPUT_FILENAME] [-os OUTPUT_SEPARATOR] [-un]
-                      [-wurl WEBSITE_URL] [-wn WEBSITE_NAME] [-ga] [-gl] [-aga]
-                      [-dsgds] [-dsdds] [-sgs] [-sgsbw] [-turl TARGET_URL]
-                      [-idsd INITIATED_DATE_SORT_DIRECTION] [-spgsp]
-                      [-spid SCAN_PROFILE_ID] [-spn SCAN_PROFILE_NAME] [-spgsps]
-                      [-tmgtm] [-tgt] [-tgot] [-tn TECHNOLOGY_NAME] [-wgwbu]
-                      [-wgwbn] [-wgwbid] [-wid WEBSITE_ID] [-wgw] [-wgwbgn]
-                      [-wgwbgid] [-wupw] [-wgn WEBSITE_GROUP_NAME]
-                      [-wgid WEBSITE_GROUP_ID] [-wggwg] [-wgupwg] [-vgvtemps]
-                      [-vgvtemp] [-vgvtypes] [-rpi REPORT_POLICY_ID]
-                      [-vt VULNERABILITY_TYPE] [-auxps] [-auxpsif] [-ramh] [-rda]
-                      [-rbsc]
+    usage: spider-web [-h] [-v] [-d] [-o {JSON,CSV}] [-e] [-u] [-t] [-pn PAGE_NUMBER] [-ps PAGE_SIZE] [-if INPUT_FILENAME] [-of OUTPUT_FILENAME]
+                      [-os OUTPUT_SEPARATOR] [-un] [-wurl WEBSITE_URL] [-wn WEBSITE_NAME] [-ga] [-gl] [-aga] [-dsgds] [-dsdds] [-sgs] [-sgsbw]
+                      [-turl TARGET_URL] [-idsd INITIATED_DATE_SORT_DIRECTION] [-spgsp] [-spid SCAN_PROFILE_ID] [-spn SCAN_PROFILE_NAME] [-spgsps]
+                      [-tmgtm] [-tmgaa] [-tmgapia] [-tmgsa] [-tmgda] [-tgt] [-tgot] [-tn TECHNOLOGY_NAME] [-wgwbu] [-wgwbn] [-wgwbid] [-wid WEBSITE_ID]
+                      [-wgw] [-wgwbgn] [-wgwbgid] [-wupw] [-wgn WEBSITE_GROUP_NAME] [-wgid WEBSITE_GROUP_ID] [-wggwg] [-wgupwg] [-vgvtemps] [-vgvtemp]
+                      [-vgvtypes] [-rpi REPORT_POLICY_ID] [-vt VULNERABILITY_TYPE] [-auxps] [-auxpsif] [-ramh] [-rda] [-rbsc]
 
 ### Options
 
@@ -104,7 +96,15 @@
     Team Member Endpoints:
       -tmgtm, --get-team-members
                             List users and exit. Output fetched in pages.
-    
+      -tmgaa, --get-admin-accounts
+                            List users with administrator permissions and exit. Output fetched in pages.
+      -tmgapia, --get-api-accounts
+                            List users with permissions to access the API and exit. Output fetched in pages.
+      -tmgsa, --get-scan-accounts
+                            List users with permissions to start scans and exit. Output fetched in pages.
+      -tmgda, --get-disabled-accounts
+                            List accounts that are disabled and exit. Output fetched in pages.
+
     Technologies Endpoints:
       -tgt, --get-technologies
                             List technologies and exit. Optionally search by -wn, --website-name or -tn, --technology-name or both. Output fetched in pages.
@@ -258,6 +258,30 @@
 
     spider-web -tmgtm -pn 1 -ps 200 -of team-members.txt
     spider-web --get-team-members --page-number 1 --page-size 200 ---output-file team-members.txt
+
+    spider-web -tmgaa -pn 1 -ps 200
+    spider-web --get-admin-accounts --page-number 1 --page-size 200
+
+    spider-web -tmgaa -pn 1 -ps 200 -of admin-accounts.txt
+    spider-web --get-admin-accounts --page-number 1 --page-size 200 ---output-file admin-accounts.txt
+
+    spider-web -tmgapia -pn 1 -ps 200
+    spider-web --get-api-accounts --page-number 1 --page-size 200
+
+    spider-web -tmgapia -pn 1 -ps 200 -of api-accounts.txt
+    spider-web --get-api-accounts --page-number 1 --page-size 200 ---output-file api-accounts.txt
+
+    spider-web -tmgsa -pn 1 -ps 200
+    spider-web --get-scan-accounts --page-number 1 --page-size 200
+
+    spider-web -tmgsa -pn 1 -ps 200 -of scan-accounts.txt
+    spider-web --get-scan-accounts --page-number 1 --page-size 200 ---output-file scan-accounts.txt
+
+    spider-web -tmgda -pn 1 -ps 200
+    spider-web --get-disabled-accounts --page-number 1 --page-size 200
+
+    spider-web -tmgda -pn 1 -ps 200 -of disabled-accounts.txt
+    spider-web --get-disabled-accounts --page-number 1 --page-size 200 ---output-file disabled-accounts.txt
 
 #### Get Technologies Information
     spider-web -tgt -pn 1 -ps 200 -wn www.acme.com
