@@ -20,7 +20,7 @@
     usage: spider-web [-h] [-v] [-d] [-o {JSON,CSV}] [-e] [-u] [-t] [-pn PAGE_NUMBER] [-ps PAGE_SIZE] [-if INPUT_FILENAME] [-of OUTPUT_FILENAME]
                       [-os OUTPUT_SEPARATOR] [-un] [-wurl WEBSITE_URL] [-wn WEBSITE_NAME] [-ga] [-gl] [-aga] [-dsgds] [-dsdds] [-sgs] [-sgsbw]
                       [-turl TARGET_URL] [-idsd INITIATED_DATE_SORT_DIRECTION] [-spgsp] [-spid SCAN_PROFILE_ID] [-spn SCAN_PROFILE_NAME] [-spgsps]
-                      [-tmgtm] [-tmgaa] [-tmgapia] [-tmgsa] [-tmgda] [-tgt] [-tgot] [-tn TECHNOLOGY_NAME] [-wgwbu] [-wgwbn] [-wgwbid] [-wid WEBSITE_ID]
+                      [-tmgtm] [-tmgam] [-tmgapia] [-tmgsa] [-tmgda] [-tgt] [-tgot] [-tn TECHNOLOGY_NAME] [-wgwbu] [-wgwbn] [-wgwbid] [-wid WEBSITE_ID]
                       [-wgw] [-wgwbgn] [-wgwbgid] [-wupw] [-wgn WEBSITE_GROUP_NAME] [-wgid WEBSITE_GROUP_ID] [-wggwg] [-wgupwg] [-vgvtemps] [-vgvtemp]
                       [-vgvtypes] [-rpi REPORT_POLICY_ID] [-vt VULNERABILITY_TYPE] [-auxps] [-auxpsif] [-ramh] [-rda] [-rbsc]
 
@@ -96,7 +96,7 @@
     Team Member Endpoints:
       -tmgtm, --get-team-members
                             List users and exit. Output fetched in pages.
-      -tmgaa, --get-admin-accounts
+      -tmgam, --get-account-managers
                             List users with administrator permissions and exit. Output fetched in pages.
       -tmgapia, --get-api-accounts
                             List users with permissions to access the API and exit. Output fetched in pages.
@@ -259,11 +259,11 @@
     spider-web -tmgtm -pn 1 -ps 200 -of team-members.txt
     spider-web --get-team-members --page-number 1 --page-size 200 ---output-file team-members.txt
 
-    spider-web -tmgaa -pn 1 -ps 200
-    spider-web --get-admin-accounts --page-number 1 --page-size 200
+    spider-web -tmgam -pn 1 -ps 200
+    spider-web --get-account-managers --page-number 1 --page-size 200
 
-    spider-web -tmgaa -pn 1 -ps 200 -of admin-accounts.txt
-    spider-web --get-admin-accounts --page-number 1 --page-size 200 ---output-file admin-accounts.txt
+    spider-web -tmgam -pn 1 -ps 200 -of account-managers.txt
+    spider-web --get-account-managers --page-number 1 --page-size 200 ---output-file account-managers.txt
 
     spider-web -tmgapia -pn 1 -ps 200
     spider-web --get-api-accounts --page-number 1 --page-size 200

@@ -9,7 +9,7 @@ from argparse import RawTextHelpFormatter
 import argparse
 
 
-l_version = '1.0.31'
+l_version = '1.0.32'
 
 
 def print_example_usage():
@@ -116,11 +116,17 @@ def print_example_usage():
     spider-web -tmgtm -pn 1 -ps 200 -of team-members.txt
     spider-web --get-team-members --page-number 1 --page-size 200 ---output-file team-members.txt
     
-    spider-web -tmgaa -pn 1 -ps 200
-    spider-web --get-admin-accounts --page-number 1 --page-size 200
+    spider-web -tmgam -pn 1 -ps 200
+    spider-web --get-account-managers --page-number 1 --page-size 200
 
-    spider-web -tmgaa -pn 1 -ps 200 -of admin-accounts.txt
-    spider-web --get-admin-accounts --page-number 1 --page-size 200 ---output-file admin-accounts.txt
+    spider-web -tmgam -pn 1 -ps 200 -of account-managers.txt
+    spider-web --get-account-managers --page-number 1 --page-size 200 ---output-file account-managers.txt
+
+    spider-web -tmgappm -pn 1 -ps 200
+    spider-web --get-application-managers --page-number 1 --page-size 200
+
+    spider-web -tmgappm -pn 1 -ps 200 -of application-managers.txt
+    spider-web --get-application-managers --page-number 1 --page-size 200 ---output-file application-managers.txt
 
     spider-web -tmgapia -pn 1 -ps 200
     spider-web --get-api-accounts --page-number 1 --page-size 200
@@ -326,8 +332,8 @@ def run_main_program():
         Parser.get_website_by_url or Parser.get_website_by_name or Parser.get_website_by_id or \
         Parser.get_websites_by_group_name or Parser.get_websites_by_group_id or Parser.get_technologies or \
         Parser.get_obsolete_technologies or Parser.get_scan_profiles or Parser.get_scan_profile or \
-        Parser.get_admin_accounts or Parser.get_api_accounts or Parser.get_scan_accounts or \
-        Parser.get_disabled_accounts:
+        Parser.get_account_managers or Parser.get_api_accounts or Parser.get_scan_accounts or \
+        Parser.get_disabled_accounts or Parser.get_application_managers:
             l_api = API(p_parser=Parser)
     else:
         lArgParser.print_usage()
@@ -353,8 +359,12 @@ def run_main_program():
         l_api.get_team_members()
         exit(0)
 
-    if Parser.get_admin_accounts:
-        l_api.get_admin_accounts()
+    if Parser.get_account_managers:
+        l_api.get_account_managers()
+        exit(0)
+
+    if Parser.get_application_managers:
+        l_api.get_account_managers()
         exit(0)
 
     if Parser.get_api_accounts:
@@ -656,8 +666,12 @@ if __name__ == '__main__':
                                  help='List users and exit. Output fetched in pages.',
                                  action='store_true')
 
-    l_team_member_group.add_argument('-tmgaa', '--get-admin-accounts',
-                                 help='List users with administrator permissions and exit. Output fetched in pages.',
+    l_team_member_group.add_argument('-tmgam', '--get-account-managers',
+                                 help='List users able to manage team member accounts and exit. Output fetched in pages.',
+                                 action='store_true')
+
+    l_team_member_group.add_argument('-tmgappm', '--get-application-managers',
+                                 help='List users able to manage applications and website and exit. Output fetched in pages.',
                                  action='store_true')
 
     l_team_member_group.add_argument('-tmgapia', '--get-api-accounts',

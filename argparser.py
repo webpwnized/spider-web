@@ -82,7 +82,8 @@ class Parser:
 
         # Team Members
         Parser.get_team_members = p_args.get_team_members
-        Parser.get_admin_accounts = p_args.get_admin_accounts
+        Parser.get_account_managers = p_args.get_account_managers
+        Parser.get_application_managers = p_args.get_application_managers
         Parser.get_api_accounts = p_args.get_api_accounts
         Parser.get_scan_accounts = p_args.get_scan_accounts
         Parser.get_disabled_accounts = p_args.get_disabled_accounts

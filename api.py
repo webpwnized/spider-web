@@ -135,7 +135,8 @@ class WebsiteGroups(Enum):
 
 class TeamMemberTypes(Enum):
     ALL_ACCOUNTS = "All Accounts"
-    ADMIN_ACCOUNTS = "Administrator Accounts"
+    ACCOUNT_MANAGERS = "Account Managers"
+    APPLICATION_MANAGERS = "Application Managers"
     API_ACCOUNTS = "API Accounts"
     SCAN_ACCOUNTS = "Scan Accounts"
     DISABLED_ACCOUNTS = "Disabled Accounts"
@@ -816,9 +817,13 @@ class API:
 
         if p_type.name == TeamMemberTypes.ALL_ACCOUNTS.name:
             return p_json
-        elif p_type.name == TeamMemberTypes.ADMIN_ACCOUNTS.name:
+        elif p_type.name == TeamMemberTypes.ACCOUNT_MANAGERS.name:
             for l_account in p_json:
                 if l_account["CanManageTeam"]:
+                    l_accounts.append(l_account)
+        elif p_type.name == TeamMemberTypes.APPLICATION_MANAGERS.name:
+            for l_account in p_json:
+                if l_account["CanManageApplication"]:
                     l_accounts.append(l_account)
         elif p_type.name == TeamMemberTypes.API_ACCOUNTS.name:
             for l_account in p_json:
@@ -854,11 +859,17 @@ class API:
         except Exception as e:
             self.__mPrinter.print("get_team_members() - {0}".format(str(e)), Level.ERROR)
 
-    def get_admin_accounts(self) -> None:
+    def get_account_managers(self) -> None:
         try:
-            self.__get_team_members(TeamMemberTypes.ADMIN_ACCOUNTS)
+            self.__get_team_members(TeamMemberTypes.ACCOUNT_MANAGERS)
         except Exception as e:
-            self.__mPrinter.print("get_admin_accounts() - {0}".format(str(e)), Level.ERROR)
+            self.__mPrinter.print("get_account_managers() - {0}".format(str(e)), Level.ERROR)
+
+    def get_application_managers(self) -> None:
+        try:
+            self.__get_team_members(TeamMemberTypes.APPLICATION_MANAGERS)
+        except Exception as e:
+            self.__mPrinter.print("get_application_managers() - {0}".format(str(e)), Level.ERROR)
 
     def get_api_accounts(self) -> None:
         try:
