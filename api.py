@@ -823,7 +823,7 @@ class API:
                     l_accounts.append(l_account)
         elif p_type.name == TeamMemberTypes.APPLICATION_MANAGERS.name:
             for l_account in p_json:
-                if l_account["CanManageApplication"]:
+                if l_account["CanManageWebsites"]:
                     l_accounts.append(l_account)
         elif p_type.name == TeamMemberTypes.API_ACCOUNTS.name:
             for l_account in p_json:
@@ -855,7 +855,7 @@ class API:
 
     def get_team_members(self) -> None:
         try:
-            self.__get_team_members(TeamMemberTypes.ALL)
+            self.__get_team_members(TeamMemberTypes.ALL_ACCOUNTS)
         except Exception as e:
             self.__mPrinter.print("get_team_members() - {0}".format(str(e)), Level.ERROR)
 
