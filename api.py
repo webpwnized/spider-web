@@ -1600,7 +1600,7 @@ class API:
         l_status_code = 503
         if "CERTIFICATE_VERIFY_FAILED" in p_error:
             l_reason = "The SSL certificate is not valid. Consider opening a bug bounty. {}".format(p_error)
-        elif "SSLV3_ALERT_HANDSHAKE_FAILURE" in p_error:
+        elif "SSLV3_ALERT_HANDSHAKE_FAILURE" in p_error or "handshake failure" in p_error:
             l_reason = "Could not establish a TLS connection with the web server. In rare cases, this may be due to the site requiring a client certificate for authentication. {}".format(p_error)
         else:
             l_reason = "The domain {} is not listed in the SSL certificate. Consider opening a bug bounty. {}".format(
@@ -1626,6 +1626,15 @@ class API:
         l_site_is_interesting = True
         l_status_code = 503
         l_reason = "Proxy error. Make sure proxy is configured correctly in config.py. {}".format(p_error)
+        return l_site_is_up, l_site_is_interesting, l_status_code, l_reason
+
+    def __handle_uncaught_exception(self, p_url: str, p_error: str):
+        if "handshake error" in p_error:
+            return self.__handle_tls_error(p_url, p_error)
+        l_site_is_up = False
+        l_site_is_interesting = True
+        l_status_code = 503
+        l_reason = "This is probably a bug in spider-web. Alert the development team: {}".format(p_error)
         return l_site_is_up, l_site_is_interesting, l_status_code, l_reason
 
     def __ping_url(self, p_url:str, p_method: int):
@@ -1656,14 +1665,14 @@ class API:
                 l_site_is_interesting = False
             except requests.exceptions.InvalidSchema as e:
                 l_site_is_up, l_site_is_interesting, l_status_code, l_reason = self.__handle_http_error()
-            except requests.exceptions.SSLError as e:
-                l_site_is_up, l_site_is_interesting, l_status_code, l_reason = self.__handle_tls_error(p_url, str(e))
-            except ssl.SSLError as e:
+            except (requests.exceptions.SSLError, ssl.SSLError) as e:
                 l_site_is_up, l_site_is_interesting, l_status_code, l_reason = self.__handle_tls_error(p_url, str(e))
             except requests.exceptions.ProxyError as e:
                 raise requests.exceptions.ConnectionError
             except requests.exceptions.RequestException as e:
                 raise requests.exceptions.ConnectionError
+            except Exception as e:
+                l_site_is_up, l_site_is_interesting, l_status_code, l_reason = self.__handle_uncaught_exception(p_url, str(e))
 
         elif p_method == PingMethod.SECOND_TEST_NO_PROXY.value:
 
@@ -1684,12 +1693,12 @@ class API:
                 else:
                     l_error = "Cannot connect to site {}. {}".format(p_url, l_reason)
                     l_site_is_up, l_site_is_interesting, l_status_code, l_reason = self.__handle_site_connection_failure(l_error)
-            except requests.exceptions.SSLError as e:
-                l_site_is_up, l_site_is_interesting, l_status_code, l_reason = self.__handle_tls_error(p_url, str(e))
-            except ssl.SSLError as e:
-                l_site_is_up, l_site_is_interesting, l_status_code, l_reason = self.__handle_tls_error(p_url, str(e))
+            except (requests.exceptions.SSLError, ssl.SSLError) as e:
+                    l_site_is_up, l_site_is_interesting, l_status_code, l_reason = self.__handle_tls_error(p_url,                                                                                                          str(e))
             except requests.exceptions.RequestException as e:
                 l_site_is_up, l_site_is_interesting, l_status_code, l_reason = self.__handle_site_connection_failure(str(e))
+            except Exception as e:
+                l_site_is_up, l_site_is_interesting, l_status_code, l_reason = self.__handle_uncaught_exception(p_url, str(e))
 
         elif p_method == PingMethod.SECOND_TEST_USE_PROXY.value:
 
@@ -1712,14 +1721,14 @@ class API:
                 else:
                     l_error = "Cannot connect to site {}. {}".format(p_url, l_reason)
                     l_site_is_up, l_site_is_interesting, l_status_code, l_reason = self.__handle_site_connection_failure(l_error)
-            except requests.exceptions.SSLError as e:
-                l_site_is_up, l_site_is_interesting, l_status_code, l_reason = self.__handle_tls_error(p_url, str(e))
-            except ssl.SSLError as e:
-                l_site_is_up, l_site_is_interesting, l_status_code, l_reason = self.__handle_tls_error(p_url, str(e))
+            except (requests.exceptions.SSLError, ssl.SSLError) as e:
+                    l_site_is_up, l_site_is_interesting, l_status_code, l_reason = self.__handle_tls_error(p_url,                                                                                                           str(e))
             except requests.exceptions.ProxyError as e:
                 l_site_is_up, l_site_is_interesting, l_status_code, l_reason = self.__handle_proxy_connection_failure(str(e))
             except requests.exceptions.RequestException as e:
                 l_site_is_up, l_site_is_interesting, l_status_code, l_reason = self.__handle_site_connection_failure(str(e))
+            except Exception as e:
+                l_site_is_up, l_site_is_interesting, l_status_code, l_reason = self.__handle_uncaught_exception(p_url, str(e))
 
         if self.__web_server_is_redirecting(l_status_code): # then careful analysis is needed to understand why
             l_current_domain = urlparse(l_http_response.url).hostname
