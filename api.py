@@ -1659,7 +1659,10 @@ class API:
                 raise requests.exceptions.ConnectionError
             except requests.exceptions.RequestException as e:
                 raise requests.exceptions.ConnectionError
-
+            except Exception as e:
+                print("Uncaught error: {}".format(str(e)))
+                exit(0)
+    
         elif p_method == PingMethod.SECOND_TEST_NO_PROXY.value:
 
             try:
