@@ -19,6 +19,7 @@ import base64
 import csv
 import pytz
 import sys
+import traceback
 
 # Disable warning about insecure proxy when proxy enabled
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
@@ -1661,8 +1662,9 @@ class API:
                 raise requests.exceptions.ConnectionError
             except Exception as e:
                 print("Uncaught error: {}".format(str(e)))
+                traceback.print_exc()
                 exit(0)
-    
+
         elif p_method == PingMethod.SECOND_TEST_NO_PROXY.value:
 
             try:
