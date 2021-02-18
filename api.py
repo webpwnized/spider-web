@@ -19,7 +19,7 @@ import base64
 import csv
 import pytz
 import sys
-import traceback
+import ssl
 
 # Disable warning about insecure proxy when proxy enabled
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
@@ -137,7 +137,7 @@ class WebsiteGroups(Enum):
 class TeamMemberTypes(Enum):
     ALL_ACCOUNTS = "All Accounts"
     ACCOUNT_MANAGERS = "Account Managers"
-    APPLICATION_MANAGERS = "Application Managers"
+    WEBSITE_MANAGERS = "Website Managers"
     API_ACCOUNTS = "API Accounts"
     SCAN_ACCOUNTS = "Scan Accounts"
     DISABLED_ACCOUNTS = "Disabled Accounts"
@@ -822,7 +822,7 @@ class API:
             for l_account in p_json:
                 if l_account["CanManageTeam"]:
                     l_accounts.append(l_account)
-        elif p_type.name == TeamMemberTypes.APPLICATION_MANAGERS.name:
+        elif p_type.name == TeamMemberTypes.WEBSITE_MANAGERS.name:
             for l_account in p_json:
                 if l_account["CanManageWebsites"]:
                     l_accounts.append(l_account)
@@ -866,11 +866,11 @@ class API:
         except Exception as e:
             self.__mPrinter.print("get_account_managers() - {0}".format(str(e)), Level.ERROR)
 
-    def get_application_managers(self) -> None:
+    def get_website_managers(self) -> None:
         try:
-            self.__get_team_members(TeamMemberTypes.APPLICATION_MANAGERS)
+            self.__get_team_members(TeamMemberTypes.WEBSITE_MANAGERS)
         except Exception as e:
-            self.__mPrinter.print("get_application_managers() - {0}".format(str(e)), Level.ERROR)
+            self.__mPrinter.print("get_website_managers() - {0}".format(str(e)), Level.ERROR)
 
     def get_api_accounts(self) -> None:
         try:
@@ -1600,6 +1600,8 @@ class API:
         l_status_code = 503
         if "CERTIFICATE_VERIFY_FAILED" in p_error:
             l_reason = "The SSL certificate is not valid. Consider opening a bug bounty. {}".format(p_error)
+        elif "SSLV3_ALERT_HANDSHAKE_FAILURE" in p_error:
+            l_reason = "Could not establish a TLS connection with the web server. In rare cases, this may be due to the site requiring a client certificate for authentication. {}".format(p_error)
         else:
             l_reason = "The domain {} is not listed in the SSL certificate. Consider opening a bug bounty. {}".format(
                 urlparse(p_url).hostname, p_error)
@@ -1656,14 +1658,12 @@ class API:
                 l_site_is_up, l_site_is_interesting, l_status_code, l_reason = self.__handle_http_error()
             except requests.exceptions.SSLError as e:
                 l_site_is_up, l_site_is_interesting, l_status_code, l_reason = self.__handle_tls_error(p_url, str(e))
+            except ssl.SSLError as e:
+                l_site_is_up, l_site_is_interesting, l_status_code, l_reason = self.__handle_tls_error(p_url, str(e))
             except requests.exceptions.ProxyError as e:
                 raise requests.exceptions.ConnectionError
             except requests.exceptions.RequestException as e:
                 raise requests.exceptions.ConnectionError
-            except Exception as e:
-                print("Uncaught error: {}".format(str(e)))
-                traceback.print_exc()
-                exit(0)
 
         elif p_method == PingMethod.SECOND_TEST_NO_PROXY.value:
 
@@ -1685,6 +1685,8 @@ class API:
                     l_error = "Cannot connect to site {}. {}".format(p_url, l_reason)
                     l_site_is_up, l_site_is_interesting, l_status_code, l_reason = self.__handle_site_connection_failure(l_error)
             except requests.exceptions.SSLError as e:
+                l_site_is_up, l_site_is_interesting, l_status_code, l_reason = self.__handle_tls_error(p_url, str(e))
+            except ssl.SSLError as e:
                 l_site_is_up, l_site_is_interesting, l_status_code, l_reason = self.__handle_tls_error(p_url, str(e))
             except requests.exceptions.RequestException as e:
                 l_site_is_up, l_site_is_interesting, l_status_code, l_reason = self.__handle_site_connection_failure(str(e))
@@ -1711,6 +1713,8 @@ class API:
                     l_error = "Cannot connect to site {}. {}".format(p_url, l_reason)
                     l_site_is_up, l_site_is_interesting, l_status_code, l_reason = self.__handle_site_connection_failure(l_error)
             except requests.exceptions.SSLError as e:
+                l_site_is_up, l_site_is_interesting, l_status_code, l_reason = self.__handle_tls_error(p_url, str(e))
+            except ssl.SSLError as e:
                 l_site_is_up, l_site_is_interesting, l_status_code, l_reason = self.__handle_tls_error(p_url, str(e))
             except requests.exceptions.ProxyError as e:
                 l_site_is_up, l_site_is_interesting, l_status_code, l_reason = self.__handle_proxy_connection_failure(str(e))

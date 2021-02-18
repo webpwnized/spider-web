@@ -265,6 +265,12 @@
     spider-web -tmgam -pn 1 -ps 200 -of account-managers.txt
     spider-web --get-account-managers --page-number 1 --page-size 200 ---output-file account-managers.txt
 
+    spider-web -tmgwm -pn 1 -ps 200
+    spider-web --get-website-managers --page-number 1 --page-size 200
+
+    spider-web -tmgwm -pn 1 -ps 200 -of website-managers.txt
+    spider-web --get-website-managers --page-number 1 --page-size 200 ---output-file website-managers.txt
+
     spider-web -tmgapia -pn 1 -ps 200
     spider-web --get-api-accounts --page-number 1 --page-size 200
 
