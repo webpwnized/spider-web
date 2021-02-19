@@ -1573,21 +1573,26 @@ class API:
             self.__mPrinter.print("__handle_ping_sites_results() - {0}".format(str(e)), Level.ERROR)
 
     def __web_server_is_up(self, p_status_code: int) -> bool:
+        self.__mPrinter.print("Check if web server is up based on response status code".format(p_status_code), Level.INFO)
         return str(p_status_code)[0] in ["1", "2", "3", "4"]
 
     def __web_server_is_redirecting(self, p_status_code: int) -> bool:
+        self.__mPrinter.print("Check if web server is redirecting based on response status code".format(p_status_code), Level.INFO)
         return str(p_status_code)[0] in ["3"]
 
     def __web_server_is_down(self, p_status_code: int) -> bool:
+        self.__mPrinter.print("Check if web server is up down on response status code".format(p_status_code), Level.INFO)
         return str(p_status_code)[0] in ["5"]
 
     def __cannot_resolve_URL(self, p_status_code: int) -> bool:
         return p_status_code == 502
 
     def __is_authentication_domain(self, p_domain: str) -> bool:
+        self.__mPrinter.print("Check if domain {} is authentication domain".format(p_domain), Level.INFO)
         return p_domain in Parser.authentication_sites
 
     def __is_authentication_page(self, p_url: str) -> bool:
+        self.__mPrinter.print("Check if page {} is authentication page".format(p_url), Level.INFO)
         for l_keyword in Parser.authentication_page_keywords:
             if l_keyword in p_url:
                 self.__mPrinter.print("Authentication page found. Matched on keyword '{}' within URL {}".format(l_keyword, p_url), Level.INFO)
@@ -1605,27 +1610,31 @@ class API:
         else:
             l_reason = "The domain {} is not listed in the SSL certificate. Consider opening a bug bounty. {}".format(
                 urlparse(p_url).hostname, p_error)
+        self.__mPrinter.print("TLS error detected for URL {}: {}".format(p_url, p_error), Level.INFO)
         return l_site_is_up, l_site_is_interesting, l_status_code, l_reason
 
-    def __handle_http_error(self):
+    def __handle_http_error(self, p_url: str):
         l_site_is_up = False
         l_site_is_interesting = True
         l_status_code = 405
         l_reason = "Policy violation. The site is not using TLS and HTTPS."
+        self.__mPrinter.print("Policy violation. The site is not using TLS and HTTPS.: {}".format(p_url), Level.INFO)
         return l_site_is_up, l_site_is_interesting, l_status_code, l_reason
 
-    def __handle_site_connection_failure(self, p_error: str):
+    def __handle_site_connection_failure(self, p_url: str, p_error: str):
         l_site_is_up = False
         l_site_is_interesting = True
         l_status_code = 503
         l_reason = p_error
+        self.__mPrinter.print("Cannot connect to URL {}: {}".format(p_url, p_error), Level.INFO)
         return l_site_is_up, l_site_is_interesting, l_status_code, l_reason
 
-    def __handle_proxy_connection_failure(self, p_error: str):
+    def __handle_proxy_connection_failure(self, p_url: str, p_error: str):
         l_site_is_up = False
         l_site_is_interesting = True
         l_status_code = 503
         l_reason = "Proxy error. Make sure proxy is configured correctly in config.py. {}".format(p_error)
+        self.__mPrinter.print("Cannot connect to URL {}: {}".format(p_url, p_error), Level.INFO)
         return l_site_is_up, l_site_is_interesting, l_status_code, l_reason
 
     def __handle_uncaught_exception(self, p_url: str, p_error: str):
@@ -1634,7 +1643,7 @@ class API:
         l_site_is_up = False
         l_site_is_interesting = True
         l_status_code = 503
-        l_reason = "This is probably a bug in spider-web. Alert the development team: {}".format(p_error)
+        l_reason = "Uncaught exception. This is probably a bug in spider-web. Alert the development team: {}".format(p_error)
         return l_site_is_up, l_site_is_interesting, l_status_code, l_reason
 
     def __ping_url(self, p_url:str, p_method: int):
@@ -1664,7 +1673,7 @@ class API:
                 l_site_is_up = True
                 l_site_is_interesting = False
             except requests.exceptions.InvalidSchema as e:
-                l_site_is_up, l_site_is_interesting, l_status_code, l_reason = self.__handle_http_error()
+                l_site_is_up, l_site_is_interesting, l_status_code, l_reason = self.__handle_http_error(p_url)
             except (requests.exceptions.SSLError, ssl.SSLError) as e:
                 l_site_is_up, l_site_is_interesting, l_status_code, l_reason = self.__handle_tls_error(p_url, str(e))
             except requests.exceptions.ProxyError as e:
@@ -1694,9 +1703,9 @@ class API:
                     l_error = "Cannot connect to site {}. {}".format(p_url, l_reason)
                     l_site_is_up, l_site_is_interesting, l_status_code, l_reason = self.__handle_site_connection_failure(l_error)
             except (requests.exceptions.SSLError, ssl.SSLError) as e:
-                    l_site_is_up, l_site_is_interesting, l_status_code, l_reason = self.__handle_tls_error(p_url,                                                                                                          str(e))
+                    l_site_is_up, l_site_is_interesting, l_status_code, l_reason = self.__handle_tls_error(p_url, str(e))
             except requests.exceptions.RequestException as e:
-                l_site_is_up, l_site_is_interesting, l_status_code, l_reason = self.__handle_site_connection_failure(str(e))
+                l_site_is_up, l_site_is_interesting, l_status_code, l_reason = self.__handle_site_connection_failure(p_url, str(e))
             except Exception as e:
                 l_site_is_up, l_site_is_interesting, l_status_code, l_reason = self.__handle_uncaught_exception(p_url, str(e))
 
@@ -1722,11 +1731,11 @@ class API:
                     l_error = "Cannot connect to site {}. {}".format(p_url, l_reason)
                     l_site_is_up, l_site_is_interesting, l_status_code, l_reason = self.__handle_site_connection_failure(l_error)
             except (requests.exceptions.SSLError, ssl.SSLError) as e:
-                    l_site_is_up, l_site_is_interesting, l_status_code, l_reason = self.__handle_tls_error(p_url,                                                                                                           str(e))
+                    l_site_is_up, l_site_is_interesting, l_status_code, l_reason = self.__handle_tls_error(p_url, str(e))
             except requests.exceptions.ProxyError as e:
-                l_site_is_up, l_site_is_interesting, l_status_code, l_reason = self.__handle_proxy_connection_failure(str(e))
+                l_site_is_up, l_site_is_interesting, l_status_code, l_reason = self.__handle_proxy_connection_failure(p_url, str(e))
             except requests.exceptions.RequestException as e:
-                l_site_is_up, l_site_is_interesting, l_status_code, l_reason = self.__handle_site_connection_failure(str(e))
+                l_site_is_up, l_site_is_interesting, l_status_code, l_reason = self.__handle_site_connection_failure(p_url, str(e))
             except Exception as e:
                 l_site_is_up, l_site_is_interesting, l_status_code, l_reason = self.__handle_uncaught_exception(p_url, str(e))
 
