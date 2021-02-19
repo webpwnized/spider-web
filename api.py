@@ -1581,7 +1581,7 @@ class API:
         return str(p_status_code)[0] in ["3"]
 
     def __web_server_is_down(self, p_status_code: int) -> bool:
-        self.__mPrinter.print("Check if web server is up down on response status code".format(p_status_code), Level.INFO)
+        self.__mPrinter.print("Check if web server is down on response status code".format(p_status_code), Level.INFO)
         return str(p_status_code)[0] in ["5"]
 
     def __cannot_resolve_URL(self, p_status_code: int) -> bool:
