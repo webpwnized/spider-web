@@ -1701,7 +1701,7 @@ class API:
                     l_site_is_interesting = False
                 else:
                     l_error = "Cannot connect to site {}. {}".format(p_url, l_reason)
-                    l_site_is_up, l_site_is_interesting, l_status_code, l_reason = self.__handle_site_connection_failure(l_error)
+                    l_site_is_up, l_site_is_interesting, l_status_code, l_reason = self.__handle_site_connection_failure(p_url, l_error)
             except (requests.exceptions.SSLError, ssl.SSLError) as e:
                     l_site_is_up, l_site_is_interesting, l_status_code, l_reason = self.__handle_tls_error(p_url, str(e))
             except requests.exceptions.RequestException as e:
@@ -1729,7 +1729,7 @@ class API:
                     l_site_is_interesting = False
                 else:
                     l_error = "Cannot connect to site {}. {}".format(p_url, l_reason)
-                    l_site_is_up, l_site_is_interesting, l_status_code, l_reason = self.__handle_site_connection_failure(l_error)
+                    l_site_is_up, l_site_is_interesting, l_status_code, l_reason = self.__handle_site_connection_failure(p_url, l_error)
             except (requests.exceptions.SSLError, ssl.SSLError) as e:
                     l_site_is_up, l_site_is_interesting, l_status_code, l_reason = self.__handle_tls_error(p_url, str(e))
             except requests.exceptions.ProxyError as e:
