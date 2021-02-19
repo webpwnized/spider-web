@@ -1572,16 +1572,16 @@ class API:
         except Exception as e:
             self.__mPrinter.print("__handle_ping_sites_results() - {0}".format(str(e)), Level.ERROR)
 
-    def __web_server_is_up(self, p_status_code: int) -> bool:
-        self.__mPrinter.print("Check if web server is up based on response status code".format(p_status_code), Level.INFO)
+    def __web_server_is_up(self, p_url: str, p_status_code: int) -> bool:
+        self.__mPrinter.print("Check if web server is up based on response status code: {}".format(p_status_code, p_url), Level.INFO)
         return str(p_status_code)[0] in ["1", "2", "3", "4"]
 
-    def __web_server_is_redirecting(self, p_status_code: int) -> bool:
-        self.__mPrinter.print("Check if web server is redirecting based on response status code".format(p_status_code), Level.INFO)
+    def __web_server_is_redirecting(self, p_url: str, p_status_code: int) -> bool:
+        self.__mPrinter.print("Check if web server is redirecting based on response status code: {}".format(p_status_code, p_url), Level.INFO)
         return str(p_status_code)[0] in ["3"]
 
-    def __web_server_is_down(self, p_status_code: int) -> bool:
-        self.__mPrinter.print("Check if web server is down on response status code".format(p_status_code), Level.INFO)
+    def __web_server_is_down(self, p_url: str, p_status_code: int) -> bool:
+        self.__mPrinter.print("Check if web server is down on response status code: {}".format(p_status_code, p_url), Level.INFO)
         return str(p_status_code)[0] in ["5"]
 
     def __cannot_resolve_URL(self, p_status_code: int) -> bool:
@@ -1668,7 +1668,7 @@ class API:
                 l_reason = l_http_response.reason
                 self.__mPrinter.print("HTTP request return status code {0}-{1}".format(l_status_code, l_reason),
                                       Level.INFO)
-                if self.__web_server_is_down(l_status_code):
+                if self.__web_server_is_down(p_url, l_status_code):
                     raise requests.exceptions.ConnectionError
                 l_site_is_up = True
                 l_site_is_interesting = False
@@ -1695,7 +1695,7 @@ class API:
                 self.__mPrinter.print(
                     "HTTP request return status code {0}-{1}".format(l_status_code, l_reason),
                     Level.SUCCESS)
-                if self.__web_server_is_up(l_status_code):
+                if self.__web_server_is_up(p_url, l_status_code):
                     self.__mPrinter.print("The site appears to be internal", Level.SUCCESS)
                     l_site_is_up = True
                     l_site_is_interesting = False
@@ -1723,7 +1723,7 @@ class API:
                 self.__mPrinter.print(
                     "HTTP request return status code {0}-{1}".format(l_status_code, l_reason),
                     Level.SUCCESS)
-                if self.__web_server_is_up(l_status_code):
+                if self.__web_server_is_up(p_url, l_status_code):
                     self.__mPrinter.print("The site appears to be external", Level.SUCCESS)
                     l_site_is_up = True
                     l_site_is_interesting = False
@@ -1739,7 +1739,7 @@ class API:
             except Exception as e:
                 l_site_is_up, l_site_is_interesting, l_status_code, l_reason = self.__handle_uncaught_exception(p_url, str(e))
 
-        if self.__web_server_is_redirecting(l_status_code): # then careful analysis is needed to understand why
+        if self.__web_server_is_redirecting(p_url, l_status_code): # then careful analysis is needed to understand why
             l_current_domain = urlparse(l_http_response.url).hostname
             l_redirect_url = l_http_response.next.url.lower()
             l_redirect_path = urlparse(l_redirect_url).path
