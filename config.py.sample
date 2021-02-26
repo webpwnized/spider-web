@@ -21,10 +21,10 @@ PROXY_USERNAME = "PROXY USERNAME HERE"
 PROXY_PASSWORD = "PROXY PASSWORD HERE"
 VERIFY_HTTPS_CERTIFICATE = True
 
-# Ensure any SSO or other authentication domains are listed here. These are used
+# Ensure any SSO or other authentication domains are listed here as comma-separated values. These are used
 # by ping-site to know when the application has redirected to an authentication
 # domain
-AUTHENTICATION_SITES = ["login.microsoftonline.com", "access.coyote.com", "access1.coyote.com"]
+AUTHENTICATION_SITES = ["login.microsoftonline.com"]
 
 # Ensure any keywords that indicate the URL is a login page are listed here. These are used
 # by ping-site to know when the application has redirected to an authentication

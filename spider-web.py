@@ -9,7 +9,7 @@ from argparse import RawTextHelpFormatter
 import argparse
 
 
-l_version = '1.0.33'
+l_version = '1.0.34'
 
 
 def print_example_usage():

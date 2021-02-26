@@ -592,6 +592,16 @@ class API:
         except Exception as e:
             self.__mPrinter.print("__url_is_secure() - {0}".format(str(e)), Level.ERROR)
 
+    def __format_datetime(self, p_datetime: datetime) -> str:
+        return "{} EST".format(p_datetime.astimezone(self.__c_EASTERN_TIMEZONE).strftime(self.__c_DATETIME_FORMAT))
+
+    def __format_datetime_string(self, p_string: str) -> str:
+        if p_string:
+            l_datetime: datetime = parser.parse(p_string)
+            return "{} EST".format(l_datetime.astimezone(self.__c_EASTERN_TIMEZONE).strftime(self.__c_DATETIME_FORMAT))
+        else:
+            return ""
+
     # ---------------------------------
     # public instance methods
     # ---------------------------------
@@ -774,21 +784,26 @@ class API:
     # Team Member Methods
     # ------------------------------------------------------------
     def __get_team_members_header(self) -> list:
-        return ["Name", "Email", "Enabled?", "Manage Apps?", "Manage Issues?", "Manage Issues (Restricted)?",
+        return ["Name", "Email", "Role", "Enabled?", "Last Login", "Manage Apps?", "Manage Issues?",
+                "Manage Issues (Restricted)?",
                 "Manage Team?", "Manage Websites?", "Start Scan?", "View Reports?", "API Access?", "2FA?",
-                "Groups"]
+                "Groups", "Account ID", "ID"]
 
     def __parse_team_members_json_to_csv(self, p_json: list) -> list:
         try:
             l_team_members: list = []
             for l_user in p_json:
                 l_groups: str = ",".join(l_user["SelectedGroups"])
-                l_team_members.append([l_user["Name"], l_user["Email"], l_user["UserState"],
-                        l_user["CanManageApplication"], l_user["CanManageIssues"], l_user["CanManageIssuesAsRestricted"],
-                        l_user["CanManageTeam"], l_user["CanManageWebsites"], l_user["CanStartScan"],
-                        l_user["CanViewScanReports"], l_user["IsApiAccessEnabled"],
-                        l_user["IsTwoFactorAuthenticationEnabled"],
-                        l_groups])
+                l_last_login_date = self.__format_datetime_string(l_user["LastLoginDate"])
+                l_team_members.append([
+                    l_user["Name"], l_user["Email"], l_user["Role"],
+                    l_user["UserState"], l_last_login_date, l_user["CanManageApplication"],
+                    l_user["CanManageIssues"], l_user["CanManageIssuesAsRestricted"], l_user["CanManageTeam"],
+                    l_user["CanManageWebsites"], l_user["CanStartScan"],
+                    l_user["CanViewScanReports"], l_user["IsApiAccessEnabled"],
+                    l_user["IsTwoFactorAuthenticationEnabled"],
+                    l_groups, l_user["AccountId"], l_user["Id"]
+                ])
             return l_team_members
         except Exception as e:
             self.__mPrinter.print("__parse_team_members_json_to_csv() - {0}".format(str(e)), Level.ERROR)
@@ -2004,7 +2019,7 @@ class API:
             for l_agent in p_json:
                 l_agents.append([
                     l_agent["IsAgentNeedsUpdate"], l_agent["Name"], l_agent["IpAddress"],
-                    l_agent["State"], l_agent["Version"], self.__format_datetime(parser.parse(l_agent["Heartbeat"])),
+                    l_agent["State"], l_agent["Version"], self.__format_datetime_string(l_agent["Heartbeat"]),
                     l_agent["VdbVersion"], l_agent["OsDescription"], l_agent["ProcessArchitecture"],
                     l_agent["Id"]
                 ])
@@ -2049,9 +2064,6 @@ class API:
     # ------------------------------------------------------------
     def __format_exitcode(self, p_exitcode: ExitCodes) -> str:
         return "{} ({})".format(p_exitcode.value, p_exitcode.name)
-
-    def __format_datetime(self, p_datetime: datetime) -> str:
-        return "{} EST".format(p_datetime.astimezone(self.__c_EASTERN_TIMEZONE).strftime(self.__c_DATETIME_FORMAT))
 
     def __create_breadcrumb(self, p_filename: str) -> None:
         try:
@@ -2231,7 +2243,7 @@ class API:
             for l_scan in p_json:
                 l_scans.append([
                     l_scan["WebsiteName"], l_scan["WebsiteUrl"], l_scan["TargetUrl"],
-                    self.__format_datetime(parser.parse(l_scan["InitiatedAt"])),
+                    self.__format_datetime_string(l_scan["InitiatedAt"]),
                     l_scan["Duration"], l_scan["AgentName"], l_scan["ScanType"], l_scan["State"],
                     l_scan["Phase"], l_scan["IsCompleted"], l_scan["TotalVulnerabilityCount"],
                     l_scan["VulnerabilityCriticalCount"], l_scan["VulnerabilityHighCount"],
