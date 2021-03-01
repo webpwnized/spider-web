@@ -7,6 +7,6 @@ then
 fi
 
 sudo git tag -a $1 -m $2
-sudo git commit -a -m $1
+sudo git commit -a -m "$1 $2"
 sudo git push --tag
 sudo git push
