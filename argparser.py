@@ -26,6 +26,7 @@ class Parser:
     @staticmethod
     def parse_configuration(p_args, p_config: Config) -> None:
         Parser.verbose = p_args.verbose
+        Parser.version = p_args.version
         Parser.debug = (p_args.debug if p_args.debug else p_config.DEBUG)
         Parser.api_authentication_method = p_config.API_AUTHENTICATION_METHOD
         Parser.api_credential_format = p_config.API_CREDENTIAL_FORMAT

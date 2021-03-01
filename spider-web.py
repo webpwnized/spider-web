@@ -9,14 +9,22 @@ from argparse import RawTextHelpFormatter
 import argparse
 
 
-l_version = '1.0.34'
+l_version = '1.0.35'
 
+def print_version() -> None:
+    if Parser.verbose:
+        print("Version: {}".format(l_version))
+    else:
+        print(l_version)
 
-def print_example_usage():
+def print_example_usage() -> None:
     print("""
     --------------------------------
     Get Help
     --------------------------------
+    spider-web -V
+    spider-web --version
+
     spider-web -h
     spider-web --help
     
@@ -322,6 +330,10 @@ def run_main_program():
         print_example_usage()
         exit(0)
 
+    if Parser.version:
+        print_version()
+        exit(0)
+
     if Parser.test_connectivity or Parser.get_account or Parser.get_license or Parser.get_agents or \
         Parser.get_team_members or Parser.get_website_groups or Parser.get_discovered_services or \
         Parser.download_discovered_services or Parser.get_website_groups or Parser.upload_website_groups or \
@@ -540,6 +552,9 @@ if __name__ == '__main__':
  Automated NetSparker Analysis - Fortuna Fortis Paratus
  Version: {}
 """.format(l_version), formatter_class=RawTextHelpFormatter)
+    lArgParser.add_argument('-V', '--version',
+                            help='Print version and exit',
+                            action='store_true')
     lArgParser.add_argument('-v', '--verbose',
                             help='Enable verbose output',
                             action='store_true')
