@@ -547,7 +547,7 @@ class API:
             l_json = json.loads(l_http_response.text)
 
             if self.__m_output_format == OutputFormat.JSON.value:
-                self.__print_json(l_json)
+                self.__print_json(json.dumps(l_json))
             elif self.__m_output_format == OutputFormat.CSV.value:
                 p_print_csv_function(l_json)
 
@@ -716,7 +716,7 @@ class API:
             l_list: list = self.__get_account()
 
             if self.__m_output_format == OutputFormat.JSON.value:
-                print(l_list)
+                print(json.dumps(l_list))
             elif self.__m_output_format == OutputFormat.CSV.value:
                 self.__print_account_csv(l_list)
 
@@ -776,7 +776,7 @@ class API:
             l_json: list = self.__get_license()
 
             if self.__m_output_format == OutputFormat.JSON.value:
-                print(l_json)
+                print(json.dumps(l_json))
             elif self.__m_output_format == OutputFormat.CSV.value:
                 self.__print_license_csv(l_json)
 
@@ -787,7 +787,7 @@ class API:
     # Team Member Methods
     # ------------------------------------------------------------
     def __get_team_member_header(self) -> list:
-        return ["Name","Email","PhoneNumber","UserState","LastLoginDate","SelectedGroups",
+        return ["Name","Email","UserState","LastLoginDate","SelectedGroups",
                 "CanManageApplication","CanManageIssues","CanManageIssuesAsRestricted",
                 "CanManageTeam","CanManageWebsites","CanStartScan","CanViewScanReports",
                 "IsApiAccessEnabled","IsTwoFactorAuthenticationEnabled",
@@ -797,7 +797,7 @@ class API:
     def __parse_team_member_json_to_csv(self, p_json: list) -> list:
         try:
             return [[
-                p_json["Name"], p_json["Email"], p_json["PhoneNumber"],p_json["UserState"],
+                p_json["Name"], p_json["Email"], p_json["UserState"],
                 self.__format_datetime_string(p_json["LastLoginDate"]), p_json["SelectedGroups"],
                 p_json["CanManageApplication"],
                 p_json["CanManageIssues"],p_json["CanManageIssuesAsRestricted"],
@@ -822,7 +822,7 @@ class API:
     def __handle_team_member(self, p_list: list) -> None:
         try:
             if self.__m_output_format == OutputFormat.JSON.value:
-                print(p_list)
+                print(json.dumps(p_list))
             elif self.__m_output_format == OutputFormat.CSV.value:
                 self.__print_team_member_csv(p_list)
 
@@ -929,7 +929,7 @@ class API:
             l_team_members: list = self.__filter_team_members(l_json, p_type)
 
             if self.__m_output_format == OutputFormat.JSON.value:
-                print(l_team_members)
+                print(json.dumps(l_team_members))
             elif self.__m_output_format == OutputFormat.CSV.value:
                 self.__print_team_members_csv(l_team_members)
 
@@ -1009,7 +1009,7 @@ class API:
     def __handle_technologies(self, p_list: list) -> None:
         try:
             if self.__m_output_format == OutputFormat.JSON.value:
-                print(p_list)
+                print(json.dumps(p_list))
             elif self.__m_output_format == OutputFormat.CSV.value:
                 self.__print_technologies_csv(p_list)
 
@@ -1083,7 +1083,7 @@ class API:
             l_json: list = self.__get_website_groups()
 
             if self.__m_output_format == OutputFormat.JSON.value:
-                print(l_json)
+                print(json.dumps(l_json))
             elif self.__m_output_format == OutputFormat.CSV.value:
                 self.__print_website_groups_csv(l_json)
 
@@ -1119,7 +1119,7 @@ class API:
     def get_discovered_services(self) -> None:
         try:
             l_json: list = self.__get_discovered_services()
-            print(l_json)
+            print(json.dumps(l_json))
         except Exception as e:
             self.__mPrinter.print("get_discovered_services() - {0}".format(str(e)), Level.ERROR)
 
@@ -1360,7 +1360,7 @@ class API:
     def __handle_website(self, p_list: list) -> None:
         try:
             if self.__m_output_format == OutputFormat.JSON.value:
-                print(p_list)
+                print(json.dumps(p_list))
             elif self.__m_output_format == OutputFormat.CSV.value:
                 self.__print_website_csv(p_list)
 
@@ -1442,7 +1442,7 @@ class API:
     def __handle_websites(self, p_list: list) -> None:
         try:
             if self.__m_output_format == OutputFormat.JSON.value:
-                print(p_list)
+                print(json.dumps(p_list))
             elif self.__m_output_format == OutputFormat.CSV.value:
                 self.__print_websites_csv(p_list)
 
@@ -1509,7 +1509,7 @@ class API:
     def __handle_scan_profile(self, p_list: list) -> None:
         try:
             if self.__m_output_format == OutputFormat.JSON.value:
-                print(p_list)
+                print(json.dumps(p_list))
             elif self.__m_output_format == OutputFormat.CSV.value:
                 self.__print_scan_profile_csv(p_list)
 
@@ -1596,7 +1596,7 @@ class API:
     def __handle_scan_profiles(self, p_list: list) -> None:
         try:
             if self.__m_output_format == OutputFormat.JSON.value:
-                print(p_list)
+                print(json.dumps(p_list))
             elif self.__m_output_format == OutputFormat.CSV.value:
                 self.__print_scan_profiles_csv(p_list)
 
@@ -1648,7 +1648,7 @@ class API:
     def __handle_ping_sites_results(self, p_list: list) -> None:
         try:
             if self.__m_output_format == OutputFormat.JSON.value:
-                print(p_list)
+                print(json.dumps(p_list))
             elif self.__m_output_format == OutputFormat.CSV.value:
                 self.__print_ping_site_results_csv(p_list)
         except Exception as e:
@@ -1963,7 +1963,7 @@ class API:
             l_list: list = self.__get_vulnerability_templates()
 
             if self.__m_output_format == OutputFormat.JSON.value:
-                print(l_list)
+                print(json.dumps(l_list))
             elif self.__m_output_format == OutputFormat.CSV.value:
                 self.__print_vulnerability_templates_csv(l_list)
 
@@ -2023,7 +2023,7 @@ class API:
             l_list: list = self.__get_vulnerability_template()
 
             if self.__m_output_format == OutputFormat.JSON.value:
-                print(l_list)
+                print(json.dumps(l_list))
             elif self.__m_output_format == OutputFormat.CSV.value:
                 self.__print_vulnerability_template_csv(l_list)
 
@@ -2066,7 +2066,7 @@ class API:
             l_list: list = self.__get_vulnerability_types()
 
             if self.__m_output_format == OutputFormat.JSON.value:
-                print(l_list)
+                print(json.dumps(l_list))
             elif self.__m_output_format == OutputFormat.CSV.value:
                 self.__print_vulnerability_types_csv(l_list)
 
@@ -2119,7 +2119,7 @@ class API:
             l_list: list = self.__get_agents()
 
             if self.__m_output_format == OutputFormat.JSON.value:
-                print(l_list)
+                print(json.dumps(l_list))
             elif self.__m_output_format == OutputFormat.CSV.value:
                 self.__print_agents_csv(l_list)
 
@@ -2230,7 +2230,7 @@ class API:
 
             if l_unresponsive_agents:
                 if self.__m_output_format == OutputFormat.JSON.value:
-                    print(l_unresponsive_agents)
+                    print(json.dumps(l_unresponsive_agents))
                 elif self.__m_output_format == OutputFormat.CSV.value:
                     self.__print_agents_csv(l_unresponsive_agents)
 
@@ -2277,7 +2277,7 @@ class API:
 
             if l_disabled_agents:
                 if self.__m_output_format == OutputFormat.JSON.value:
-                    print(l_disabled_agents)
+                    print(json.dumps(l_disabled_agents))
                 elif self.__m_output_format == OutputFormat.CSV.value:
                     self.__print_agents_csv(l_disabled_agents)
 
@@ -2346,7 +2346,7 @@ class API:
             l_list: list = self.__get_scans()
 
             if self.__m_output_format == OutputFormat.JSON.value:
-                print(l_list)
+                print(json.dumps(l_list))
             elif self.__m_output_format == OutputFormat.CSV.value:
                 self.__print_scans_csv(l_list)
 
@@ -2376,7 +2376,7 @@ class API:
             l_list: list = self.__get_scans_by_website()
 
             if self.__m_output_format == OutputFormat.JSON.value:
-                print(l_list)
+                print(json.dumps(l_list))
             elif self.__m_output_format == OutputFormat.CSV.value:
                 self.__print_scans_csv(l_list)
 
