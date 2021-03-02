@@ -787,25 +787,26 @@ class API:
     # Team Member Methods
     # ------------------------------------------------------------
     def __get_team_member_header(self) -> list:
-        return ["CanManageApplication","CanManageIssues","CanManageIssuesAsRestricted",
+        return ["Name","Email","PhoneNumber","UserState","LastLoginDate","SelectedGroups",
+                "CanManageApplication","CanManageIssues","CanManageIssuesAsRestricted",
                 "CanManageTeam","CanManageWebsites","CanStartScan","CanViewScanReports",
-                "CreatedAt","Email","IsTwoFactorAuthenticationEnabled",
-                "Name","PhoneNumber","Role","SelectedGroups","UserState",
-                "IsApiAccessEnabled","AllowedWebsiteLimit","LastLoginDate","AccountId","Id"
+                "IsApiAccessEnabled","IsTwoFactorAuthenticationEnabled",
+                "Role","AccountId","Id","CreatedAt"
         ]
 
     def __parse_team_member_json_to_csv(self, p_json: list) -> list:
         try:
             return [[
-                    p_json["CanManageApplication"],
-                    p_json["CanManageIssues"],p_json["CanManageIssuesAsRestricted"],
-                    p_json["CanManageTeam"],p_json["CanManageWebsites"], p_json["CanStartScan"],
-                    p_json["CanViewScanReports"], p_json["CreatedAt"],
-                    p_json["Email"], p_json["IsTwoFactorAuthenticationEnabled"],
-                    p_json["Name"], p_json["PhoneNumber"], p_json["Role"],
-                    p_json["SelectedGroups"], p_json["UserState"],p_json["IsApiAccessEnabled"],
-                    p_json["AllowedWebsiteLimit"],p_json["LastLoginDate"],p_json["AccountId"], p_json["Id"]
-                ]]
+                p_json["Name"], p_json["Email"], p_json["PhoneNumber"],p_json["UserState"],
+                self.__format_datetime_string(p_json["LastLoginDate"]), p_json["SelectedGroups"],
+                p_json["CanManageApplication"],
+                p_json["CanManageIssues"],p_json["CanManageIssuesAsRestricted"],
+                p_json["CanManageTeam"],p_json["CanManageWebsites"], p_json["CanStartScan"],
+                p_json["CanViewScanReports"], p_json["IsApiAccessEnabled"],
+                p_json["IsTwoFactorAuthenticationEnabled"],
+                p_json["Role"],
+                p_json["AccountId"], p_json["Id"],self.__format_datetime_string(p_json["CreatedAt"]),
+            ]]
         except Exception as e:
             self.__mPrinter.print("__parse_team_member_json_to_csv() - {0}".format(str(e)), Level.ERROR)
 
