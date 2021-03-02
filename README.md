@@ -17,12 +17,14 @@
 
 ### Usage
 
-    usage: spider-web [-h] [-v] [-d] [-o {JSON,CSV}] [-e] [-u] [-t] [-pn PAGE_NUMBER] [-ps PAGE_SIZE] [-if INPUT_FILENAME] [-of OUTPUT_FILENAME]
-                      [-os OUTPUT_SEPARATOR] [-un] [-wurl WEBSITE_URL] [-wn WEBSITE_NAME] [-ga] [-gl] [-aga] [-dsgds] [-dsdds] [-sgs] [-sgsbw]
-                      [-turl TARGET_URL] [-idsd INITIATED_DATE_SORT_DIRECTION] [-spgsp] [-spid SCAN_PROFILE_ID] [-spn SCAN_PROFILE_NAME] [-spgsps]
-                      [-tmgtm] [-tmgam] [-tmgapia] [-tmgsa] [-tmgda] [-tgt] [-tgot] [-tn TECHNOLOGY_NAME] [-wgwbu] [-wgwbn] [-wgwbid] [-wid WEBSITE_ID]
-                      [-wgw] [-wgwbgn] [-wgwbgid] [-wupw] [-wgn WEBSITE_GROUP_NAME] [-wgid WEBSITE_GROUP_ID] [-wggwg] [-wgupwg] [-vgvtemps] [-vgvtemp]
-                      [-vgvtypes] [-rpi REPORT_POLICY_ID] [-vt VULNERABILITY_TYPE] [-auxps] [-auxpsif] [-ramh] [-rda] [-rbsc]
+    usage: spider-web [-h] [-V] [-v] [-d] [-o {JSON,CSV}] [-e] [-u] [-t] [-pn PAGE_NUMBER] [-ps PAGE_SIZE] [-if INPUT_FILENAME]
+                      [-of OUTPUT_FILENAME] [-os OUTPUT_SEPARATOR] [-un] [-wurl WEBSITE_URL] [-wn WEBSITE_NAME] [-ga] [-gl] [-aga]
+                      [-dsgds] [-dsdds] [-sgs] [-sgsbw] [-turl TARGET_URL] [-idsd INITIATED_DATE_SORT_DIRECTION] [-spgsp]
+                      [-spid SCAN_PROFILE_ID] [-spn SCAN_PROFILE_NAME] [-spgsps] [-tmgtms] [-tmgtm] [-tmgam] [-tmgwm] [-tmgapia] [-tmgsa]
+                      [-tmgda] [-tmid TEAM_MEMBER_ID] [-tme TEAM_MEMBER_EMAIL] [-tgt] [-tgot] [-tn TECHNOLOGY_NAME] [-wgwbu] [-wgwbn]
+                      [-wgwbid] [-wid WEBSITE_ID] [-wgw] [-wgwbgn] [-wgwbgid] [-wupw] [-wgn WEBSITE_GROUP_NAME] [-wgid WEBSITE_GROUP_ID]
+                      [-wggwg] [-wgupwg] [-vgvtemps] [-vgvtemp] [-vgvtypes] [-rpi REPORT_POLICY_ID] [-vt VULNERABILITY_TYPE] [-auxps]
+                      [-auxpsif] [-ramh] [-rda] [-rbsc]
 
 ### Options
 
@@ -96,6 +98,8 @@
     Team Member Endpoints:
       -tmgtm, --get-team-members
                             List users and exit. Output fetched in pages.
+      -tmgtm, --get-team-member
+                            List user profile and exit. Requires -tmid, --team-member-id or -tme, --team-member-email.
       -tmgam, --get-account-managers
                             List users with administrator permissions and exit. Output fetched in pages.
       -tmgapia, --get-api-accounts
@@ -104,6 +108,12 @@
                             List users with permissions to start scans and exit. Output fetched in pages.
       -tmgda, --get-disabled-accounts
                             List accounts that are disabled and exit. Output fetched in pages.
+
+    Team Member Endpoints Options:
+      -tmid TEAM_MEMBER_ID, --team-member-id TEAM_MEMBER_ID
+                            The team member ID
+      -tme TEAM_MEMBER_EMAIL, --team-member-email TEAM_MEMBER_EMAIL
+                            The team member email address
 
     Technologies Endpoints:
       -tgt, --get-technologies
@@ -253,11 +263,17 @@
     spider-web --get-scan-profiles --page-number 1 --page-size 200
 
 #### Get Team Member Information
-    spider-web -tmgtm -pn 1 -ps 200
+    spider-web -tmgtms -pn 1 -ps 200
     spider-web --get-team-members --page-number 1 --page-size 200
 
-    spider-web -tmgtm -pn 1 -ps 200 -of team-members.txt
+    spider-web -tmgtms -pn 1 -ps 200 -of team-members.txt
     spider-web --get-team-members --page-number 1 --page-size 200 ---output-file team-members.txt
+
+    spider-web -tmgtm -tmid a16df32f-dc5b-441b-4d1e-acdb049ad459
+    spider-web --get-team-member --team-member-id a16df32f-dc5b-441b-4d1e-acdb049ad459
+    
+    spider-web -tmgtm -tme user@company.com
+    spider-web --get-team-member --team-member-email user@company.com
 
     spider-web -tmgam -pn 1 -ps 200
     spider-web --get-account-managers --page-number 1 --page-size 200

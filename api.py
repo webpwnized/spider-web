@@ -166,7 +166,10 @@ class API:
 
     __cAGENTS_LIST_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "agents/list")
 
-    __cTEAM_MEMBER_LIST_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "teammembers/list")
+    __cTEAM_MEMBER_GET_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "teammembers/get")
+    __cTEAM_MEMBER_GETBYEMAIL_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "teammembers/getbyemail")
+
+    __cTEAM_MEMBERS_LIST_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "teammembers/list")
 
     __cDISCOVERED_SERVICES_LIST_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "discovery/list")
     __cDISCOVERED_SERVICES_DOWNLOAD_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "discovery/export")
@@ -783,6 +786,69 @@ class API:
     # ------------------------------------------------------------
     # Team Member Methods
     # ------------------------------------------------------------
+    def __get_team_member_header(self) -> list:
+        return ["CanManageApplication","CanManageIssues","CanManageIssuesAsRestricted",
+                "CanManageTeam","CanManageWebsites","CanStartScan","CanViewScanReports",
+                "CreatedAt","Email","IsTwoFactorAuthenticationEnabled",
+                "Name","PhoneNumber","Role","SelectedGroups","UserState",
+                "IsApiAccessEnabled","AllowedWebsiteLimit","LastLoginDate","AccountId","Id"
+        ]
+
+    def __parse_team_member_json_to_csv(self, p_json: list) -> list:
+        try:
+            return [[
+                    p_json["CanManageApplication"],
+                    p_json["CanManageIssues"],p_json["CanManageIssuesAsRestricted"],
+                    p_json["CanManageTeam"],p_json["CanManageWebsites"], p_json["CanStartScan"],
+                    p_json["CanViewScanReports"], p_json["CreatedAt"],
+                    p_json["Email"], p_json["IsTwoFactorAuthenticationEnabled"],
+                    p_json["Name"], p_json["PhoneNumber"], p_json["Role"],
+                    p_json["SelectedGroups"], p_json["UserState"],p_json["IsApiAccessEnabled"],
+                    p_json["AllowedWebsiteLimit"],p_json["LastLoginDate"],p_json["AccountId"], p_json["Id"]
+                ]]
+        except Exception as e:
+            self.__mPrinter.print("__parse_team_member_json_to_csv() - {0}".format(str(e)), Level.ERROR)
+
+    def __print_team_member_csv(self, p_json: list) -> None:
+        try:
+            l_header: list = self.__get_team_member_header()
+            l_team_member: list = self.__parse_team_member_json_to_csv(p_json)
+
+            self.__write_csv(l_header, l_team_member)
+        except Exception as e:
+            self.__mPrinter.print("__print_team_member_csv() - {0}".format(str(e)), Level.ERROR)
+
+    def __handle_team_member(self, p_list: list) -> None:
+        try:
+            if self.__m_output_format == OutputFormat.JSON.value:
+                print(p_list)
+            elif self.__m_output_format == OutputFormat.CSV.value:
+                self.__print_team_member_csv(p_list)
+
+        except Exception as e:
+            self.__mPrinter.print("__handle_team_member() - {0}".format(str(e)), Level.ERROR)
+
+    def __get_team_member(self) -> list:
+        try:
+            if Parser.team_member_id:
+                l_base_url = "{}/{}".format(self.__cTEAM_MEMBER_GET_URL, Parser.team_member_id)
+            if Parser.team_member_email:
+                l_base_url = "{}?email={}".format(self.__cTEAM_MEMBER_GETBYEMAIL_URL, Parser.team_member_email)
+
+            return self.__get_unpaged_data(l_base_url, "team member")
+        except Exception as e:
+            self.__mPrinter.print("__get_team_member() - {0}".format(str(e)), Level.ERROR)
+
+    def get_team_member(self) -> None:
+        try:
+            l_json: list = self.__get_team_member()
+            self.__handle_team_member(l_json)
+        except Exception as e:
+            self.__mPrinter.print("get_team_member() - {0}".format(str(e)), Level.ERROR)
+
+    # ------------------------------------------------------------
+    # Team Members Methods
+    # ------------------------------------------------------------
     def __get_team_members_header(self) -> list:
         return ["Name", "Email", "Role", "Enabled?", "Last Login", "Manage Apps?", "Manage Issues?",
                 "Manage Issues (Restricted)?",
@@ -820,7 +886,7 @@ class API:
     def ____get_team_members(self) -> list:
         try:
             l_base_url = "{0}?page={1}&pageSize={2}".format(
-                self.__cTEAM_MEMBER_LIST_URL,
+                self.__cTEAM_MEMBERS_LIST_URL,
                 Parser.page_number, Parser.page_size
             )
             return self.__get_paged_data(l_base_url, "team members")

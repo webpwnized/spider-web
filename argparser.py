@@ -81,6 +81,11 @@ class Parser:
         Parser.scan_profile_id = p_args.scan_profile_id
         Parser.scan_profile_name = p_args.scan_profile_name
 
+        # Team Member
+        Parser.get_team_member = p_args.get_team_member
+        Parser.team_member_id = p_args.team_member_id
+        Parser.team_member_email = p_args.team_member_email
+
         # Team Members
         Parser.get_team_members = p_args.get_team_members
         Parser.get_account_managers = p_args.get_account_managers

@@ -9,7 +9,7 @@ from argparse import RawTextHelpFormatter
 import argparse
 
 
-l_version = '1.0.35'
+l_version = '1.0.36'
 
 def print_version() -> None:
     if Parser.verbose:
@@ -118,11 +118,17 @@ def print_example_usage() -> None:
     --------------------------------
     Get Team Member Information
     --------------------------------
-    spider-web -tmgtm -pn 1 -ps 200
+    spider-web -tmgtms -pn 1 -ps 200
     spider-web --get-team-members --page-number 1 --page-size 200
 
-    spider-web -tmgtm -pn 1 -ps 200 -of team-members.txt
+    spider-web -tmgtms -pn 1 -ps 200 -of team-members.txt
     spider-web --get-team-members --page-number 1 --page-size 200 ---output-file team-members.txt
+
+    spider-web -tmgtm -tmid a16df32f-dc5b-441b-4d1e-acdb049ad459
+    spider-web --get-team-member --team-member-id a16df32f-dc5b-441b-4d1e-acdb049ad459
+    
+    spider-web -tmgtm -tme user@company.com
+    spider-web --get-team-member --team-member-email user@company.com
     
     spider-web -tmgam -pn 1 -ps 200
     spider-web --get-account-managers --page-number 1 --page-size 200
@@ -345,7 +351,7 @@ def run_main_program():
         Parser.get_websites_by_group_name or Parser.get_websites_by_group_id or Parser.get_technologies or \
         Parser.get_obsolete_technologies or Parser.get_scan_profiles or Parser.get_scan_profile or \
         Parser.get_account_managers or Parser.get_api_accounts or Parser.get_scan_accounts or \
-        Parser.get_disabled_accounts or Parser.get_website_managers:
+        Parser.get_disabled_accounts or Parser.get_website_managers or Parser.get_team_member:
             l_api = API(p_parser=Parser)
     else:
         lArgParser.print_usage()
@@ -365,6 +371,15 @@ def run_main_program():
 
     if Parser.get_agents:
         l_api.get_agents()
+        exit(0)
+
+    if Parser.get_team_member:
+        if not Parser.team_member_id and not Parser.team_member_email:
+            lArgParser.print_usage()
+            Printer.print("Either -tmid, --team-member-id or -tme, --team-member-email required but not provided", Level.ERROR, Force.FORCE, LINES_BEFORE,
+                          LINES_AFTER)
+            exit(0)
+        l_api.get_team_member()
         exit(0)
 
     if Parser.get_team_members:
@@ -677,29 +692,37 @@ if __name__ == '__main__':
                                  action='store_true')
 
     l_team_member_group = lArgParser.add_argument_group(title="Team Member Endpoints", description=None)
-    l_team_member_group.add_argument('-tmgtm', '--get-team-members',
+    l_team_member_group.add_argument('-tmgtms', '--get-team-members',
                                  help='List users and exit. Output fetched in pages.',
                                  action='store_true')
-
+    l_team_member_group.add_argument('-tmgtm', '--get-team-member',
+                                 help='List user profile and exit. Requires -tmid, --team-member-id or -tme, --team-member-email.',
+                                 action='store_true')
     l_team_member_group.add_argument('-tmgam', '--get-account-managers',
                                  help='List users able to manage team member accounts and exit. Output fetched in pages.',
                                  action='store_true')
-
     l_team_member_group.add_argument('-tmgwm', '--get-website-managers',
                                  help='List users able to manage websites and exit. Output fetched in pages.',
                                  action='store_true')
-
     l_team_member_group.add_argument('-tmgapia', '--get-api-accounts',
                                  help='List users with permissions to access the API and exit. Output fetched in pages.',
                                  action='store_true')
-
     l_team_member_group.add_argument('-tmgsa', '--get-scan-accounts',
                                  help='List users with permissions to start scans and exit. Output fetched in pages.',
                                  action='store_true')
-
     l_team_member_group.add_argument('-tmgda', '--get-disabled-accounts',
                                  help='List accounts that are disabled and exit. Output fetched in pages.',
                                  action='store_true')
+
+    l_scan_profiles_options_group = lArgParser.add_argument_group(title="Team Member Endpoints Options", description=None)
+    l_scan_profiles_options_group.add_argument('-tmid', '--team-member-id',
+                                 help='The team member ID',
+                                 type=str,
+                                 action='store')
+    l_scan_profiles_options_group.add_argument('-tme', '--team-member-email',
+                                 help='The team member email address',
+                                 type=str,
+                                 action='store')
 
     l_technologies_group = lArgParser.add_argument_group(title="Technologies Endpoints", description=None)
     l_technologies_group.add_argument('-tgt', '--get-technologies',
