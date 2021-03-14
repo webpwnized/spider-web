@@ -176,7 +176,7 @@
       -auxps, --ping-sites  Fetch Scan Profile Target URL from NetSparker API then report status and exit
       -auxpsif, --ping-sites-in-file
                             Read URL from file then report status and exit. Requires properly formatted input file: CSV with fields SITE_NAME, SITE_URL. Include input file with -if, --input-filename
-    
+
     Reports:
       Reports can be output to a file. Output filename is optional. Otherwise output is sent to standard out (STDOUT). Specify output filename with -o, --output-format. Report functions allows unattended mode. In unattended mode, functions will only produce output if the configured amount of time has passed the time contained in the breadcrumb file. Configure the breadcrumb filename and the amount of time in config.py.
     
@@ -184,8 +184,11 @@
                             Report agents that have not checked in recently and exit. Number of seconds is configurable on config.py. Exit code is non-zero if all agents are checking in.
       -rda, --report-disabled-agents
                             Report disabled agents and exit. Number of seconds is configurable on config.py. Exit code is non-zero if all agents are enabled.
-      -rbsc, --report-business-scorecard
-                            Report business scorecard (BSC) and exit.
+      -ri, --report-issues  Report issues and exit. Report summary with -rs, --report-summary
+    
+    Reports Endpoint Options:
+      -ris, --report-issues-summary
+                            Report a summary of the issues
 
 ### Examples
 
@@ -424,6 +427,6 @@
     spider-web -rda --of disabled-agents.csv --un
     spider-web --report-disabled-agents --output-filename disabled-agents.csv --unattended
 
-#### Reports: Business Scorecard
-    spider-web -rbsc
-    spider-web --report-business-scorecard
+#### Reports: Issues
+    spider-web -ri -ris
+    spider-web --report-issues --report-issues-summary

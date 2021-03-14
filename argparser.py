@@ -162,5 +162,9 @@ class Parser:
         Parser.disabled_agents_breadcrumb_filename = p_config.DISABLED_AGENTS_BREADCRUMB_FILENAME
         Parser.disabled_agents_notification_interval_minutes = p_config.DISABLED_AGENTS_NOTIFICATION_INTERVAL_MINUTES
 
+        #Report Issues
+        Parser.report_issues = p_args.report_issues
+        Parser.report_summary = p_args.report_summary
+
         # Business Scorecard
-        Parser.report_business_scorecard = p_args.report_business_scorecard
+        #Parser.report_business_scorecard = p_args.report_business_scorecard

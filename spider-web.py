@@ -9,7 +9,7 @@ from argparse import RawTextHelpFormatter
 import argparse
 
 
-l_version = '1.0.37'
+l_version = '1.0.39'
 
 def print_version() -> None:
     if Parser.verbose:
@@ -307,10 +307,10 @@ def print_example_usage() -> None:
     spider-web --report-disabled-agents --output-filename disabled-agents.csv --unattended
 
     ----------------------------------------------------------------
-    Reports: Business Scorecard
+    Reports: Issues
     ----------------------------------------------------------------        
-    spider-web -rbsc
-    spider-web --report-business-scorecard
+    spider-web -ri -ris -v
+    spider-web --report-issues --report-issues-summary --verbose
 """)
 
 def run_main_program():
@@ -346,7 +346,7 @@ def run_main_program():
         Parser.get_websites or Parser.upload_websites or Parser.get_vulnerability_templates or \
         Parser.get_vulnerability_template or Parser.get_vulnerability_types or Parser.ping_sites or \
         Parser.ping_sites_in_file or Parser.report_agents_missing_heartbeat or Parser.report_disabled_agents or \
-        Parser.report_business_scorecard or Parser.get_scans or Parser.get_scans_by_website or \
+        Parser.report_issues or Parser.get_scans or Parser.get_scans_by_website or \
         Parser.get_website_by_url or Parser.get_website_by_name or Parser.get_website_by_id or \
         Parser.get_websites_by_group_name or Parser.get_websites_by_group_id or Parser.get_technologies or \
         Parser.get_obsolete_technologies or Parser.get_scan_profiles or Parser.get_scan_profile or \
@@ -549,8 +549,8 @@ def run_main_program():
         l_api.get_scan_profiles()
         exit(0)
 
-    if Parser.report_business_scorecard:
-        l_api.report_business_scorecard()
+    if Parser.report_issues:
+        l_api.report_issues()
         exit(0)
 
 if __name__ == '__main__':
@@ -823,8 +823,13 @@ if __name__ == '__main__':
     l_report_group.add_argument('-rda', '--report-disabled-agents',
                                  help='Report disabled agents and exit. Number of seconds is configurable on config.py. Exit code is non-zero if all agents are enabled.',
                                  action='store_true')
-    l_report_group.add_argument('-rbsc', '--report-business-scorecard',
-                                 help='Report business scorecard (BSC) and exit.',
+    l_report_group.add_argument('-ri', '--report-issues',
+                                 help='Report issues and exit. Report summary with -rs, --report-summary',
+                                 action='store_true')
+
+    l_vulnerability_options_group = lArgParser.add_argument_group(title="Reports Endpoint Options", description=None)
+    l_vulnerability_options_group.add_argument('-ris', '--report-issues-summary',
+                                 help='Report a summary of the issues',
                                  action='store_true')
 
     Parser.parse_configuration(p_args=lArgParser.parse_args(), p_config=__config)
