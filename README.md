@@ -20,16 +20,17 @@
     usage: spider-web [-h] [-V] [-v] [-d] [-o {JSON,CSV}] [-e] [-u] [-t] [-pn PAGE_NUMBER] [-ps PAGE_SIZE] [-if INPUT_FILENAME]
                       [-of OUTPUT_FILENAME] [-os OUTPUT_SEPARATOR] [-un] [-wurl WEBSITE_URL] [-wn WEBSITE_NAME] [-ga] [-gl] [-aga]
                       [-dsgds] [-dsdds] [-sgs] [-sgsbw] [-turl TARGET_URL] [-idsd INITIATED_DATE_SORT_DIRECTION] [-spgsp]
-                      [-spid SCAN_PROFILE_ID] [-spn SCAN_PROFILE_NAME] [-spgsps] [-tmgtms] [-tmgtm] [-tmgam] [-tmgwm] [-tmgapia] [-tmgsa]
-                      [-tmgda] [-tmid TEAM_MEMBER_ID] [-tme TEAM_MEMBER_EMAIL] [-tgt] [-tgot] [-tn TECHNOLOGY_NAME] [-wgwbu] [-wgwbn]
-                      [-wgwbid] [-wid WEBSITE_ID] [-wgw] [-wgwbgn] [-wgwbgid] [-wupw] [-wgn WEBSITE_GROUP_NAME] [-wgid WEBSITE_GROUP_ID]
-                      [-wggwg] [-wgupwg] [-vgvtemps] [-vgvtemp] [-vgvtypes] [-rpi REPORT_POLICY_ID] [-vt VULNERABILITY_TYPE] [-auxps]
-                      [-auxpsif] [-ramh] [-rda] [-rbsc]
+                      [-spid SCAN_PROFILE_ID] [-spn SCAN_PROFILE_NAME] [-spgsps] [-srgsr] [-sid SCAN_ID] [-tmgtms] [-tmgtm] [-tmgam]
+                      [-tmgwm] [-tmgapia] [-tmgsa] [-tmgda] [-tmid TEAM_MEMBER_ID] [-tme TEAM_MEMBER_EMAIL] [-tgt] [-tgot]
+                      [-tn TECHNOLOGY_NAME] [-wgwbu] [-wgwbn] [-wgwbid] [-wid WEBSITE_ID] [-wgw] [-wgwbgn] [-wgwbgid] [-wupw]
+                      [-wgn WEBSITE_GROUP_NAME] [-wgid WEBSITE_GROUP_ID] [-wggwg] [-wgupwg] [-vgvtemps] [-vgvtemp] [-vgvtypes]
+                      [-rpi REPORT_POLICY_ID] [-vt VULNERABILITY_TYPE] [-auxps] [-auxpsif] [-ramh] [-rda] [-ri] [-ris]
 
 ### Options
 
     optional arguments:
       -h, --help            show this help message and exit
+      -V, --version         Print version and exit
       -v, --verbose         Enable verbose output
       -d, --debug           Show debug output
       -o {JSON,CSV}, --output-format {JSON,CSV}
@@ -80,7 +81,7 @@
                             The target URL of the scan
       -idsd INITIATED_DATE_SORT_DIRECTION, --initiated-date-sort-direction INITIATED_DATE_SORT_DIRECTION
                             The scan initiated date sort direction. Choices are ['Ascending', 'Decending']
-
+    
     Scans Profile Endpoints:
       -spgsp, --get-scan-profile
                             List scan profiles and exit. Requires -spid, --scan-profile-id or spn, --scan-profile-name which filters results accordingly. Scan Profile ID takes precedence.
@@ -94,27 +95,37 @@
     Scans Profiles Endpoints:
       -spgsps, --get-scan-profiles
                             List scan profiles and exit. Output fetched in pages.
-
+    
+    Scan Results Endpoints:
+      -srgsr, --get-scan-results
+                            Get scan results and exit. Requires -sid, --scan-id
+    
+    Scans Results Endpoints Options:
+      -sid SCAN_ID, --scan-id SCAN_ID
+                            The scan ID
+    
     Team Member Endpoints:
-      -tmgtm, --get-team-members
+      -tmgtms, --get-team-members
                             List users and exit. Output fetched in pages.
       -tmgtm, --get-team-member
                             List user profile and exit. Requires -tmid, --team-member-id or -tme, --team-member-email.
       -tmgam, --get-account-managers
-                            List users with administrator permissions and exit. Output fetched in pages.
+                            List users able to manage team member accounts and exit. Output fetched in pages.
+      -tmgwm, --get-website-managers
+                            List users able to manage websites and exit. Output fetched in pages.
       -tmgapia, --get-api-accounts
                             List users with permissions to access the API and exit. Output fetched in pages.
       -tmgsa, --get-scan-accounts
                             List users with permissions to start scans and exit. Output fetched in pages.
       -tmgda, --get-disabled-accounts
                             List accounts that are disabled and exit. Output fetched in pages.
-
+    
     Team Member Endpoints Options:
       -tmid TEAM_MEMBER_ID, --team-member-id TEAM_MEMBER_ID
                             The team member ID
       -tme TEAM_MEMBER_EMAIL, --team-member-email TEAM_MEMBER_EMAIL
                             The team member email address
-
+    
     Technologies Endpoints:
       -tgt, --get-technologies
                             List technologies and exit. Optionally search by -wn, --website-name or -tn, --technology-name or both. Output fetched in pages.
@@ -176,7 +187,7 @@
       -auxps, --ping-sites  Fetch Scan Profile Target URL from NetSparker API then report status and exit
       -auxpsif, --ping-sites-in-file
                             Read URL from file then report status and exit. Requires properly formatted input file: CSV with fields SITE_NAME, SITE_URL. Include input file with -if, --input-filename
-
+    
     Reports:
       Reports can be output to a file. Output filename is optional. Otherwise output is sent to standard out (STDOUT). Specify output filename with -o, --output-format. Report functions allows unattended mode. In unattended mode, functions will only produce output if the configured amount of time has passed the time contained in the breadcrumb file. Configure the breadcrumb filename and the amount of time in config.py.
     
