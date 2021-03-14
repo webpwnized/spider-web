@@ -8,6 +8,7 @@ from urllib import parse
 from datetime import datetime
 from datetime import timezone
 from dateutil import parser
+from scans import Scans
 
 import time
 import re
@@ -2384,7 +2385,7 @@ class API:
             self.__mPrinter.print("get_scans_by_wesbsite() - {0}".format(str(e)), Level.ERROR)
 
      # ------------------------------------------------------------
-     # Business Scorecard Report Methods
+     # Issues Report Methods
      # ------------------------------------------------------------
     def __get_issues_summary_header(self) -> list:
         return ["Total", "Critical", "High",
@@ -2454,7 +2455,7 @@ class API:
         try:
             l_best_scans = self.__get_best_scans()
 
-            if Parser.report_summary:
+            if Parser.report_issues_summary:
                 l_issues_summary_json = self.__get_issues_summary_json(l_best_scans)
                 if self.__m_output_format == OutputFormat.JSON.value:
                     print(json.dumps(l_issues_summary_json))
@@ -2463,118 +2464,3 @@ class API:
 
         except Exception as e:
             self.__mPrinter.print("report_issues() - {0}".format(str(e)), Level.ERROR)
-
-class Scans():
-
-     __mPrinter: Printer = Printer
-     __m_scans: dict = {}
-
-     def scans(self) -> dict:
-         return self.__m_scans
-
-     def count(self) -> int:
-         return len(self.__m_scans)
-
-     def append_if_better(self, p_candidate_scan: dict) -> None:
-         try:
-             if p_candidate_scan["IsCompleted"]:
-                 l_scan_matched: bool = False
-                 l_scan_profile_id: str = p_candidate_scan["ScanTaskProfileId"]
-                 if l_scan_profile_id in self.__m_scans:
-                     l_scan_matched = True
-                     l_new_scan_create_datetime: datetime = parser.parse(p_candidate_scan["InitiatedAt"])
-                     l_current_scan_create_datetime: datetime = self.__m_scans[l_scan_profile_id].initiated_at_datetime
-                     if l_new_scan_create_datetime > l_current_scan_create_datetime:
-                         self.__m_scans[l_scan_profile_id] = Scan(p_candidate_scan)
-                 if not l_scan_matched:
-                     self.__m_scans[l_scan_profile_id] = Scan(p_candidate_scan)
-         except Exception as e:
-             self.__mPrinter.print("append_if_better() - {0}".format(str(e)), Level.ERROR)
-
-class Scan():
-    _m_scan_id: str = ""
-    _m_initiated_at: str = ""
-    _m_initiated_at_datetime: datetime = None
-    _m_target_url: str = ""
-    _m_total_vulnerability_count: int = 0
-    _m_scan_profile_id: str = ""
-    _m_is_completed: bool = False
-    _m_vulnerability_critical_count: int = 0
-    _m_vulnerability_high_count: int = 0
-    _m_vulnerability_medium_count: int = 0
-    _m_vulnerability_low_count: int = 0
-    _m_vulnerability_best_practice_count: int = 0
-    _m_vulnerability_info_count: int = 0
-    _m_website_id: str = ""
-
-    def __init__(self, p_scan: dict) -> None:
-        self._m_scan_id = p_scan["Id"]
-        self._m_initiated_at = p_scan["InitiatedAt"]
-        self._m_initiated_at_datetime = parser.parse(p_scan["InitiatedAt"])
-        self._m_target_url = p_scan["TargetUrl"]
-        self._m_scan_profile_id = p_scan["ScanTaskProfileId"]
-        self._m_is_completed = p_scan["IsCompleted"]
-        self._m_total_vulnerability_count = p_scan["TotalVulnerabilityCount"]
-        self._m_vulnerability_critical_count = p_scan["VulnerabilityCriticalCount"]
-        self._m_vulnerability_high_count = p_scan["VulnerabilityHighCount"]
-        self._m_vulnerability_info_count = p_scan["VulnerabilityInfoCount"]
-        self._m_vulnerability_best_practice_count = p_scan["VulnerabilityBestPracticeCount"]
-        self._m_vulnerability_low_count = p_scan["VulnerabilityLowCount"]
-        self._m_vulnerability_medium_count = p_scan["VulnerabilityMediumCount"]
-        self._m_website_id = p_scan["WebsiteId"]
-
-    @property  # getter method
-    def scan_id(self) -> str:
-        return self._m_scan_id
-
-    @property  # getter method
-    def initiated_at(self) -> str:
-        return self._m_initiated_at
-
-    @property  # getter method
-    def initiated_at_datetime(self) -> datetime:
-        return self._m_initiated_at_datetime
-
-    @property  # getter method
-    def target_url(self) -> str:
-        return self._m_target_url
-
-    @property  # getter method
-    def scan_profile_id(self) -> str:
-        return self._m_scan_profile_id
-
-    @property  # getter method
-    def is_completed(self) -> bool:
-        return self._m_is_completed
-
-    @property  # getter method
-    def total_vulnerability_count(self) -> int:
-        return self._m_total_vulnerability_count
-
-    @property  # getter method
-    def vulnerability_critical_count(self) -> int:
-        return self._m_vulnerability_critical_count
-
-    @property  # getter method
-    def vulnerability_high_count(self) -> int:
-        return self._m_vulnerability_high_count
-
-    @property  # getter method
-    def vulnerability_info_count(self) -> int:
-        return self._m_vulnerability_info_count
-
-    @property  # getter method
-    def vulnerability_best_practice_count(self) -> int:
-        return self._m_vulnerability_best_practice_count
-
-    @property  # getter method
-    def vulnerability_low_count(self) -> int:
-        return self._m_vulnerability_low_count
-
-    @property  # getter method
-    def vulnerability_medium_count(self) -> int:
-        return self._m_vulnerability_medium_count
-
-    @property  # getter method
-    def website_id(self) -> str:
-        return self._m_website_id

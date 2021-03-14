@@ -164,7 +164,7 @@ class Parser:
 
         #Report Issues
         Parser.report_issues = p_args.report_issues
-        Parser.report_summary = p_args.report_summary
+        Parser.report_issues_summary = p_args.report_issues_summary
 
         # Business Scorecard
         #Parser.report_business_scorecard = p_args.report_business_scorecard
