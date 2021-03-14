@@ -115,6 +115,12 @@ def print_example_usage() -> None:
     spider-web --get-scan-profiles --page-number 1 --page-size 200
 
     --------------------------------
+    Get Scan Results
+    --------------------------------
+    spider-web -srgsr -sid 8babd486-02da-4ecd-ba24-ace601ce041b
+    spider-web --get-scan-results --scan-id 8babd486-02da-4ecd-ba24-ace601ce041b
+
+    --------------------------------
     Get Team Member Information
     --------------------------------
     spider-web -tmgtms -pn 1 -ps 200
@@ -350,7 +356,8 @@ def run_main_program():
         Parser.get_websites_by_group_name or Parser.get_websites_by_group_id or Parser.get_technologies or \
         Parser.get_obsolete_technologies or Parser.get_scan_profiles or Parser.get_scan_profile or \
         Parser.get_account_managers or Parser.get_api_accounts or Parser.get_scan_accounts or \
-        Parser.get_disabled_accounts or Parser.get_website_managers or Parser.get_team_member:
+        Parser.get_disabled_accounts or Parser.get_website_managers or Parser.get_team_member or \
+        Parser.get_scan_results:
             l_api = API(p_parser=Parser)
     else:
         lArgParser.print_usage()
@@ -548,6 +555,14 @@ def run_main_program():
         l_api.get_scan_profiles()
         exit(0)
 
+    if Parser.get_scan_results:
+        if not Parser.scan_id:
+            lArgParser.print_usage()
+            Printer.print("-sid, --scan-id required", Level.ERROR, Force.FORCE, LINES_BEFORE, LINES_AFTER)
+            exit(0)
+        l_api.get_scan_results()
+        exit(0)
+
     if Parser.report_issues:
         l_api.report_issues()
         exit(0)
@@ -689,6 +704,17 @@ if __name__ == '__main__':
     l_scan_profiles_group.add_argument('-spgsps', '--get-scan-profiles',
                                  help='List scan profiles and exit. Output fetched in pages.',
                                  action='store_true')
+
+    l_scans_group = lArgParser.add_argument_group(title="Scan Results Endpoints", description=None)
+    l_scans_group.add_argument('-srgsr', '--get-scan-results',
+                                 help='Get scan results and exit. Requires -sid, --scan-id',
+                                 action='store_true')
+
+    l_scan_profiles_options_group = lArgParser.add_argument_group(title="Scans Results Endpoints Options", description=None)
+    l_scan_profiles_options_group.add_argument('-sid', '--scan-id',
+                                 help='The scan ID',
+                                 type=str,
+                                 action='store')
 
     l_team_member_group = lArgParser.add_argument_group(title="Team Member Endpoints", description=None)
     l_team_member_group.add_argument('-tmgtms', '--get-team-members',

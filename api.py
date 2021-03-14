@@ -194,6 +194,8 @@ class API:
     __cSCAN_PROFILES_LIST_BY_ID_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "scanprofiles/get")
     __cSCAN_PROFILES_LIST_BY_NAME_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "scanprofiles/get")
 
+    __cSCAN_RESULTS_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "scans/result")
+
     __cSCANS_LIST_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "scans/list")
     __cSCANS_LIST_BY_WEBSITE_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "scans/listbywebsite")
 
@@ -723,6 +725,59 @@ class API:
 
         except Exception as e:
             self.__mPrinter.print("get_account() - {0}".format(str(e)), Level.ERROR)
+
+    # ------------------------------------------------------------
+    # Agents Methods
+    # ------------------------------------------------------------
+    def __get_agents_header(self) -> list:
+        return ["Needs Update?", "Name", "IP address", "Status", "Version", "Last Heartbeat",
+                "VDB Version", "Operating System", "Architecture", "ID"]
+
+    def __parse_agents_json_to_csv(self, p_json: list) -> list:
+        try:
+            l_agents: list = []
+            for l_agent in p_json:
+                l_agents.append([
+                    l_agent["IsAgentNeedsUpdate"], l_agent["Name"], l_agent["IpAddress"],
+                    l_agent["State"], l_agent["Version"], self.__format_datetime_string(l_agent["Heartbeat"]),
+                    l_agent["VdbVersion"], l_agent["OsDescription"], l_agent["ProcessArchitecture"],
+                    l_agent["Id"]
+                ])
+            return l_agents
+        except Exception as e:
+            self.__mPrinter.print("__parse_agents_json_to_csv() - {0}".format(str(e)), Level.ERROR)
+
+    def __print_agents_csv(self, p_json: list) -> None:
+        try:
+            l_agents: list = self.__parse_agents_json_to_csv(p_json)
+            l_header: list = self.__get_agents_header()
+
+            self.__write_csv(l_header, l_agents)
+        except Exception as e:
+            self.__mPrinter.print("__print_agents_csv() - {0}".format(str(e)), Level.ERROR)
+
+    def __get_agents(self) -> list:
+        try:
+            l_base_url = "{0}?page={1}&pageSize={2}".format(
+                self.__cAGENTS_LIST_URL,
+                Parser.page_number, Parser.page_size
+            )
+            return self.__get_paged_data(l_base_url, "agents")
+
+        except Exception as e:
+            self.__mPrinter.print("__get_agents() - {0}".format(str(e)), Level.ERROR)
+
+    def get_agents(self) -> None:
+        try:
+            l_list: list = self.__get_agents()
+
+            if self.__m_output_format == OutputFormat.JSON.value:
+                print(json.dumps(l_list))
+            elif self.__m_output_format == OutputFormat.CSV.value:
+                self.__print_agents_csv(l_list)
+
+        except Exception as e:
+            self.__mPrinter.print("get_agents() - {0}".format(str(e)), Level.ERROR)
 
     # ------------------------------------------------------------
     # License Methods
@@ -2075,227 +2130,6 @@ class API:
             self.__mPrinter.print("get_vulnerability_types() - {0}".format(str(e)), Level.ERROR)
 
     # ------------------------------------------------------------
-    # Agents Methods
-    # ------------------------------------------------------------
-    def __get_agents_header(self) -> list:
-        return ["Needs Update?", "Name", "IP address", "Status", "Version", "Last Heartbeat",
-                "VDB Version", "Operating System", "Architecture", "ID"]
-
-    def __parse_agents_json_to_csv(self, p_json: list) -> list:
-        try:
-            l_agents: list = []
-            for l_agent in p_json:
-                l_agents.append([
-                    l_agent["IsAgentNeedsUpdate"], l_agent["Name"], l_agent["IpAddress"],
-                    l_agent["State"], l_agent["Version"], self.__format_datetime_string(l_agent["Heartbeat"]),
-                    l_agent["VdbVersion"], l_agent["OsDescription"], l_agent["ProcessArchitecture"],
-                    l_agent["Id"]
-                ])
-            return l_agents
-        except Exception as e:
-            self.__mPrinter.print("__parse_agents_json_to_csv() - {0}".format(str(e)), Level.ERROR)
-
-    def __print_agents_csv(self, p_json: list) -> None:
-        try:
-            l_agents: list = self.__parse_agents_json_to_csv(p_json)
-            l_header: list = self.__get_agents_header()
-
-            self.__write_csv(l_header, l_agents)
-        except Exception as e:
-            self.__mPrinter.print("__print_agents_csv() - {0}".format(str(e)), Level.ERROR)
-
-    def __get_agents(self) -> list:
-        try:
-            l_base_url = "{0}?page={1}&pageSize={2}".format(
-                self.__cAGENTS_LIST_URL,
-                Parser.page_number, Parser.page_size
-            )
-            return self.__get_paged_data(l_base_url, "agents")
-
-        except Exception as e:
-            self.__mPrinter.print("__get_agents() - {0}".format(str(e)), Level.ERROR)
-
-    def get_agents(self) -> None:
-        try:
-            l_list: list = self.__get_agents()
-
-            if self.__m_output_format == OutputFormat.JSON.value:
-                print(json.dumps(l_list))
-            elif self.__m_output_format == OutputFormat.CSV.value:
-                self.__print_agents_csv(l_list)
-
-        except Exception as e:
-            self.__mPrinter.print("get_agents() - {0}".format(str(e)), Level.ERROR)
-
-    # ------------------------------------------------------------
-    # Report Helper Methods
-    # ------------------------------------------------------------
-    def __format_exitcode(self, p_exitcode: ExitCodes) -> str:
-        return "{} ({})".format(p_exitcode.value, p_exitcode.name)
-
-    def __create_breadcrumb(self, p_filename: str) -> None:
-        try:
-            Printer.print("Creating breadcrumb file {}".format(p_filename), Level.INFO)
-            l_file = open(p_filename, FileMode.WRITE_CREATE.value)
-            l_file.write(str(int(datetime.now().timestamp())))
-            Printer.print("Created breadcrumb file {}".format(p_filename), Level.INFO)
-        except Exception as e:
-            self.__mPrinter.print("__create_breadcrumb() - {0}".format(str(e)), Level.ERROR)
-        finally:
-            if l_file:
-                l_file.close()
-
-    def __read_breadcrumb(self, p_filename: str) -> datetime:
-        try:
-            Printer.print("Reading breadcrumb file {}".format(p_filename), Level.INFO)
-            with open(p_filename, FileMode.READ.value) as l_file:
-                l_string: str = l_file.read()
-                if l_string:
-                    l_time: datetime = datetime.fromtimestamp(int(l_string))
-                    Printer.print("Timestamp in breadcrumb file {} is {}".format(p_filename, self.__format_datetime(l_time)), Level.INFO)
-                    return l_time
-                else:
-                    raise ValueError("Breadcrumb file {} is empty".format(p_filename))
-            Printer.print("Closing breadcrumb file {}".format(p_filename), Level.INFO)
-        except FileNotFoundError as e:
-            self.__mPrinter.print("__read_breadcrumb() - File not found {0}".format(str(e)), Level.INFO)
-            raise FileNotFoundError(e)
-        except ValueError as e:
-            self.__mPrinter.print("__read_breadcrumb() - {0}".format(str(e)), Level.ERROR)
-            raise ValueError(e)
-        except Exception as e:
-            self.__mPrinter.print("__read_breadcrumb() - {0}".format(str(e)), Level.ERROR)
-            raise Exception(e)
-
-    def __already_reported(self, p_filename: str, p_notification_interval: int) -> bool:
-        try:
-            Printer.print("Checking if issues already reported today", Level.INFO)
-            l_current_time: datetime = datetime.today()
-            l_breadcrumb_time: datetime = self.__read_breadcrumb(p_filename)
-            l_difference = l_current_time - l_breadcrumb_time
-            l_difference_minutes = l_difference.total_seconds() // 60
-            l_already_reported = l_difference_minutes < p_notification_interval
-
-            Printer.print("Current time: {}".format(self.__format_datetime(l_current_time)), Level.INFO)
-            Printer.print("Breadcrumb time: {}".format(self.__format_datetime(l_breadcrumb_time)) ,Level.INFO)
-            Printer.print("Difference: {} minutes".format(l_difference_minutes), Level.INFO)
-            Printer.print("Notification interval: {} minutes".format(p_notification_interval), Level.INFO)
-            Printer.print("Already reported?: {}".format(l_already_reported), Level.INFO)
-
-            return (l_already_reported)
-        except ValueError as e:
-            return False
-        except FileNotFoundError as e:
-            return False
-        except Exception as e:
-            self.__mPrinter.print("__already_reported() - {0}".format(str(e)), Level.ERROR)
-
-    # ------------------------------------------------------------
-    # Report Methods
-    # ------------------------------------------------------------
-    def __parse_unresponsive_agents(self, p_agents: list) -> list:
-        try:
-            l_unresponsive_agents: list = []
-            l_now: datetime = datetime.now(timezone.utc)
-
-            Printer.print("Parsing unresponsive agents", Level.INFO)
-
-            for l_dict in p_agents:
-                l_heartbeat_time: datetime = parser.parse(l_dict["Heartbeat"])
-                l_diff = (l_now - l_heartbeat_time)
-                if l_diff.seconds > Parser.agent_heartbeat_too_long_seconds:
-                    l_unresponsive_agents.append(l_dict)
-                    Printer.print(
-                        "Unresponsive agent found. {} Current time: {}. Last heartbeat: {}. Difference: {}. State: {}".format(
-                            l_dict["Name"],
-                            self.__format_datetime(l_now),
-                            self.__format_datetime(l_heartbeat_time),
-                            l_diff,
-                            l_dict["State"]
-                        ), Level.INFO)
-
-            Printer.print("{} unresponsive agents found".format(len(l_unresponsive_agents)), Level.INFO)
-            return l_unresponsive_agents
-        except Exception as e:
-            self.__mPrinter.print("__parse_unresponsive_agents() - {0}".format(str(e)), Level.ERROR)
-
-    def report_agents_missing_heartbeat(self) -> int:
-        try:
-            if Parser.unattended and self.__already_reported(Parser.agent_heartbeat_breadcrumb_filename, Parser.agent_heartbeat_notification_interval_minutes):
-                Printer.print("Already reported in today. Exiting with status {}".format(
-                    self.__format_exitcode(ExitCodes.ALREADY_REPORTED)), Level.INFO)
-                return ExitCodes.ALREADY_REPORTED.value
-
-            l_list = self.__get_agents()
-            l_unresponsive_agents: list = self.__parse_unresponsive_agents(l_list)
-
-            if l_unresponsive_agents:
-                if self.__m_output_format == OutputFormat.JSON.value:
-                    print(json.dumps(l_unresponsive_agents))
-                elif self.__m_output_format == OutputFormat.CSV.value:
-                    self.__print_agents_csv(l_unresponsive_agents)
-
-                if Parser.unattended:
-                    self.__create_breadcrumb(Parser.agent_heartbeat_breadcrumb_filename)
-
-                Printer.print("Exiting with status code {}".format(self.__format_exitcode(ExitCodes.EXIT_NORMAL)), Level.INFO)
-                return ExitCodes.EXIT_NORMAL.value
-            else:
-                Printer.print("No unresponsive agents found", Level.SUCCESS)
-                Printer.print("Exiting with status code {}".format(self.__format_exitcode(ExitCodes.NOTHING_TO_REPORT)), Level.INFO)
-                return ExitCodes.NOTHING_TO_REPORT.value
-
-        except Exception as e:
-            self.__mPrinter.print("report_agents_missing_heartbeat() - {0}".format(str(e)), Level.ERROR)
-
-    def __parse_disabled_agents(self, p_agents: list) -> list:
-        try:
-            l_disabled_agents: list = []
-
-            Printer.print("Parsing disabled agents", Level.INFO)
-
-            for l_dict in p_agents:
-                l_state: str = l_dict["State"]
-                if l_state in ["Disabled"]:
-                    l_disabled_agents.append(l_dict)
-                    Printer.print("Disabled agent found. {} State: {}".format(l_dict["Name"], l_state), Level.INFO)
-
-            Printer.print("{} disabled agents found".format(len(l_disabled_agents)), Level.INFO)
-            return l_disabled_agents
-        except Exception as e:
-            self.__mPrinter.print("__parse_disabled_agents() - {0}".format(str(e)), Level.ERROR)
-
-    def report_disabled_agents(self) -> int:
-        try:
-            if Parser.unattended and self.__already_reported(
-                    Parser.disabled_agents_breadcrumb_filename, Parser.disabled_agents_notification_interval_minutes):
-                Printer.print("Already reported in today. Exiting with status {}".format(
-                    self.__format_exitcode(ExitCodes.ALREADY_REPORTED)), Level.INFO)
-                return ExitCodes.ALREADY_REPORTED.value
-
-            l_list = self.__get_agents()
-            l_disabled_agents: list = self.__parse_disabled_agents(l_list)
-
-            if l_disabled_agents:
-                if self.__m_output_format == OutputFormat.JSON.value:
-                    print(json.dumps(l_disabled_agents))
-                elif self.__m_output_format == OutputFormat.CSV.value:
-                    self.__print_agents_csv(l_disabled_agents)
-
-                if Parser.unattended:
-                    self.__create_breadcrumb(Parser.disabled_agents_breadcrumb_filename)
-
-                Printer.print("Exiting with status code {}".format(self.__format_exitcode(ExitCodes.EXIT_NORMAL)), Level.INFO)
-                return ExitCodes.EXIT_NORMAL.value
-            else:
-                Printer.print("No disabled agents found", Level.SUCCESS)
-                Printer.print("Exiting with status code {}".format(self.__format_exitcode(ExitCodes.NOTHING_TO_REPORT)), Level.INFO)
-                return ExitCodes.NOTHING_TO_REPORT.value
-
-        except Exception as e:
-            self.__mPrinter.print("report_disabled_agents() - {0}".format(str(e)), Level.ERROR)
-
-    # ------------------------------------------------------------
     # Get Scans Methods
     # ------------------------------------------------------------
     def __get_scans_header(self) -> list:
@@ -2384,9 +2218,230 @@ class API:
         except Exception as e:
             self.__mPrinter.print("get_scans_by_wesbsite() - {0}".format(str(e)), Level.ERROR)
 
-     # ------------------------------------------------------------
-     # Issues Report Methods
-     # ------------------------------------------------------------
+    # ------------------------------------------------------------
+    # Get Scans Results by Scan ID
+    # ------------------------------------------------------------
+    def __get_scan_results_header(self) -> list:
+        return ["Issue Type", "Title", "Affected URL", "Issue Url"]
+
+    def __parse_scan_results_json_to_csv(self, p_json: list) -> list:
+        try:
+            l_scan_results: list = []
+            for l_scan_result in p_json:
+                l_scan_results.append([
+                    l_scan_result["Type"], l_scan_result["Title"], l_scan_result["Url"], l_scan_result["IssueUrl"]
+                ])
+            return l_scan_results
+        except Exception as e:
+            self.__mPrinter.print("__parse_scan_results_json_to_csv() - {0}".format(str(e)), Level.ERROR)
+
+    def __print_scan_results_csv(self, l_json: list) -> None:
+        try:
+            l_scan_results: list = self.__parse_scan_results_json_to_csv(l_json)
+            l_header: list = self.__get_scan_results_header()
+
+            self.__write_csv(l_header, l_scan_results)
+        except Exception as e:
+            self.__mPrinter.print("__print_scan_results_csv() - {0}".format(str(e)), Level.ERROR)
+
+    def __get_scan_results(self) -> list:
+        try:
+            l_base_url = "{0}/{1}".format(
+                self.__cSCAN_RESULTS_URL, Parser.scan_id
+            )
+            return self.__get_unpaged_data(l_base_url, "scan results")
+
+        except Exception as e:
+            self.__mPrinter.print("__get_scan_results() - {0}".format(str(e)), Level.ERROR)
+
+    def get_scan_results(self):
+        try:
+            l_list: list = self.__get_scan_results()
+
+            if self.__m_output_format == OutputFormat.JSON.value:
+                print(json.dumps(l_list))
+            elif self.__m_output_format == OutputFormat.CSV.value:
+                self.__print_scan_results_csv(l_list)
+
+        except Exception as e:
+            self.__mPrinter.print("get_scan_results() - {0}".format(str(e)), Level.ERROR)
+
+
+    # ------------------------------------------------------------
+    # Report Helper Methods
+    # ------------------------------------------------------------
+    def __format_exitcode(self, p_exitcode: ExitCodes) -> str:
+        return "{} ({})".format(p_exitcode.value, p_exitcode.name)
+
+    def __create_breadcrumb(self, p_filename: str) -> None:
+        try:
+            Printer.print("Creating breadcrumb file {}".format(p_filename), Level.INFO)
+            l_file = open(p_filename, FileMode.WRITE_CREATE.value)
+            l_file.write(str(int(datetime.now().timestamp())))
+            Printer.print("Created breadcrumb file {}".format(p_filename), Level.INFO)
+        except Exception as e:
+            self.__mPrinter.print("__create_breadcrumb() - {0}".format(str(e)), Level.ERROR)
+        finally:
+            if l_file:
+                l_file.close()
+
+    def __read_breadcrumb(self, p_filename: str) -> datetime:
+        try:
+            Printer.print("Reading breadcrumb file {}".format(p_filename), Level.INFO)
+            with open(p_filename, FileMode.READ.value) as l_file:
+                l_string: str = l_file.read()
+                if l_string:
+                    l_time: datetime = datetime.fromtimestamp(int(l_string))
+                    Printer.print("Timestamp in breadcrumb file {} is {}".format(p_filename, self.__format_datetime(l_time)), Level.INFO)
+                    return l_time
+                else:
+                    raise ValueError("Breadcrumb file {} is empty".format(p_filename))
+            Printer.print("Closing breadcrumb file {}".format(p_filename), Level.INFO)
+        except FileNotFoundError as e:
+            self.__mPrinter.print("__read_breadcrumb() - File not found {0}".format(str(e)), Level.INFO)
+            raise FileNotFoundError(e)
+        except ValueError as e:
+            self.__mPrinter.print("__read_breadcrumb() - {0}".format(str(e)), Level.ERROR)
+            raise ValueError(e)
+        except Exception as e:
+            self.__mPrinter.print("__read_breadcrumb() - {0}".format(str(e)), Level.ERROR)
+            raise Exception(e)
+
+    def __already_reported(self, p_filename: str, p_notification_interval: int) -> bool:
+        try:
+            Printer.print("Checking if issues already reported today", Level.INFO)
+            l_current_time: datetime = datetime.today()
+            l_breadcrumb_time: datetime = self.__read_breadcrumb(p_filename)
+            l_difference = l_current_time - l_breadcrumb_time
+            l_difference_minutes = l_difference.total_seconds() // 60
+            l_already_reported = l_difference_minutes < p_notification_interval
+
+            Printer.print("Current time: {}".format(self.__format_datetime(l_current_time)), Level.INFO)
+            Printer.print("Breadcrumb time: {}".format(self.__format_datetime(l_breadcrumb_time)) ,Level.INFO)
+            Printer.print("Difference: {} minutes".format(l_difference_minutes), Level.INFO)
+            Printer.print("Notification interval: {} minutes".format(p_notification_interval), Level.INFO)
+            Printer.print("Already reported?: {}".format(l_already_reported), Level.INFO)
+
+            return (l_already_reported)
+        except ValueError as e:
+            return False
+        except FileNotFoundError as e:
+            return False
+        except Exception as e:
+            self.__mPrinter.print("__already_reported() - {0}".format(str(e)), Level.ERROR)
+
+    # ------------------------------------------------------------
+    # Report Methods: Agents
+    # ------------------------------------------------------------
+    def __parse_unresponsive_agents(self, p_agents: list) -> list:
+        try:
+            l_unresponsive_agents: list = []
+            l_now: datetime = datetime.now(timezone.utc)
+
+            Printer.print("Parsing unresponsive agents", Level.INFO)
+
+            for l_dict in p_agents:
+                l_heartbeat_time: datetime = parser.parse(l_dict["Heartbeat"])
+                l_diff = (l_now - l_heartbeat_time)
+                if l_diff.seconds > Parser.agent_heartbeat_too_long_seconds:
+                    l_unresponsive_agents.append(l_dict)
+                    Printer.print(
+                        "Unresponsive agent found. {} Current time: {}. Last heartbeat: {}. Difference: {}. State: {}".format(
+                            l_dict["Name"],
+                            self.__format_datetime(l_now),
+                            self.__format_datetime(l_heartbeat_time),
+                            l_diff,
+                            l_dict["State"]
+                        ), Level.INFO)
+
+            Printer.print("{} unresponsive agents found".format(len(l_unresponsive_agents)), Level.INFO)
+            return l_unresponsive_agents
+        except Exception as e:
+            self.__mPrinter.print("__parse_unresponsive_agents() - {0}".format(str(e)), Level.ERROR)
+
+    def report_agents_missing_heartbeat(self) -> int:
+        try:
+            if Parser.unattended and self.__already_reported(
+                    Parser.agent_heartbeat_breadcrumb_filename,
+                    Parser.agent_heartbeat_notification_interval_minutes):
+                Printer.print("Already reported within the last {} minutes. Exiting with status {}".format(
+                    Parser.agent_heartbeat_notification_interval_minutes,
+                    self.__format_exitcode(ExitCodes.ALREADY_REPORTED)), Level.INFO)
+                return ExitCodes.ALREADY_REPORTED.value
+
+            l_list = self.__get_agents()
+            l_unresponsive_agents: list = self.__parse_unresponsive_agents(l_list)
+
+            if l_unresponsive_agents:
+                if self.__m_output_format == OutputFormat.JSON.value:
+                    print(json.dumps(l_unresponsive_agents))
+                elif self.__m_output_format == OutputFormat.CSV.value:
+                    self.__print_agents_csv(l_unresponsive_agents)
+
+                if Parser.unattended:
+                    self.__create_breadcrumb(Parser.agent_heartbeat_breadcrumb_filename)
+
+                Printer.print("Exiting with status code {}".format(self.__format_exitcode(ExitCodes.EXIT_NORMAL)), Level.INFO)
+                return ExitCodes.EXIT_NORMAL.value
+            else:
+                Printer.print("No unresponsive agents found", Level.SUCCESS)
+                Printer.print("Exiting with status code {}".format(self.__format_exitcode(ExitCodes.NOTHING_TO_REPORT)), Level.INFO)
+                return ExitCodes.NOTHING_TO_REPORT.value
+
+        except Exception as e:
+            self.__mPrinter.print("report_agents_missing_heartbeat() - {0}".format(str(e)), Level.ERROR)
+
+    def __parse_disabled_agents(self, p_agents: list) -> list:
+        try:
+            l_disabled_agents: list = []
+
+            Printer.print("Parsing disabled agents", Level.INFO)
+
+            for l_dict in p_agents:
+                l_state: str = l_dict["State"]
+                if l_state in ["Disabled"]:
+                    l_disabled_agents.append(l_dict)
+                    Printer.print("Disabled agent found. {} State: {}".format(l_dict["Name"], l_state), Level.INFO)
+
+            Printer.print("{} disabled agents found".format(len(l_disabled_agents)), Level.INFO)
+            return l_disabled_agents
+        except Exception as e:
+            self.__mPrinter.print("__parse_disabled_agents() - {0}".format(str(e)), Level.ERROR)
+
+    def report_disabled_agents(self) -> int:
+        try:
+            if Parser.unattended and self.__already_reported(
+                    Parser.disabled_agents_breadcrumb_filename, Parser.disabled_agents_notification_interval_minutes):
+                Printer.print("Already reported within the last {} minutes. Exiting with status {}".format(
+                    Parser.disabled_agents_notification_interval_minutes,
+                    self.__format_exitcode(ExitCodes.ALREADY_REPORTED)), Level.INFO)
+                return ExitCodes.ALREADY_REPORTED.value
+
+            l_list = self.__get_agents()
+            l_disabled_agents: list = self.__parse_disabled_agents(l_list)
+
+            if l_disabled_agents:
+                if self.__m_output_format == OutputFormat.JSON.value:
+                    print(json.dumps(l_disabled_agents))
+                elif self.__m_output_format == OutputFormat.CSV.value:
+                    self.__print_agents_csv(l_disabled_agents)
+
+                if Parser.unattended:
+                    self.__create_breadcrumb(Parser.disabled_agents_breadcrumb_filename)
+
+                Printer.print("Exiting with status code {}".format(self.__format_exitcode(ExitCodes.EXIT_NORMAL)), Level.INFO)
+                return ExitCodes.EXIT_NORMAL.value
+            else:
+                Printer.print("No disabled agents found", Level.SUCCESS)
+                Printer.print("Exiting with status code {}".format(self.__format_exitcode(ExitCodes.NOTHING_TO_REPORT)), Level.INFO)
+                return ExitCodes.NOTHING_TO_REPORT.value
+
+        except Exception as e:
+            self.__mPrinter.print("report_disabled_agents() - {0}".format(str(e)), Level.ERROR)
+
+    # ------------------------------------------------------------
+    # Report Methods: Issues
+    # ------------------------------------------------------------
     def __get_issues_summary_header(self) -> list:
         return ["Total", "Critical", "High",
                 "Medium", "Low", "Best Practice", "Info"]
@@ -2444,7 +2499,6 @@ class API:
             self.__mPrinter.print("Checking each scan to find the most recent, complete scans", Level.INFO)
             for l_scan in l_scans:
                 l_best_scans.append_if_better(l_scan)
-            self.__mPrinter.print("Kept {} scans".format(l_best_scans.count()), Level.INFO)
 
             return l_best_scans.scans()
 
@@ -2453,14 +2507,34 @@ class API:
 
     def report_issues(self):
         try:
-            l_best_scans = self.__get_best_scans()
+            if Parser.unattended and self.__already_reported(
+                    Parser.report_issues_breadcrumb_filename, Parser.report_issues_notification_interval_minutes):
+                Printer.print("Already reported within the last {} minutes. Exiting with status {}".format(
+                    Parser.report_issues_notification_interval_minutes,
+                    self.__format_exitcode(ExitCodes.ALREADY_REPORTED)), Level.INFO)
+                return ExitCodes.ALREADY_REPORTED.value
 
-            if Parser.report_issues_summary:
-                l_issues_summary_json = self.__get_issues_summary_json(l_best_scans)
-                if self.__m_output_format == OutputFormat.JSON.value:
-                    print(json.dumps(l_issues_summary_json))
-                elif self.__m_output_format == OutputFormat.CSV.value:
-                    self.__print_issues_summary_csv(l_issues_summary_json)
+            l_best_scans = self.__get_best_scans()
+            l_number_scans_kept: int = len(l_best_scans)
+            self.__mPrinter.print("Kept {} scans".format(l_number_scans_kept), Level.INFO)
+
+            if l_number_scans_kept:
+                if Parser.report_issues_summary:
+                    l_issues_summary_json = self.__get_issues_summary_json(l_best_scans)
+                    if self.__m_output_format == OutputFormat.JSON.value:
+                        print(json.dumps(l_issues_summary_json))
+                    elif self.__m_output_format == OutputFormat.CSV.value:
+                        self.__print_issues_summary_csv(l_issues_summary_json)
+
+                if Parser.unattended:
+                    self.__create_breadcrumb(Parser.report_issues_breadcrumb_filename)
+
+                Printer.print("Exiting with status code {}".format(self.__format_exitcode(ExitCodes.EXIT_NORMAL)), Level.INFO)
+                return ExitCodes.EXIT_NORMAL.value
+            else:
+                Printer.print("No scans found", Level.SUCCESS)
+                Printer.print("Exiting with status code {}".format(self.__format_exitcode(ExitCodes.NOTHING_TO_REPORT)), Level.INFO)
+                return ExitCodes.NOTHING_TO_REPORT.value
 
         except Exception as e:
             self.__mPrinter.print("report_issues() - {0}".format(str(e)), Level.ERROR)

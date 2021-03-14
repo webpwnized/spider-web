@@ -81,6 +81,10 @@ class Parser:
         Parser.scan_profile_id = p_args.scan_profile_id
         Parser.scan_profile_name = p_args.scan_profile_name
 
+        # Scan Results
+        Parser.get_scan_results = p_args.get_scan_results
+        Parser.scan_id = p_args.scan_id
+
         # Team Member
         Parser.get_team_member = p_args.get_team_member
         Parser.team_member_id = p_args.team_member_id
@@ -165,6 +169,5 @@ class Parser:
         #Report Issues
         Parser.report_issues = p_args.report_issues
         Parser.report_issues_summary = p_args.report_issues_summary
-
-        # Business Scorecard
-        #Parser.report_business_scorecard = p_args.report_business_scorecard
+        Parser.report_issues_breadcrumb_filename = p_config.REPORT_ISSUES_BREADCRUMB_FILENAME
+        Parser.report_issues_notification_interval_minutes = p_config.REPORT_ISSUES_NOTIFICATION_INTERVAL_MINUTES

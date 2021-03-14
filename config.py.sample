@@ -38,3 +38,6 @@ AGENT_HEARTBEAT_NOTIFICATION_INTERVAL_MINUTES = 1440  # How often to report agen
 DISABLED_AGENTS_TOO_LONG_SECONDS = 600      # How long as agent can be disabled before being reported
 DISABLED_AGENTS_BREADCRUMB_FILENAME = "disabled-agents.breadcrumb"
 DISABLED_AGENTS_NOTIFICATION_INTERVAL_MINUTES = 1440  # How often to report disabled agents
+
+REPORT_ISSUES_BREADCRUMB_FILENAME = "report-issues.breadcrumb"
+REPORT_ISSUES_NOTIFICATION_INTERVAL_MINUTES = 1440  # How often to report issues
