@@ -166,8 +166,11 @@ class Parser:
         Parser.disabled_agents_breadcrumb_filename = p_config.DISABLED_AGENTS_BREADCRUMB_FILENAME
         Parser.disabled_agents_notification_interval_minutes = p_config.DISABLED_AGENTS_NOTIFICATION_INTERVAL_MINUTES
 
-        #Report Issues
+        # Report Issues
         Parser.report_issues = p_args.report_issues
         Parser.report_issues_summary = p_args.report_issues_summary
+        Parser.report_issues_by_issue = p_args.report_issues_by_issue
         Parser.report_issues_breadcrumb_filename = p_config.REPORT_ISSUES_BREADCRUMB_FILENAME
         Parser.report_issues_notification_interval_minutes = p_config.REPORT_ISSUES_NOTIFICATION_INTERVAL_MINUTES
+
+

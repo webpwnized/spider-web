@@ -8,7 +8,7 @@ import config as __config
 from argparse import RawTextHelpFormatter
 import argparse
 
-l_version = '1.0.40'
+l_version = '1.0.41'
 
 def print_version() -> None:
     if Parser.verbose:
@@ -854,6 +854,9 @@ if __name__ == '__main__':
 
     l_vulnerability_options_group = lArgParser.add_argument_group(title="Reports Endpoint Options", description=None)
     l_vulnerability_options_group.add_argument('-ris', '--report-issues-summary',
+                                 help='Report a summary of the issues',
+                                 action='store_true')
+    l_vulnerability_options_group.add_argument('-ribi', '--report-issues-by-issue',
                                  help='Report a summary of the issues',
                                  action='store_true')
 
