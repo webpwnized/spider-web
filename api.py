@@ -2513,12 +2513,27 @@ class API:
         except Exception as e:
             self.__mPrinter.print("__get_best_scans() - {0}".format(str(e)), Level.ERROR)
 
-    def __get_issues_by_issue_json(self, l_scans: dict) -> list:
+    def __get_issues_by_issue_json(self, l_scans: dict) -> dict:
+
+        l_issues: dict = {}
+
         for lo_scan in l_scans:
             l_scan_id: str = l_scans[lo_scan].scan_id
             Parser.scan_id = l_scan_id
             l_scan_results = self.__get_scan_results()
-            print(l_scan_results)
+            if l_scan_results:
+                for l_result in l_scan_results:
+                    l_type: str = l_result["Type"]
+                    if l_type in l_issues:
+                        l_issues[l_type]["Count"] += 1
+                    else:
+                        l_issue: dict = {
+                            "Type": l_type,
+                            "Title": l_result["Type"],
+                            "Count": 1
+                        }
+                        l_issues[l_type] = l_issue
+        return l_issues
 
     def report_issues(self):
         try:

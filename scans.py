@@ -16,7 +16,7 @@ class Scans():
 
      def append_if_better(self, p_candidate_scan: dict) -> None:
          try:
-             if p_candidate_scan["IsCompleted"]:
+             if p_candidate_scan["IsCompleted"] and p_candidate_scan["State"] == "Complete" and p_candidate_scan["TotalVulnerabilityCount"] > 0:
                  l_scan_matched: bool = False
                  l_scan_profile_id: str = p_candidate_scan["ScanTaskProfileId"]
                  if l_scan_profile_id in self.__m_scans:
