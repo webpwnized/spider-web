@@ -2453,20 +2453,20 @@ class API:
     # ------------------------------------------------------------
     # Report Methods: Issues
     # ------------------------------------------------------------
-    def __get_issues_summary_header(self) -> list:
+    def __get_issues_by_cvss_header(self) -> list:
         return ["Total", "Critical", "High",
                 "Medium", "Low", "Best Practice", "Info"]
 
     def __get_issues_by_issue_header(self) -> list:
         return ["Issue Type", "Issue Title", "Issue Count"]
 
-    def __parse_issues_summary_json_to_csv(self, l_json: dict) -> list:
+    def __parse_issues_by_cvss_json_to_csv(self, l_json: dict) -> list:
         try:
             return [[l_json["Total"], l_json["Critical"], l_json["High"],
                      l_json["Medium"], l_json["Low"], l_json["BestPractice"],
                      l_json["Info"]]]
         except Exception as e:
-            self.__mPrinter.print("__parse_issues_summary_json_to_csv() - {0}".format(str(e)), Level.ERROR)
+            self.__mPrinter.print("__parse_issues_by_cvss_json_to_csv() - {0}".format(str(e)), Level.ERROR)
 
     def __parse_issues_by_issue_json_to_csv(self, p_json: dict) -> list:
         try:
@@ -2480,7 +2480,7 @@ class API:
         except Exception as e:
             self.__mPrinter.print("__parse_issues_by_issue_json_to_csv() - {0}".format(str(e)), Level.ERROR)
 
-    def __get_issues_summary_json(self, p_scans: dict) -> dict:
+    def __get_issues_by_cvss_json(self, p_scans: dict) -> dict:
         try:
             l_total_vulnerability_critical_count: int = 0
             l_total_vulnerability_high_count: int = 0
@@ -2511,16 +2511,16 @@ class API:
 
             return l_summary
         except Exception as e:
-            self.__mPrinter.print("__get_issues_summary_json() - {0}".format(str(e)), Level.ERROR)
+            self.__mPrinter.print("__get_issues_by_cvss_json() - {0}".format(str(e)), Level.ERROR)
 
-    def __print_issues_summary_csv(self, p_issues_summary_json: dict) -> None:
+    def __print_issues_by_cvss_csv(self, p_issues_by_cvss_json: dict) -> None:
         try:
             self.__mPrinter.print("Printing summary of issues in CSV format", Level.INFO)
-            l_header: list = self.__get_issues_summary_header()
-            l_summary: list = self.__parse_issues_summary_json_to_csv(p_issues_summary_json)
+            l_header: list = self.__get_issues_by_cvss_header()
+            l_summary: list = self.__parse_issues_by_cvss_json_to_csv(p_issues_by_cvss_json)
             self.__write_csv(l_header, l_summary)
         except Exception as e:
-            self.__mPrinter.print("__print_issues_summary_csv() - {0}".format(str(e)), Level.ERROR)
+            self.__mPrinter.print("__print_issues_by_cvss_csv() - {0}".format(str(e)), Level.ERROR)
 
     def __print_issues_by_issue_csv(self, p_issues_by_issue_json: dict) -> None:
         try:
@@ -2529,7 +2529,7 @@ class API:
             l_summary: list = self.__parse_issues_by_issue_json_to_csv(p_issues_by_issue_json)
             self.__write_csv(l_header, l_summary)
         except Exception as e:
-            self.__mPrinter.print("__print_issues_summary_csv() - {0}".format(str(e)), Level.ERROR)
+            self.__mPrinter.print("__print_issues_by_cvss_csv() - {0}".format(str(e)), Level.ERROR)
 
     def __get_best_scans(self) ->  dict:
         try:
@@ -2585,24 +2585,29 @@ class API:
                     self.__format_exitcode(ExitCodes.ALREADY_REPORTED)), Level.INFO)
                 return ExitCodes.ALREADY_REPORTED.value
 
+            l_original_output_filename: str = Parser.output_filename
             l_best_scans = self.__get_best_scans()
             l_number_scans_kept: int = len(l_best_scans)
             self.__mPrinter.print("Kept {} scans".format(l_number_scans_kept), Level.INFO)
 
             if l_number_scans_kept:
-                if Parser.report_issues_summary:
-                    l_issues_summary_json = self.__get_issues_summary_json(l_best_scans)
+                if Parser.report_issues_by_cvss:
+                    l_issues_by_cvss_json = self.__get_issues_by_cvss_json(l_best_scans)
 
                 if Parser.report_issues_by_issue:
                     l_issues_by_issue_json = self.__get_issues_by_issue_json(l_best_scans)
 
-                if Parser.report_issues_summary:
+                if Parser.report_issues_by_cvss:
+                    if Parser.output_filename:
+                        Parser.output_filename = "issues_by_cvss_" + l_original_output_filename
                     if self.__m_output_format == OutputFormat.JSON.value:
-                        print(json.dumps(l_issues_summary_json))
+                        print(json.dumps(l_issues_by_cvss_json))
                     elif self.__m_output_format == OutputFormat.CSV.value:
-                        self.__print_issues_summary_csv(l_issues_summary_json)
+                        self.__print_issues_by_cvss_csv(l_issues_by_cvss_json)
 
                 if Parser.report_issues_by_issue:
+                    if Parser.output_filename:
+                        Parser.output_filename = "issues_by_issue_" + l_original_output_filename
                     if self.__m_output_format == OutputFormat.JSON.value:
                         print(json.dumps(l_issues_by_issue_json))
                     elif self.__m_output_format == OutputFormat.CSV.value:

@@ -1,5 +1,16 @@
 # Spider Web
 
+     _____       _     _             _    _      _     
+    /  ___|     (_)   | |           | |  | |    | |    
+    \ `--. _ __  _  __| | ___ _ __  | |  | | ___| |__  
+     `--. \ '_ \| |/ _` |/ _ \ '__| | |/\| |/ _ \ '_ \ 
+    /\__/ / |_) | | (_| |  __/ |    \  /\  /  __/ |_) |
+    \____/| .__/|_|\__,_|\___|_|     \/  \/ \___|_.__/ 
+          | |                                          
+          |_|                                          
+    
+     Automated NetSparker Analysis - Fortuna Fortis Paratus
+
 ### Dependecies
 
     python 3
@@ -17,15 +28,22 @@
 
 ### Usage
 
-    usage: spider-web [-h] [-V] [-v] [-d] [-o {JSON,CSV}] [-e] [-u] [-t] [-pn PAGE_NUMBER] [-ps PAGE_SIZE] [-if INPUT_FILENAME]
-                      [-of OUTPUT_FILENAME] [-os OUTPUT_SEPARATOR] [-un] [-wurl WEBSITE_URL] [-wn WEBSITE_NAME] [-ga] [-gl] [-aga]
-                      [-dsgds] [-dsdds] [-sgs] [-sgsbw] [-turl TARGET_URL] [-idsd INITIATED_DATE_SORT_DIRECTION] [-spgsp]
-                      [-spid SCAN_PROFILE_ID] [-spn SCAN_PROFILE_NAME] [-spgsps] [-srgsr] [-sid SCAN_ID] [-tmgtms] [-tmgtm] [-tmgam]
-                      [-tmgwm] [-tmgapia] [-tmgsa] [-tmgda] [-tmid TEAM_MEMBER_ID] [-tme TEAM_MEMBER_EMAIL] [-tgt] [-tgot]
-                      [-tn TECHNOLOGY_NAME] [-wgwbu] [-wgwbn] [-wgwbid] [-wid WEBSITE_ID] [-wgw] [-wgwbgn] [-wgwbgid] [-wupw]
-                      [-wgn WEBSITE_GROUP_NAME] [-wgid WEBSITE_GROUP_ID] [-wggwg] [-wgupwg] [-vgvtemps] [-vgvtemp] [-vgvtypes]
-                      [-rpi REPORT_POLICY_ID] [-vt VULNERABILITY_TYPE] [-auxps] [-auxpsif] [-ramh] [-rda] [-ri] [-ris]
-
+    usage: spider-web [-h] [-V] [-v] [-d] [-o {JSON,CSV}] [-e] [-u] [-t]
+                      [-pn PAGE_NUMBER] [-ps PAGE_SIZE] [-if INPUT_FILENAME]
+                      [-of OUTPUT_FILENAME] [-os OUTPUT_SEPARATOR] [-un]
+                      [-wurl WEBSITE_URL] [-wn WEBSITE_NAME] [-ga] [-gl] [-aga]
+                      [-dsgds] [-dsdds] [-sgs] [-sgsbw] [-turl TARGET_URL]
+                      [-idsd INITIATED_DATE_SORT_DIRECTION] [-spgsp]
+                      [-spid SCAN_PROFILE_ID] [-spn SCAN_PROFILE_NAME] [-spgsps]
+                      [-srgsr] [-sid SCAN_ID] [-tmgtms] [-tmgtm] [-tmgam] [-tmgwm]
+                      [-tmgapia] [-tmgsa] [-tmgda] [-tmid TEAM_MEMBER_ID]
+                      [-tme TEAM_MEMBER_EMAIL] [-tgt] [-tgot]
+                      [-tn TECHNOLOGY_NAME] [-wgwbu] [-wgwbn] [-wgwbid]
+                      [-wid WEBSITE_ID] [-wgw] [-wgwbgn] [-wgwbgid] [-wupw]
+                      [-wgn WEBSITE_GROUP_NAME] [-wgid WEBSITE_GROUP_ID] [-wggwg]
+                      [-wgupwg] [-vgvtemps] [-vgvtemp] [-vgvtypes]
+                      [-rpi REPORT_POLICY_ID] [-vt VULNERABILITY_TYPE] [-auxps]
+                      [-auxpsif] [-ramh] [-rda] [-ri] [-ribc] [-ribi]
 ### Options
 
     optional arguments:
@@ -198,8 +216,10 @@
       -ri, --report-issues  Report issues and exit. Report summary with -rs, --report-summary
     
     Reports Endpoint Options:
-      -ris, --report-issues-summary
-                            Report a summary of the issues
+      -ribc, --report-issues-by-cvss
+                            Report the count of issues by CVSS category
+      -ribi, --report-issues-by-issue
+                            Report the count of issues by issue
 
 ### Examples
 
@@ -438,6 +458,6 @@
     spider-web -rda --of disabled-agents.csv --un
     spider-web --report-disabled-agents --output-filename disabled-agents.csv --unattended
 
-#### Reports: Issues
-    spider-web -ri -ris
-    spider-web --report-issues --report-issues-summary
+#### Reports: Issues 
+    spider-web -ri -ribc -ribi -v
+    spider-web --report-issues --report-issues-by-cvss --report-issues-by-issue --verbose

@@ -314,8 +314,8 @@ def print_example_usage() -> None:
     ----------------------------------------------------------------
     Reports: Issues
     ----------------------------------------------------------------        
-    spider-web -ri -ris -v
-    spider-web --report-issues --report-issues-summary --verbose
+    spider-web -ri -ribc -ribi -v
+    spider-web --report-issues --report-issues-by-cvss --report-issues-by-issue --verbose
 """)
 
 def run_main_program():
@@ -853,11 +853,11 @@ if __name__ == '__main__':
                                  action='store_true')
 
     l_vulnerability_options_group = lArgParser.add_argument_group(title="Reports Endpoint Options", description=None)
-    l_vulnerability_options_group.add_argument('-ris', '--report-issues-summary',
-                                 help='Report a summary of the issues',
+    l_vulnerability_options_group.add_argument('-ribc', '--report-issues-by-cvss',
+                                 help='Report the count of issues by CVSS category',
                                  action='store_true')
     l_vulnerability_options_group.add_argument('-ribi', '--report-issues-by-issue',
-                                 help='Report a summary of the issues',
+                                 help='Report the count of issues by issue',
                                  action='store_true')
 
     Parser.parse_configuration(p_args=lArgParser.parse_args(), p_config=__config)
