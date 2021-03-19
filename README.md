@@ -213,7 +213,7 @@
                             Report agents that have not checked in recently and exit. Number of seconds is configurable on config.py. Exit code is non-zero if all agents are checking in.
       -rda, --report-disabled-agents
                             Report disabled agents and exit. Number of seconds is configurable on config.py. Exit code is non-zero if all agents are enabled.
-      -ri, --report-issues  Report issues and exit. Report summary with -rs, --report-summary
+      -ri, --report-issues  Report issues and exit. Report issues by CVSS with -ribc, --report-issues-by-cvss. Report issues by issue with -ribi, --report-issues-by-issue
     
     Reports Endpoint Options:
       -ribc, --report-issues-by-cvss

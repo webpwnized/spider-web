@@ -849,7 +849,7 @@ if __name__ == '__main__':
                                  help='Report disabled agents and exit. Number of seconds is configurable on config.py. Exit code is non-zero if all agents are enabled.',
                                  action='store_true')
     l_report_group.add_argument('-ri', '--report-issues',
-                                 help='Report issues and exit. Report summary with -rs, --report-summary',
+                                 help='Report issues and exit. Report issues by CVSS with -ribc, --report-issues-by-cvss. Report issues by issue with -ribi, --report-issues-by-issue',
                                  action='store_true')
 
     l_vulnerability_options_group = lArgParser.add_argument_group(title="Reports Endpoint Options", description=None)
