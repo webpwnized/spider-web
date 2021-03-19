@@ -2244,13 +2244,25 @@ class API:
         except Exception as e:
             self.__mPrinter.print("__print_scan_results_csv() - {0}".format(str(e)), Level.ERROR)
 
-    def __get_scan_results(self) -> list:
+    def ____get_scan_results(self, p_scan_id: str) -> list:
         try:
             l_base_url = "{0}/{1}".format(
-                self.__cSCAN_RESULTS_URL, Parser.scan_id
+                self.__cSCAN_RESULTS_URL, p_scan_id
             )
             return self.__get_unpaged_data(l_base_url, "scan results")
 
+        except Exception as e:
+            self.__mPrinter.print("____get_scan_results() - {0}".format(str(e)), Level.ERROR)
+
+    def __get_scan_results(self) -> list:
+        try:
+            return self.____get_scan_results(Parser.scan_id)
+        except Exception as e:
+            self.__mPrinter.print("__get_scan_results() - {0}".format(str(e)), Level.ERROR)
+
+    def __get_scan_results(self, p_scan_id: str) -> list:
+        try:
+            return self.____get_scan_results(p_scan_id)
         except Exception as e:
             self.__mPrinter.print("__get_scan_results() - {0}".format(str(e)), Level.ERROR)
 
@@ -2497,7 +2509,6 @@ class API:
 
     def __get_best_scans(self) ->  dict:
         try:
-            Parser.initiated_date_sort_direction = SortDirection.DECENDING.value
             l_best_scans: Scans = Scans()
 
             l_scans: list = self.__get_scans()
@@ -2516,23 +2527,29 @@ class API:
     def __get_issues_by_issue_json(self, l_scans: dict) -> dict:
 
         l_issues: dict = {}
+        l_count_scans: int = len(l_scans)
+        l_counter: int = 0
+
+        self.__mPrinter.print("Getting results for {} scans".format(l_count_scans), Level.INFO)
 
         for lo_scan in l_scans:
+            l_counter += 1
+            self.__mPrinter.print("Working on scan {} out of {}".format(l_counter, l_count_scans), Level.INFO)
             l_scan_id: str = l_scans[lo_scan].scan_id
-            Parser.scan_id = l_scan_id
-            l_scan_results = self.__get_scan_results()
-            if l_scan_results:
-                for l_result in l_scan_results:
-                    l_type: str = l_result["Type"]
-                    if l_type in l_issues:
-                        l_issues[l_type]["Count"] += 1
-                    else:
-                        l_issue: dict = {
-                            "Type": l_type,
-                            "Title": l_result["Type"],
-                            "Count": 1
-                        }
-                        l_issues[l_type] = l_issue
+            if l_scans[lo_scan].total_vulnerability_count > 0:
+                l_scan_results = self.__get_scan_results(l_scan_id)
+                if l_scan_results:
+                    for l_result in l_scan_results:
+                        l_type: str = l_result["Type"]
+                        if l_type in l_issues:
+                            l_issues[l_type]["Count"] += 1
+                        else:
+                            l_issue: dict = {
+                                "Type": l_type,
+                                "Title": l_result["Type"],
+                                "Count": 1
+                            }
+                            l_issues[l_type] = l_issue
         return l_issues
 
     def report_issues(self):
