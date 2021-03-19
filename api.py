@@ -623,11 +623,11 @@ class API:
     # ------------------------------------------------------------
     # Common Methods
     # ------------------------------------------------------------
-    def __write_csv(self, p_header: list, p_data: list) -> None:
+    def __write_csv(self, p_header: list, p_data: list, p_filemode: FileMode=FileMode.WRITE_CREATE) -> None:
         try:
             if Parser.output_filename:
                 self.__mPrinter.print("Opening file {} for writing".format(Parser.output_filename), Level.INFO)
-                l_file = open(Parser.output_filename, FileMode.WRITE_CREATE.value)
+                l_file = open(Parser.output_filename, p_filemode.value)
             else:
                 l_file = sys.stdout
 
@@ -2457,6 +2457,9 @@ class API:
         return ["Total", "Critical", "High",
                 "Medium", "Low", "Best Practice", "Info"]
 
+    def __get_issues_by_issue_header(self) -> list:
+        return ["Issue Type", "Issue Title", "Issue Count"]
+
     def __parse_issues_summary_json_to_csv(self, l_json: dict) -> list:
         try:
             return [[l_json["Total"], l_json["Critical"], l_json["High"],
@@ -2465,7 +2468,19 @@ class API:
         except Exception as e:
             self.__mPrinter.print("__parse_issues_summary_json_to_csv() - {0}".format(str(e)), Level.ERROR)
 
-    def __get_issues_summary_json(self, l_scans: dict) -> dict:
+    def __parse_issues_by_issue_json_to_csv(self, p_json: dict) -> list:
+        try:
+            l_issues: list = []
+            for l_issue in p_json:
+                l_issues.append([
+                    p_json[l_issue]["Type"], p_json[l_issue]["Title"], p_json[l_issue]["Count"]
+                ])
+            return l_issues
+
+        except Exception as e:
+            self.__mPrinter.print("__parse_issues_by_issue_json_to_csv() - {0}".format(str(e)), Level.ERROR)
+
+    def __get_issues_summary_json(self, p_scans: dict) -> dict:
         try:
             l_total_vulnerability_critical_count: int = 0
             l_total_vulnerability_high_count: int = 0
@@ -2474,13 +2489,13 @@ class API:
             l_total_vulnerability_best_practice_count: int = 0
             l_total_vulnerability_info_count: int = 0
 
-            for lo_scan in l_scans:
-                l_total_vulnerability_critical_count += l_scans[lo_scan].vulnerability_critical_count
-                l_total_vulnerability_high_count += l_scans[lo_scan].vulnerability_high_count
-                l_total_vulnerability_medium_count += l_scans[lo_scan].vulnerability_medium_count
-                l_total_vulnerability_low_count += l_scans[lo_scan].vulnerability_low_count
-                l_total_vulnerability_best_practice_count += l_scans[lo_scan].vulnerability_best_practice_count
-                l_total_vulnerability_info_count += l_scans[lo_scan].vulnerability_info_count
+            for lo_scan in p_scans:
+                l_total_vulnerability_critical_count += p_scans[lo_scan].vulnerability_critical_count
+                l_total_vulnerability_high_count += p_scans[lo_scan].vulnerability_high_count
+                l_total_vulnerability_medium_count += p_scans[lo_scan].vulnerability_medium_count
+                l_total_vulnerability_low_count += p_scans[lo_scan].vulnerability_low_count
+                l_total_vulnerability_best_practice_count += p_scans[lo_scan].vulnerability_best_practice_count
+                l_total_vulnerability_info_count += p_scans[lo_scan].vulnerability_info_count
 
             l_total_vulnerability_count: int = l_total_vulnerability_critical_count + l_total_vulnerability_high_count + l_total_vulnerability_medium_count + l_total_vulnerability_low_count + l_total_vulnerability_best_practice_count + l_total_vulnerability_info_count
 
@@ -2498,11 +2513,20 @@ class API:
         except Exception as e:
             self.__mPrinter.print("__get_issues_summary_json() - {0}".format(str(e)), Level.ERROR)
 
-    def __print_issues_summary_csv(self, l_issues_summary_json: dict) -> None:
+    def __print_issues_summary_csv(self, p_issues_summary_json: dict) -> None:
         try:
             self.__mPrinter.print("Printing summary of issues in CSV format", Level.INFO)
             l_header: list = self.__get_issues_summary_header()
-            l_summary: list = self.__parse_issues_summary_json_to_csv(l_issues_summary_json)
+            l_summary: list = self.__parse_issues_summary_json_to_csv(p_issues_summary_json)
+            self.__write_csv(l_header, l_summary)
+        except Exception as e:
+            self.__mPrinter.print("__print_issues_summary_csv() - {0}".format(str(e)), Level.ERROR)
+
+    def __print_issues_by_issue_csv(self, p_issues_by_issue_json: dict) -> None:
+        try:
+            self.__mPrinter.print("Printing issues in CSV format", Level.INFO)
+            l_header: list = self.__get_issues_by_issue_header()
+            l_summary: list = self.__parse_issues_by_issue_json_to_csv(p_issues_by_issue_json)
             self.__write_csv(l_header, l_summary)
         except Exception as e:
             self.__mPrinter.print("__print_issues_summary_csv() - {0}".format(str(e)), Level.ERROR)
@@ -2524,19 +2548,19 @@ class API:
         except Exception as e:
             self.__mPrinter.print("__get_best_scans() - {0}".format(str(e)), Level.ERROR)
 
-    def __get_issues_by_issue_json(self, l_scans: dict) -> dict:
+    def __get_issues_by_issue_json(self, p_scans: dict) -> dict:
 
         l_issues: dict = {}
-        l_count_scans: int = len(l_scans)
+        l_count_scans: int = len(p_scans)
         l_counter: int = 0
 
         self.__mPrinter.print("Getting results for {} scans".format(l_count_scans), Level.INFO)
 
-        for lo_scan in l_scans:
+        for lo_scan in p_scans:
             l_counter += 1
             self.__mPrinter.print("Working on scan {} out of {}".format(l_counter, l_count_scans), Level.INFO)
-            l_scan_id: str = l_scans[lo_scan].scan_id
-            if l_scans[lo_scan].total_vulnerability_count > 0:
+            l_scan_id: str = p_scans[lo_scan].scan_id
+            if p_scans[lo_scan].total_vulnerability_count > 0:
                 l_scan_results = self.__get_scan_results(l_scan_id)
                 if l_scan_results:
                     for l_result in l_scan_results:
@@ -2568,17 +2592,21 @@ class API:
             if l_number_scans_kept:
                 if Parser.report_issues_summary:
                     l_issues_summary_json = self.__get_issues_summary_json(l_best_scans)
+
+                if Parser.report_issues_by_issue:
+                    l_issues_by_issue_json = self.__get_issues_by_issue_json(l_best_scans)
+
+                if Parser.report_issues_summary:
                     if self.__m_output_format == OutputFormat.JSON.value:
                         print(json.dumps(l_issues_summary_json))
                     elif self.__m_output_format == OutputFormat.CSV.value:
                         self.__print_issues_summary_csv(l_issues_summary_json)
 
                 if Parser.report_issues_by_issue:
-                    l_issues_by_issue_json = self.__get_issues_by_issue_json(l_best_scans)
                     if self.__m_output_format == OutputFormat.JSON.value:
                         print(json.dumps(l_issues_by_issue_json))
                     elif self.__m_output_format == OutputFormat.CSV.value:
-                        self.__print_issues_summary_csv(l_issues_summary_json)
+                        self.__print_issues_by_issue_csv(l_issues_by_issue_json)
 
                 if Parser.unattended:
                     self.__create_breadcrumb(Parser.report_issues_breadcrumb_filename)
