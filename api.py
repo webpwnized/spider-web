@@ -144,6 +144,16 @@ class TeamMemberTypes(Enum):
     DISABLED_ACCOUNTS = "Disabled Accounts"
 
 
+class TeamMemberUploadFileFields(Enum):
+    NAME = 0
+    EMAIL = 1
+    SSO_EMAIL = 2
+    GROUPS = 3
+
+    def __str__(self):
+        return self.value
+
+
 class API:
 
     # ---------------------------------
@@ -169,6 +179,7 @@ class API:
 
     __cTEAM_MEMBER_GET_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "teammembers/get")
     __cTEAM_MEMBER_GETBYEMAIL_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "teammembers/getbyemail")
+    __cTEAM_MEMBER_CREATE_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "teammembers/new")
 
     __cTEAM_MEMBERS_LIST_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "teammembers/list")
 
@@ -903,6 +914,40 @@ class API:
         except Exception as e:
             self.__mPrinter.print("get_team_member() - {0}".format(str(e)), Level.ERROR)
 
+    def __build_team_member_create_json(self, p_name: str, p_email: str, p_sso_email: str, p_groups: str) -> str:
+        try:
+            l_json: str = '{"OnlySsoLogin": true, "AutoGeneratePassword": false, ' \
+                '"SendNotification": true, ' + \
+                '"PhoneNumber": "", "AccountPermissions": "", "TimezoneId": ' + \
+                '"EST Standard Time", "WebsiteGroups": "' + \
+                p_groups + \
+                '", "ScanPermissions": "", ' + \
+                '"DateTimeFormat": "dd/MM/yyyy", "Email": "' + \
+                p_email + \
+                '", "Name": "' + \
+                p_name + \
+                '", ' + \
+                '"IsApiAccessEnabled": false, "AllowedWebsiteLimit": 0}'
+            return l_json
+        except Exception as e:
+            self.__mPrinter.print("__build_team_member_create_json() - {0}".format(str(e)), Level.ERROR)
+
+    def create_team_member(self) -> None:
+        print("Not implemented")
+        exit()
+        try:
+            l_json: str = self.__build_team_member_create_json(
+                Parser.team_member_name, Parser.team_member_email,
+                Parser.team_member_sso_email, Parser.team_member_group
+            )
+            self.__mPrinter.print("Creating team member {}".format(l_json), Level.INFO)
+            l_http_response = self.__connect_to_api(p_url=self.__cTEAM_MEMBER_CREATE_URL,
+                                                    p_method=HTTPMethod.POST.value,
+                                                    p_data=None, p_json=l_json)
+            self.__mPrinter.print("Created team member {}".format(l_json), Level.INFO)
+        except Exception as e:
+            self.__mPrinter.print("create_team_member() - {0}".format(str(e)), Level.ERROR)
+
     # ------------------------------------------------------------
     # Team Members Methods
     # ------------------------------------------------------------
@@ -1027,6 +1072,89 @@ class API:
             self.__get_team_members(TeamMemberTypes.DISABLED_ACCOUNTS)
         except Exception as e:
             self.__mPrinter.print("get_disabled_accounts() - {0}".format(str(e)), Level.ERROR)
+
+    def __parse_team_member_upload(self) -> list:
+        try:
+            self.__mPrinter.print("Opening file for reading {}".format(Parser.input_filename), Level.INFO)
+            with open(Parser.input_filename, FileMode.READ.value) as l_input_file:
+                l_csv_reader = csv.reader(l_input_file)
+
+                l_team_members: list = []
+                for l_row in l_csv_reader:
+                    if l_row:
+                        l_name: str = l_row[TeamMemberUploadFileFields.NAME.value]
+                        l_team_members.append((
+                            l_name,
+                            l_row[TeamMemberUploadFileFields.EMAIL.value],
+                            l_row[TeamMemberUploadFileFields.SSO_EMAIL.value],
+                            l_row[TeamMemberUploadFileFields.GROUPS.value])
+                        )
+            return l_team_members
+        except FileNotFoundError as e:
+            self.__mPrinter.print("__parse_website_upload(): Cannot find the input file {0} - {1}".format(Parser.input_filename, str(e)), Level.ERROR)
+            raise FileNotFoundError(e)
+        except Exception as e:
+            self.__mPrinter.print("__parse_team_member_upload() - {0}:{1}".format(l_name, str(e)), Level.ERROR)
+        finally:
+            if l_input_file:
+                l_input_file.close()
+
+    def __upload_team_members(self, p_team_members: list) -> None:
+        # Documentation: https://www.netsparkercloud.com/docs/index#/
+        try:
+            l_name: str = ""
+            l_email: str = ""
+            l_sso_email: str = ""
+            l_groups: str = ""
+
+            l_file_timestamp_pattern: str = '%a-%b-%d-%Y-%H-%M-%S'
+            l_output_file = open("{}{}{}{}".format(Parser.input_filename, ".failed.", time.strftime(l_file_timestamp_pattern), ".csv"), FileMode.WRITE_CREATE.value)
+            l_csv_writer = csv.writer(l_output_file)
+
+            for l_team_member in p_team_members:
+                try:
+                    l_name = l_team_member[TeamMemberUploadFileFields.URL.value]
+                    l_email = l_team_member[TeamMemberUploadFileFields.EMAIL.value]
+                    l_sso_email = l_team_member[TeamMemberUploadFileFields.EMAIL.value]
+                    l_groups = l_team_member[TeamMemberUploadFileFields.GROUPS.value]
+                    l_json_string = self.__build_team_member_create_json()
+                    l_json=json.loads(l_json_string)
+
+                    self.__mPrinter.print("Uploading team member {}".format(l_name), Level.INFO)
+                    l_http_response = self.__connect_to_api(p_url=self.__cTEAM_MEMBER_CREATE_URL,
+                                                           p_method=HTTPMethod.POST.value,
+                                                           p_data=None, p_json=l_json)
+
+                    if l_http_response:
+                        self.__mPrinter.print("Uploaded team member {0}".format(l_name), Level.INFO, Force.FORCE)
+                    else:
+                        raise ImportError("Unable to upload team member {}".format(l_name))
+
+                except ValueError as e:
+                    self.__mPrinter.print(e, Level.ERROR, Force.FORCE)
+                    l_csv_writer.writerow([l_name, l_email, l_sso_email, l_groups, e])
+                except ImportError as e:
+                    self.__mPrinter.print(e, Level.ERROR, Force.FORCE)
+                    l_csv_writer.writerow([l_name, l_email, l_sso_email, l_groups, e])
+                except Exception as e:
+                    self.__mPrinter.print(e, Level.ERROR, Force.FORCE)
+                    l_csv_writer.writerow([l_name, l_email, l_sso_email, l_groups, e])
+        except FileNotFoundError as e:
+            self.__mPrinter.print("__upload_websites(): Cannot find the input file - {0}".format(str(e)), Level.ERROR)
+        except Exception as e:
+            self.__mPrinter.print("__upload_websites() - {0}:{1}".format(l_name, str(e)), Level.ERROR)
+        finally:
+            if l_output_file:
+                l_output_file.close()
+
+    def upload_team_members(self) -> None:
+        print("Not implemented")
+        exit()
+        try:
+            l_team_members: list = self.__parse_team_member_upload()
+            self.__upload_team_members(l_team_members)
+        except Exception as e:
+            self.__mPrinter.print("upload_team_members() - {0}".format(str(e)), Level.ERROR)
 
     # ------------------------------------------------------------
     # Technologies Methods

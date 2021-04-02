@@ -87,8 +87,6 @@ class Parser:
 
         # Team Member
         Parser.get_team_member = p_args.get_team_member
-        Parser.team_member_id = p_args.team_member_id
-        Parser.team_member_email = p_args.team_member_email
 
         # Team Members
         Parser.get_team_members = p_args.get_team_members
@@ -97,6 +95,15 @@ class Parser:
         Parser.get_api_accounts = p_args.get_api_accounts
         Parser.get_scan_accounts = p_args.get_scan_accounts
         Parser.get_disabled_accounts = p_args.get_disabled_accounts
+        Parser.create_team_member = p_args.create_team_member
+        Parser.upload_team_members = p_args.upload_team_members
+
+        # Team Member Attributes
+        Parser.team_member_id = p_args.team_member_id
+        Parser.team_member_name = p_args.team_member_name
+        Parser.team_member_email = p_args.team_member_email
+        Parser.team_member_sso_email = p_args.team_member_sso_email
+        Parser.team_member_group = p_args.team_member_group
 
         # Technologies
         Parser.get_technologies = p_args.get_technologies

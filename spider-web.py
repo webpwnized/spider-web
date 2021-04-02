@@ -8,7 +8,7 @@ import config as __config
 from argparse import RawTextHelpFormatter
 import argparse
 
-l_version = '1.0.42'
+l_version = '1.0.43'
 
 def print_version() -> None:
     if Parser.verbose:
@@ -164,6 +164,15 @@ def print_example_usage() -> None:
 
     spider-web -tmgda -pn 1 -ps 200 -of disabled-accounts.txt
     spider-web --get-disabled-accounts --page-number 1 --page-size 200 ---output-file disabled-accounts.txt
+
+    --------------------------------
+    Create Team Members
+    --------------------------------
+    spider-web -tmctm -tmn "John Doe" -tme "jdoe@acme.com" -tmsso "156@acme.com" -tmg 
+    spider-web --create-team-member --team-member-name "John Doe" --team-member-email "jdoe@acme.com" --team-member-sso-email "156@acme.com"
+
+    spider-web -tmuptm -if new-team-members.csv
+    spider-web --upload-team-members --input-file new-team-members.csv
 
     --------------------------------
     Get Technologies
@@ -357,7 +366,7 @@ def run_main_program():
         Parser.get_obsolete_technologies or Parser.get_scan_profiles or Parser.get_scan_profile or \
         Parser.get_account_managers or Parser.get_api_accounts or Parser.get_scan_accounts or \
         Parser.get_disabled_accounts or Parser.get_website_managers or Parser.get_team_member or \
-        Parser.get_scan_results:
+        Parser.get_scan_results or Parser.upload_team_members or Parser.create_team_member:
             l_api = API(p_parser=Parser)
     else:
         lArgParser.print_usage()
@@ -387,9 +396,25 @@ def run_main_program():
             exit(0)
         l_api.get_team_member()
         exit(0)
-
+        
     if Parser.get_team_members:
         l_api.get_team_members()
+        exit(0)
+
+    if Parser.create_team_member:
+        if not (Parser.team_member_name and Parser.team_member_email and Parser.team_member_sso_email and Parser.team_member_group):
+            lArgParser.print_usage()
+            Printer.print("Requires -tmn, --team-member-name, -tme, --team-member-email, -tmsso, --team-member-sso-email, and -tmg, --team-member-group", Level.ERROR, Force.FORCE, LINES_BEFORE, LINES_AFTER)
+            exit(0)
+        l_api.create_team_member()
+        exit(0)
+
+    if Parser.upload_team_members:
+        if not Parser.input_filename:
+            lArgParser.print_usage()
+            Printer.print("Required argument --input-file not provided", Level.ERROR, Force.FORCE, LINES_BEFORE, LINES_AFTER)
+            exit(0)
+        l_api.upload_team_members()
         exit(0)
 
     if Parser.get_account_managers:
@@ -738,14 +763,32 @@ if __name__ == '__main__':
     l_team_member_group.add_argument('-tmgda', '--get-disabled-accounts',
                                  help='List accounts that are disabled and exit. Output fetched in pages.',
                                  action='store_true')
+    l_team_member_group.add_argument('-tmctm', '--create-team-member',
+                                 help='Create a team member and exit. Requires -tmn, --team-member-name, -tme, --team-member-email, -tmsso, --team-member-sso-email, and -tmg, --team-member-group',
+                                 action='store_true')
+    l_team_member_group.add_argument('-tmuptm', '--upload-team-members',
+                                 help='Create team members and exit. Requires properly formatted input file: CSV with fields TEAM_MEMBER_NAME, TEAM_MEMBER_EMAIL, TEAM_MEMBER_GROUPS. TEAM_MEMBER_GROUPS must be pipe delimited. Include input file with -if, --input-filename',
+                                 action='store_true')
 
     l_scan_profiles_options_group = lArgParser.add_argument_group(title="Team Member Endpoints Options", description=None)
     l_scan_profiles_options_group.add_argument('-tmid', '--team-member-id',
                                  help='The team member ID',
                                  type=str,
                                  action='store')
+    l_scan_profiles_options_group.add_argument('-tmn', '--team-member-name',
+                                 help='The team member full name',
+                                 type=str,
+                                 action='store')
     l_scan_profiles_options_group.add_argument('-tme', '--team-member-email',
                                  help='The team member email address',
+                                 type=str,
+                                 action='store')
+    l_scan_profiles_options_group.add_argument('-tmsso', '--team-member-sso-email',
+                                 help='The single-sign on (SSO) email address the team member uses to log in when using SSO',
+                                 type=str,
+                                 action='store')
+    l_scan_profiles_options_group.add_argument('-tmg', '--team-member-group',
+                                 help='The primary group the team member resides within',
                                  type=str,
                                  action='store')
 
