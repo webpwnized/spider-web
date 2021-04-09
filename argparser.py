@@ -16,6 +16,7 @@ class Parser:
     log_level: int = 0
     log_format: str = ""
     use_proxy: bool = False
+    use_proxy_authentication: bool = False
     proxy_url: str = ""
     proxy_port: int = 0
     proxy_username: str = ""
@@ -43,6 +44,7 @@ class Parser:
         Parser.use_proxy = p_config.USE_PROXY
         Parser.proxy_url = p_config.PROXY_URL
         Parser.proxy_port = p_config.PROXY_PORT
+        Parser.use_proxy_authentication = p_config.USE_PROXY_AUTHENTICATION
         Parser.proxy_username = p_config.PROXY_USERNAME
         Parser.proxy_password = p_config.PROXY_PASSWORD
 

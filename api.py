@@ -391,6 +391,7 @@ class API:
         self.__m_use_proxy = Parser.use_proxy
         self.__m_proxy_url = Parser.proxy_url
         self.__m_proxy_port = Parser.proxy_port
+        self.__m_use_proxy_authentication = Parser.use_proxy_authentication
         self.__m_proxy_username = Parser.proxy_username
         self.__m_proxy_password = Parser.proxy_password
         self.__mPrinter.verbose = Parser.verbose
@@ -440,7 +441,7 @@ class API:
         except Exception as e:
             self.__mPrinter.print("__get_access_token() - {0}".format(str(e)), Level.ERROR)
 
-    def __connect_to_api(self, p_url: str, p_method: str=HTTPMethod.GET.value, p_data: str=None, p_json: str=None) -> requests.Response:
+    def __connect_to_api(self, p_url: str, p_method: str=HTTPMethod.GET.value, p_data: str=None, p_json=None) -> requests.Response:
         l_authentication_header: str = ""
         try:
             self.__mPrinter.print("Connecting to API", Level.INFO)
@@ -470,7 +471,7 @@ class API:
         except Exception as e:
             self.__mPrinter.print("__connect_to_api() - {0}".format(str(e)), Level.ERROR)
 
-    def __call_api(self, p_url: str, p_headers: dict, p_method: str=HTTPMethod.GET.value, p_data: str=None, p_json: str=None) -> requests.Response:
+    def __call_api(self, p_url: str, p_headers: dict, p_method: str=HTTPMethod.GET.value, p_data: str=None, p_json=None) -> requests.Response:
         l_proxies: dict = {}
         try:
             if self.__m_use_proxy:
@@ -512,13 +513,19 @@ class API:
             SCHEME = 0
             BASE_URL = 1
             l_proxy_handler: str = ""
-            if not self.__m_proxy_password:
-                self.__m_proxy_password = getpass.getpass('Please Enter Proxy Password: ')
+            l_proxy_credentials: str = ""
+            if self.__m_use_proxy_authentication:
+                if not self.__m_proxy_password:
+                    self.__m_proxy_password = getpass.getpass('Please Enter Proxy Password: ')
+                l_proxy_credentials: str = "{}{}{}".format(
+                    self.__m_proxy_username if self.__m_proxy_username else '',
+                    ':' if self.__m_proxy_password else '',
+                    requests.utils.requote_uri(self.__m_proxy_password) if self.__m_proxy_password else ''
+                )
             l_parts = self.__m_proxy_url.split('://')
-            l_http_proxy_url: str = 'http://{}{}{}@{}{}{}'.format(
-                self.__m_proxy_username if self.__m_proxy_username else '',
-                ':' if self.__m_proxy_password else '',
-                requests.utils.requote_uri(self.__m_proxy_password) if self.__m_proxy_password else '',
+            l_http_proxy_url: str = 'http://{}{}{}{}{}'.format(
+                l_proxy_credentials,
+                '@' if l_proxy_credentials else '',
                 l_parts[BASE_URL],
                 ':' if self.__m_proxy_port else '',
                 self.__m_proxy_port if self.__m_proxy_port else ''
@@ -916,7 +923,7 @@ class API:
 
     def __build_team_member_create_json(self, p_name: str, p_email: str, p_sso_email: str, p_groups: str) -> str:
         try:
-            l_json: str = '{"OnlySsoLogin": true, "AutoGeneratePassword": false, ' \
+            l_json: str = '{"OnlySsoLogin": true, "AutoGeneratePassword": true, ' \
                 '"SendNotification": true, ' + \
                 '"PhoneNumber": "", "AccountPermissions": "", "TimezoneId": ' + \
                 '"EST Standard Time", "WebsiteGroups": "' + \
@@ -928,16 +935,16 @@ class API:
                 p_name + \
                 '", ' + \
                 '"IsApiAccessEnabled": false, "AllowedWebsiteLimit": 0}'
-            return l_json
+            return json.loads(l_json)
         except Exception as e:
             self.__mPrinter.print("__build_team_member_create_json() - {0}".format(str(e)), Level.ERROR)
 
     def create_team_member(self) -> None:
         # TODO: Not implemented, Not debugged
-        print("TODO: Not implemented. Not Debugged.")
-        exit()
+        #print("TODO: Not implemented. Not Debugged.")
+        #exit()
         try:
-            l_json: str = self.__build_team_member_create_json(
+            l_json = self.__build_team_member_create_json(
                 Parser.team_member_name, Parser.team_member_email,
                 Parser.team_member_sso_email, Parser.team_member_group
             )
