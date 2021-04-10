@@ -945,20 +945,21 @@ class API:
             l_groups: list = p_groups.split("|")
             l_groups_string: str = ', '.join('"{0}"'.format(g) for g in l_groups)
 
-            l_json: str = '{"OnlySsoLogin": true, "AutoGeneratePassword": true, ' \
+            l_json: str = \
+                '{"OnlySsoLogin": true, ' + \
+                '"AutoGeneratePassword": true, ' + \
                 '"SendNotification": true, ' + \
-                '"PhoneNumber": "", "AccountPermissions": "", "TimezoneId": ' + \
-                '"Eastern Standard Time", "WebsiteGroupNames": [' + \
-                l_groups_string + \
-                '], "ScanPermissions": "", ' + \
-                '"DateTimeFormat": "MM/dd/yyyy", "Email": "' + \
-                p_email + \
-                '", "AlternateLoginEmail": "' + \
-                p_sso_email + \
-                '", "Name": "' + \
-                p_name + \
-                '", ' + \
-                '"IsApiAccessEnabled": false, "AllowedWebsiteLimit": 0}'
+                '"PhoneNumber": "", ' + \
+                '"AccountPermissions": "", ' + \
+                '"TimezoneId": "Eastern Standard Time", ' + \
+                '"WebsiteGroupNames": [' + l_groups_string + '], ' + \
+                '"ScanPermissions": "ViewScanReports,ManageIssuesAsRestricted", ' + \
+                '"DateTimeFormat": "MM/dd/yyyy", ' + \
+                '"Email": "' + p_email + '", ' + \
+                '"AlternateLoginEmail": "' + p_sso_email + '", ' + \
+                '"Name": "' + p_name + '", ' + \
+                '"IsApiAccessEnabled": false, ' + \
+                '"AllowedWebsiteLimit": 0}'
             return json.loads(l_json)
         except Exception as e:
             self.__mPrinter.print("__build_team_member_create_json() - {0}".format(str(e)), Level.ERROR)
