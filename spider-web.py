@@ -8,7 +8,7 @@ import config as __config
 from argparse import RawTextHelpFormatter
 import argparse
 
-l_version = '1.0.44'
+l_version = '1.0.45'
 
 def print_version() -> None:
     if Parser.verbose:
@@ -168,8 +168,8 @@ def print_example_usage() -> None:
     --------------------------------
     Create Team Members
     --------------------------------
-    spider-web -tmctm -tmn "John Doe" -tme "jdoe@acme.com" -tmsso "156@acme.com" -tmg 
-    spider-web --create-team-member --team-member-name "John Doe" --team-member-email "jdoe@acme.com" --team-member-sso-email "156@acme.com"
+    spider-web -tmctm -tmn "John Doe" -tme "jdoe@acme.com" -tmsso "100000@acme.com" -tmg "SDG: Airline, Fleet & Freight (AFF)"|"SDG: Customer and Billing (CAB)" 
+    spider-web --create-team-member --team-member-name "John Doe" --team-member-email "jdoe@acme.com" --team-member-sso-email "100000@acme.com" --team-member-groups "SDG: Airline, Fleet & Freight (AFF)"|"SDG: Customer and Billing (CAB)"
 
     spider-web -tmuptm -if new-team-members.csv
     spider-web --upload-team-members --input-file new-team-members.csv
@@ -402,9 +402,9 @@ def run_main_program():
         exit(0)
 
     if Parser.create_team_member:
-        if not (Parser.team_member_name and Parser.team_member_email and Parser.team_member_sso_email and Parser.team_member_group):
+        if not (Parser.team_member_name and Parser.team_member_email and Parser.team_member_sso_email and Parser.team_member_groups):
             lArgParser.print_usage()
-            Printer.print("Requires -tmn, --team-member-name, -tme, --team-member-email, -tmsso, --team-member-sso-email, and -tmg, --team-member-group", Level.ERROR, Force.FORCE, LINES_BEFORE, LINES_AFTER)
+            Printer.print("Requires -tmn, --team-member-name, -tme, --team-member-email, -tmsso, --team-member-sso-email, and -tmg, --team-member-groups", Level.ERROR, Force.FORCE, LINES_BEFORE, LINES_AFTER)
             exit(0)
         l_api.create_team_member()
         exit(0)
@@ -764,7 +764,7 @@ if __name__ == '__main__':
                                  help='List accounts that are disabled and exit. Output fetched in pages.',
                                  action='store_true')
     l_team_member_group.add_argument('-tmctm', '--create-team-member',
-                                 help='Create a team member and exit. Requires -tmn, --team-member-name, -tme, --team-member-email, -tmsso, --team-member-sso-email, and -tmg, --team-member-group',
+                                 help='Create a team member and exit. Requires -tmn, --team-member-name, -tme, --team-member-email, -tmsso, --team-member-sso-email, and -tmg, --team-member-groups',
                                  action='store_true')
     l_team_member_group.add_argument('-tmuptm', '--upload-team-members',
                                  help='Create team members and exit. Requires properly formatted input file: CSV with fields TEAM_MEMBER_NAME, TEAM_MEMBER_EMAIL, TEAM_MEMBER_GROUPS. TEAM_MEMBER_GROUPS must be pipe delimited. Include input file with -if, --input-filename',
@@ -787,8 +787,8 @@ if __name__ == '__main__':
                                  help='The single-sign on (SSO) email address the team member uses to log in when using SSO',
                                  type=str,
                                  action='store')
-    l_scan_profiles_options_group.add_argument('-tmg', '--team-member-group',
-                                 help='The primary group the team member resides within',
+    l_scan_profiles_options_group.add_argument('-tmg', '--team-member-groups',
+                                 help='The website groups the team member has membership within. TEAM_MEMBER_GROUPS must be pipe delimited if passing more than one.',
                                  type=str,
                                  action='store')
 

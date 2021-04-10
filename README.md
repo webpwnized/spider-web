@@ -36,8 +36,10 @@
                       [-idsd INITIATED_DATE_SORT_DIRECTION] [-spgsp]
                       [-spid SCAN_PROFILE_ID] [-spn SCAN_PROFILE_NAME] [-spgsps]
                       [-srgsr] [-sid SCAN_ID] [-tmgtms] [-tmgtm] [-tmgam] [-tmgwm]
-                      [-tmgapia] [-tmgsa] [-tmgda] [-tmid TEAM_MEMBER_ID]
-                      [-tme TEAM_MEMBER_EMAIL] [-tgt] [-tgot]
+                      [-tmgapia] [-tmgsa] [-tmgda] [-tmctm] [-tmuptm]
+                      [-tmid TEAM_MEMBER_ID] [-tmn TEAM_MEMBER_NAME]
+                      [-tme TEAM_MEMBER_EMAIL] [-tmsso TEAM_MEMBER_SSO_EMAIL]
+                      [-tmg TEAM_MEMBER_GROUPS] [-tgt] [-tgot]
                       [-tn TECHNOLOGY_NAME] [-wgwbu] [-wgwbn] [-wgwbid]
                       [-wid WEBSITE_ID] [-wgw] [-wgwbgn] [-wgwbgid] [-wupw]
                       [-wgn WEBSITE_GROUP_NAME] [-wgid WEBSITE_GROUP_ID] [-wggwg]
@@ -137,12 +139,22 @@
                             List users with permissions to start scans and exit. Output fetched in pages.
       -tmgda, --get-disabled-accounts
                             List accounts that are disabled and exit. Output fetched in pages.
+      -tmctm, --create-team-member
+                            Create a team member and exit. Requires -tmn, --team-member-name, -tme, --team-member-email, -tmsso, --team-member-sso-email, and -tmg, --team-member-groups
+      -tmuptm, --upload-team-members
+                            Create team members and exit. Requires properly formatted input file: CSV with fields TEAM_MEMBER_NAME, TEAM_MEMBER_EMAIL, TEAM_MEMBER_GROUPS. TEAM_MEMBER_GROUPS must be pipe delimited. Include input file with -if, --input-filename
     
     Team Member Endpoints Options:
       -tmid TEAM_MEMBER_ID, --team-member-id TEAM_MEMBER_ID
                             The team member ID
+      -tmn TEAM_MEMBER_NAME, --team-member-name TEAM_MEMBER_NAME
+                            The team member full name
       -tme TEAM_MEMBER_EMAIL, --team-member-email TEAM_MEMBER_EMAIL
                             The team member email address
+      -tmsso TEAM_MEMBER_SSO_EMAIL, --team-member-sso-email TEAM_MEMBER_SSO_EMAIL
+                            The single-sign on (SSO) email address the team member uses to log in when using SSO
+      -tmg TEAM_MEMBER_GROUPS, --team-member-groups TEAM_MEMBER_GROUPS
+                            The website groups the team member has membership within. TEAM_MEMBER_GROUPS must be pipe delimited if passing more than one.
     
     Technologies Endpoints:
       -tgt, --get-technologies
@@ -338,6 +350,13 @@
 
     spider-web -tmgda -pn 1 -ps 200 -of disabled-accounts.txt
     spider-web --get-disabled-accounts --page-number 1 --page-size 200 ---output-file disabled-accounts.txt
+
+#### Create Team Members
+    spider-web -tmctm -tmn "John Doe" -tme "jdoe@acme.com" -tmsso "100000@acme.com" -tmg "SDG: Airline, Fleet & Freight (AFF)"|"SDG: Customer and Billing (CAB)" 
+    spider-web --create-team-member --team-member-name "John Doe" --team-member-email "jdoe@acme.com" --team-member-sso-email "100000@acme.com" --team-member-groups "SDG: Airline, Fleet & Freight (AFF)"|"SDG: Customer and Billing (CAB)"
+
+    spider-web -tmuptm -if new-team-members.csv
+    spider-web --upload-team-members --input-file new-team-members.csv
 
 #### Get Technologies Information
     spider-web -tgt -pn 1 -ps 200 -wn www.acme.com

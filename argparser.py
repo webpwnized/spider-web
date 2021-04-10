@@ -105,7 +105,7 @@ class Parser:
         Parser.team_member_name = p_args.team_member_name
         Parser.team_member_email = p_args.team_member_email
         Parser.team_member_sso_email = p_args.team_member_sso_email
-        Parser.team_member_group = p_args.team_member_group
+        Parser.team_member_groups = p_args.team_member_groups
 
         # Technologies
         Parser.get_technologies = p_args.get_technologies

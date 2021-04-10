@@ -922,15 +922,39 @@ class API:
             self.__mPrinter.print("get_team_member() - {0}".format(str(e)), Level.ERROR)
 
     def __build_team_member_create_json(self, p_name: str, p_email: str, p_sso_email: str, p_groups: str) -> str:
+        # Example Model
+        # {
+        #     "OnlySsoLogin": false,
+        #     "AutoGeneratePassword": true,
+        #     "Password": "",
+        #     "SendNotification": true,
+        #     "PhoneNumber": "",
+        #     "AccountPermissions": "ManageWebsites",
+        #     "TimezoneId": "GMT Standard Time",
+        #     "WebsiteGroupNames": ["SDG: Advanced Analytics Group (AAG)"],
+        #     "ScanPermissions": "",
+        #     "DateTimeFormat": "dd/MM/yyyy",
+        #     "Email": "jdoe@email.com",
+        #     "Name": "string",
+        #     "ConfirmPassword": "",
+        #     "IsApiAccessEnabled": true,
+        #     "AllowedWebsiteLimit": 0
+        # }
+
         try:
+            l_groups: list = p_groups.split("|")
+            l_groups_string: str = ', '.join('"{0}"'.format(g) for g in l_groups)
+
             l_json: str = '{"OnlySsoLogin": true, "AutoGeneratePassword": true, ' \
                 '"SendNotification": true, ' + \
                 '"PhoneNumber": "", "AccountPermissions": "", "TimezoneId": ' + \
-                '"EST Standard Time", "WebsiteGroups": "' + \
-                p_groups + \
-                '", "ScanPermissions": "", ' + \
-                '"DateTimeFormat": "dd/MM/yyyy", "Email": "' + \
+                '"Eastern Standard Time", "WebsiteGroupNames": [' + \
+                l_groups_string + \
+                '], "ScanPermissions": "", ' + \
+                '"DateTimeFormat": "MM/dd/yyyy", "Email": "' + \
                 p_email + \
+                '", "AlternateLoginEmail": "' + \
+                p_sso_email + \
                 '", "Name": "' + \
                 p_name + \
                 '", ' + \
@@ -946,7 +970,7 @@ class API:
         try:
             l_json = self.__build_team_member_create_json(
                 Parser.team_member_name, Parser.team_member_email,
-                Parser.team_member_sso_email, Parser.team_member_group
+                Parser.team_member_sso_email, Parser.team_member_groups
             )
             self.__mPrinter.print("Creating team member {}".format(l_json), Level.INFO)
             l_http_response = self.__connect_to_api(p_url=self.__cTEAM_MEMBER_CREATE_URL,
@@ -1148,9 +1172,9 @@ class API:
                     self.__mPrinter.print(e, Level.ERROR, Force.FORCE)
                     l_csv_writer.writerow([l_name, l_email, l_sso_email, l_groups, e])
         except FileNotFoundError as e:
-            self.__mPrinter.print("__upload_websites(): Cannot find the input file - {0}".format(str(e)), Level.ERROR)
+            self.__mPrinter.print("__upload_team_members(): Cannot find the input file - {0}".format(str(e)), Level.ERROR)
         except Exception as e:
-            self.__mPrinter.print("__upload_websites() - {0}:{1}".format(l_name, str(e)), Level.ERROR)
+            self.__mPrinter.print("__upload_team_members() - {0}:{1}".format(l_name, str(e)), Level.ERROR)
         finally:
             if l_output_file:
                 l_output_file.close()
