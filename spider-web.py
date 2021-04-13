@@ -8,7 +8,7 @@ import config as __config
 from argparse import RawTextHelpFormatter
 import argparse
 
-l_version = '1.0.46'
+l_version = '1.0.47'
 
 def print_version() -> None:
     if Parser.verbose:
@@ -168,8 +168,11 @@ def print_example_usage() -> None:
     --------------------------------
     Create Team Members
     --------------------------------
-    spider-web -tmctm -tmn "John Doe" -tme "jdoe@acme.com" -tmsso "100000@acme.com" -tmg "SDG: Airline, Fleet & Freight (AFF)"|"SDG: Customer and Billing (CAB)" 
-    spider-web --create-team-member --team-member-name "John Doe" --team-member-email "jdoe@acme.com" --team-member-sso-email "100000@acme.com" --team-member-groups "SDG: Airline, Fleet & Freight (AFF)"|"SDG: Customer and Billing (CAB)"
+    spider-web -tmctm -tmn "John Doe" -tme "jdoe@acme.com" -tmsso "100000@acme.com" -tmg "SDG: Airline, Fleet & Freight (AFF)" 
+    spider-web --create-team-member --team-member-name "John Doe" --team-member-email "jdoe@acme.com" --team-member-sso-email "100000@acme.com" --team-member-groups "SDG: Airline, Fleet & Freight (AFF)"
+
+    spider-web -tmctm -tmn "John Doe" -tme "jdoe@acme.com" -tmsso "100000@acme.com" -tmg "SDG: Airline, Fleet & Freight (AFF)|SDG: Customer and Billing (CAB)" 
+    spider-web --create-team-member --team-member-name "John Doe" --team-member-email "jdoe@acme.com" --team-member-sso-email "100000@acme.com" --team-member-groups "SDG: Airline, Fleet & Freight (AFF)|SDG: Customer and Billing (CAB)"
 
     spider-web -tmuptm -if new-team-members.csv
     spider-web --upload-team-members --input-file new-team-members.csv
@@ -776,7 +779,7 @@ if __name__ == '__main__':
                                  type=str,
                                  action='store')
     l_scan_profiles_options_group.add_argument('-tmn', '--team-member-name',
-                                 help='The team member full name',
+                                 help='The team member full name. It is best practice to quote the name.',
                                  type=str,
                                  action='store')
     l_scan_profiles_options_group.add_argument('-tme', '--team-member-email',
@@ -788,7 +791,7 @@ if __name__ == '__main__':
                                  type=str,
                                  action='store')
     l_scan_profiles_options_group.add_argument('-tmg', '--team-member-groups',
-                                 help='The website groups the team member has membership within. TEAM_MEMBER_GROUPS must be pipe delimited if passing more than one.',
+                                 help='The website groups the team member has membership within. TEAM_MEMBER_GROUPS must be pipe delimited if passing more than one. It is best practice to quote the entire string, but do not quote the individual group names.',
                                  type=str,
                                  action='store')
 
