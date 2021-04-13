@@ -599,6 +599,13 @@ class API:
         except Exception as e:
             self.__mPrinter.print("__get_next_page() - {0}".format(str(e)), Level.ERROR)
 
+    def __email_is_valid(self, p_email: str) -> bool:
+        try:
+            l_email_pattern = re.compile(r'^[a-z0-9]+[\._]?[a-z0-9]+[@]\w+[.]\w{2,3}$', re.IGNORECASE)
+            return re.match(l_email_pattern, p_email)
+        except Exception as e:
+            self.__mPrinter.print("__email_is_valid() - {0}".format(str(e)), Level.ERROR)
+
     def __url_is_valid(self, p_url: str) -> bool:
         try:
             l_url_pattern = re.compile(
@@ -921,6 +928,36 @@ class API:
         except Exception as e:
             self.__mPrinter.print("get_team_member() - {0}".format(str(e)), Level.ERROR)
 
+    def __parse_team_member_name(self, p_name: str) -> str:
+        if not p_name:
+            raise ValueError('__parse_team_member_name(): Name cannot be blank')
+        return p_name.title()
+
+    def __parse_team_member_email(self, p_email: str) -> str:
+        l_email: str = p_email.lower()
+        if not l_email:
+            raise ValueError('__parse_team_member_email(): Email cannot be blank')
+        if not self.__email_is_valid(l_email):
+            raise ValueError('__parse_team_member_email(): Email is not valid')
+        return l_email
+
+    def __parse_team_member_sso_email(self, p_sso_email: str) -> str:
+        l_sso_email: str = p_sso_email.lower()
+        if not l_sso_email:
+            raise ValueError('__parse_team_member_sso_email(): SSO email cannot be blank')
+        if not self.__email_is_valid(l_sso_email):
+            raise ValueError('__parse_team_member_sso_email(): SSO email is not valid')
+        return l_sso_email
+
+    def __parse_team_member_groups(self, p_groups: str) -> str:
+        if not p_groups:
+            raise ValueError('__parse_team_member_groups(): Team member groups cannot be blank')
+
+        l_groups: list = p_groups.split("|")
+        l_groups_string: str = ', '.join('"{0}"'.format(g) for g in l_groups)
+
+        return l_groups_string
+
     def __build_team_member_create_json(self, p_name: str, p_email: str, p_sso_email: str, p_groups: str) -> str:
         # Example Model
         # {
@@ -942,9 +979,6 @@ class API:
         # }
 
         try:
-            l_groups: list = p_groups.split("|")
-            l_groups_string: str = ', '.join('"{0}"'.format(g) for g in l_groups)
-
             l_json: str = \
                 '{"OnlySsoLogin": true, ' + \
                 '"AutoGeneratePassword": true, ' + \
@@ -952,7 +986,7 @@ class API:
                 '"PhoneNumber": "", ' + \
                 '"AccountPermissions": "", ' + \
                 '"TimezoneId": "Eastern Standard Time", ' + \
-                '"WebsiteGroupNames": [' + l_groups_string + '], ' + \
+                '"WebsiteGroupNames": [' + p_groups + '], ' + \
                 '"ScanPermissions": "ViewScanReports,ManageIssuesAsRestricted", ' + \
                 '"DateTimeFormat": "MM/dd/yyyy", ' + \
                 '"Email": "' + p_email + '", ' + \
@@ -964,20 +998,28 @@ class API:
         except Exception as e:
             self.__mPrinter.print("__build_team_member_create_json() - {0}".format(str(e)), Level.ERROR)
 
+    def __create_team_member(self, p_name: str, p_email: str, p_sso_email: str, p_groups: str) -> None:
+        l_json = self.__build_team_member_create_json(
+            p_name, p_email,
+            p_sso_email, p_groups
+        )
+        self.__mPrinter.print("Creating team member {}".format(l_json), Level.INFO)
+        l_http_response = self.__connect_to_api(p_url=self.__cTEAM_MEMBER_CREATE_URL,
+                                                p_method=HTTPMethod.POST.value,
+                                                p_data=None, p_json=l_json)
+        if l_http_response:
+            self.__mPrinter.print("Created team member {0}".format(p_name), Level.INFO, Force.FORCE)
+        else:
+            raise ImportError("Unable to create team member {}".format(p_name))
+
     def create_team_member(self) -> None:
-        # TODO: Not implemented, Not debugged
-        #print("TODO: Not implemented. Not Debugged.")
-        #exit()
         try:
-            l_json = self.__build_team_member_create_json(
-                Parser.team_member_name, Parser.team_member_email,
-                Parser.team_member_sso_email, Parser.team_member_groups
-            )
-            self.__mPrinter.print("Creating team member {}".format(l_json), Level.INFO)
-            l_http_response = self.__connect_to_api(p_url=self.__cTEAM_MEMBER_CREATE_URL,
-                                                    p_method=HTTPMethod.POST.value,
-                                                    p_data=None, p_json=l_json)
-            self.__mPrinter.print("Created team member {}".format(l_json), Level.INFO)
+            l_name: str = self.__parse_team_member_groups(Parser.team_member_name)
+            l_email: str = self.__parse_team_member_groups(Parser.team_member_email)
+            l_sso_email: str = self.__parse_team_member_groups(Parser.team_member_sso_email)
+            l_groups: str = self.__parse_team_member_groups(Parser.team_member_groups)
+
+            self.__create_team_member(l_name, l_email, l_sso_email, l_groups)
         except Exception as e:
             self.__mPrinter.print("create_team_member() - {0}".format(str(e)), Level.ERROR)
 
@@ -1116,9 +1158,10 @@ class API:
                 for l_row in l_csv_reader:
                     if l_row:
                         l_name: str = l_row[TeamMemberUploadFileFields.NAME.value]
+                        l_email: str = l_row[TeamMemberUploadFileFields.EMAIL.value]
                         l_team_members.append((
                             l_name,
-                            l_row[TeamMemberUploadFileFields.EMAIL.value],
+                            l_email,
                             l_row[TeamMemberUploadFileFields.SSO_EMAIL.value],
                             l_row[TeamMemberUploadFileFields.GROUPS.value])
                         )
@@ -1127,7 +1170,7 @@ class API:
             self.__mPrinter.print("__parse_website_upload(): Cannot find the input file {0} - {1}".format(Parser.input_filename, str(e)), Level.ERROR)
             raise FileNotFoundError(e)
         except Exception as e:
-            self.__mPrinter.print("__parse_team_member_upload() - {0}:{1}".format(l_name, str(e)), Level.ERROR)
+            self.__mPrinter.print("__parse_team_member_upload() - {0} ({1}):{2}".format(l_name, l_email, str(e)), Level.ERROR)
         finally:
             if l_input_file:
                 l_input_file.close()
@@ -1146,22 +1189,12 @@ class API:
 
             for l_team_member in p_team_members:
                 try:
-                    l_name = l_team_member[TeamMemberUploadFileFields.URL.value]
-                    l_email = l_team_member[TeamMemberUploadFileFields.EMAIL.value]
-                    l_sso_email = l_team_member[TeamMemberUploadFileFields.EMAIL.value]
-                    l_groups = l_team_member[TeamMemberUploadFileFields.GROUPS.value]
-                    l_json_string = self.__build_team_member_create_json()
-                    l_json=json.loads(l_json_string)
+                    l_name = self.__parse_team_member_name(l_team_member[TeamMemberUploadFileFields.NAME.value])
+                    l_email = self.__parse_team_member_email(l_team_member[TeamMemberUploadFileFields.EMAIL.value])
+                    l_sso_email = self.__parse_team_member_sso_email(l_team_member[TeamMemberUploadFileFields.SSO_EMAIL.value])
+                    l_groups = self.__parse_team_member_groups(l_team_member[TeamMemberUploadFileFields.GROUPS.value])
 
-                    self.__mPrinter.print("Uploading team member {}".format(l_name), Level.INFO)
-                    l_http_response = self.__connect_to_api(p_url=self.__cTEAM_MEMBER_CREATE_URL,
-                                                           p_method=HTTPMethod.POST.value,
-                                                           p_data=None, p_json=l_json)
-
-                    if l_http_response:
-                        self.__mPrinter.print("Uploaded team member {0}".format(l_name), Level.INFO, Force.FORCE)
-                    else:
-                        raise ImportError("Unable to upload team member {}".format(l_name))
+                    self.__create_team_member(l_name, l_email, l_sso_email, l_groups)
 
                 except ValueError as e:
                     self.__mPrinter.print(e, Level.ERROR, Force.FORCE)
@@ -1175,15 +1208,13 @@ class API:
         except FileNotFoundError as e:
             self.__mPrinter.print("__upload_team_members(): Cannot find the input file - {0}".format(str(e)), Level.ERROR)
         except Exception as e:
-            self.__mPrinter.print("__upload_team_members() - {0}:{1}".format(l_name, str(e)), Level.ERROR)
+            self.__mPrinter.print("__upload_team_members() - {0} ({1}):{2}".format(l_name, l_email, str(e)), Level.ERROR)
         finally:
             if l_output_file:
                 l_output_file.close()
 
     def upload_team_members(self) -> None:
         # TODO: Not implemented, Not debugged
-        print("TODO: Not implemented. Not Debugged.")
-        exit()
         try:
             l_team_members: list = self.__parse_team_member_upload()
             self.__upload_team_members(l_team_members)
@@ -1417,16 +1448,13 @@ class API:
             self.__mPrinter.print("__build_website_json() - {0}".format(str(e)), Level.ERROR)
 
     def __parse_website_url(self, p_url: str) -> str:
-        try:
-            l_url = p_url.lower()
-            if not self.__url_is_valid(l_url):
-                raise ValueError('__parse_url(): URL is not valid: {}'.format(l_url))
-            if not self.__url_is_secure(l_url):
-                raise ValueError('__parse_url(): URL is not secure. Protocol must be HTTPS: {}'.format(l_url))
-            l_url = 'https://{0}/'.format(urlparse(l_url).hostname)
-            return l_url
-        except Exception as e:
-            self.__mPrinter.print("__parse_website_url() - {0}".format(str(e)), Level.ERROR)
+        l_url = p_url.lower()
+        if not self.__url_is_valid(l_url):
+            raise ValueError('__parse_url(): URL is not valid: {}'.format(l_url))
+        if not self.__url_is_secure(l_url):
+            raise ValueError('__parse_url(): URL is not secure. Protocol must be HTTPS: {}'.format(l_url))
+        l_url = 'https://{0}/'.format(urlparse(l_url).hostname)
+        return l_url
 
     def __parse_website_groups(self, p_groups: str, p_url: str) -> str:
         try:
