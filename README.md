@@ -142,7 +142,7 @@
       -tmctm, --create-team-member
                             Create a team member and exit. Requires -tmn, --team-member-name, -tme, --team-member-email, -tmsso, --team-member-sso-email, and -tmg, --team-member-groups
       -tmuptm, --upload-team-members
-                            Create team members and exit. Requires properly formatted input file: CSV with fields TEAM_MEMBER_NAME, TEAM_MEMBER_EMAIL, TEAM_MEMBER_GROUPS. TEAM_MEMBER_GROUPS must be pipe delimited. Include input file with -if, --input-filename
+                            Create team members and exit. Requires properly formatted input file: CSV with fields TEAM_MEMBER_NAME, TEAM_MEMBER_EMAIL, TEAM_MEMBER_SSO_EMAIL, TEAM_MEMBER_GROUPS. TEAM_MEMBER_GROUPS must be pipe delimited. All the rules of CSV formatting apply such as quoting fields that contain special characters. Include input file with -if, --input-filename
     
     Team Member Endpoints Options:
       -tmid TEAM_MEMBER_ID, --team-member-id TEAM_MEMBER_ID

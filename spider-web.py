@@ -8,7 +8,7 @@ import config as __config
 from argparse import RawTextHelpFormatter
 import argparse
 
-l_version = '1.0.47'
+l_version = '1.0.48'
 
 def print_version() -> None:
     if Parser.verbose:
@@ -770,7 +770,7 @@ if __name__ == '__main__':
                                  help='Create a team member and exit. Requires -tmn, --team-member-name, -tme, --team-member-email, -tmsso, --team-member-sso-email, and -tmg, --team-member-groups',
                                  action='store_true')
     l_team_member_group.add_argument('-tmuptm', '--upload-team-members',
-                                 help='Create team members and exit. Requires properly formatted input file: CSV with fields TEAM_MEMBER_NAME, TEAM_MEMBER_EMAIL, TEAM_MEMBER_GROUPS. TEAM_MEMBER_GROUPS must be pipe delimited. Include input file with -if, --input-filename',
+                                 help='Create team members and exit. Requires properly formatted input file: CSV with fields TEAM_MEMBER_NAME, TEAM_MEMBER_EMAIL, TEAM_MEMBER_SSO_EMAIL, TEAM_MEMBER_GROUPS. TEAM_MEMBER_GROUPS must be pipe delimited. All the rules of CSV formatting apply such as quoting fields that contain special characters. Include input file with -if, --input-filename',
                                  action='store_true')
 
     l_scan_profiles_options_group = lArgParser.add_argument_group(title="Team Member Endpoints Options", description=None)
