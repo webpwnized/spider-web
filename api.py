@@ -1014,9 +1014,9 @@ class API:
 
     def create_team_member(self) -> None:
         try:
-            l_name: str = self.__parse_team_member_groups(Parser.team_member_name)
-            l_email: str = self.__parse_team_member_groups(Parser.team_member_email)
-            l_sso_email: str = self.__parse_team_member_groups(Parser.team_member_sso_email)
+            l_name: str = self.__parse_team_member_name(Parser.team_member_name)
+            l_email: str = self.__parse_team_member_email(Parser.team_member_email)
+            l_sso_email: str = self.__parse_team_member_sso_email(Parser.team_member_sso_email)
             l_groups: str = self.__parse_team_member_groups(Parser.team_member_groups)
 
             self.__create_team_member(l_name, l_email, l_sso_email, l_groups)
