@@ -158,6 +158,7 @@ class Parser:
         # Auxiliary Features
         Parser.ping_sites = p_args.ping_sites
         Parser.ping_sites_in_file = p_args.ping_sites_in_file
+        Parser.ping_sites_excluded_domains = p_config.PING_SITES_EXCLUDED_DOMAINS
 
         # Authetication Sites and Pages
         Parser.authentication_sites = p_config.AUTHENTICATION_SITES
@@ -181,5 +182,3 @@ class Parser:
         Parser.report_issues_by_issue = p_args.report_issues_by_issue
         Parser.report_issues_breadcrumb_filename = p_config.REPORT_ISSUES_BREADCRUMB_FILENAME
         Parser.report_issues_notification_interval_minutes = p_config.REPORT_ISSUES_NOTIFICATION_INTERVAL_MINUTES
-
-

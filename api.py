@@ -634,6 +634,9 @@ class API:
         else:
             return ""
 
+    def __parse_domain_name_from_url(self, p_url: str) -> str:
+        return urlparse(p_url).hostname.lower()
+
     # ---------------------------------
     # public instance methods
     # ---------------------------------
@@ -1453,7 +1456,7 @@ class API:
             raise ValueError('__parse_url(): URL is not valid: {}'.format(l_url))
         if not self.__url_is_secure(l_url):
             raise ValueError('__parse_url(): URL is not secure. Protocol must be HTTPS: {}'.format(l_url))
-        l_url = 'https://{0}/'.format(urlparse(l_url).hostname)
+        l_url = 'https://{0}/'.format(self.__parse_domain_name_from_url(l_url))
         return l_url
 
     def __parse_website_groups(self, p_groups: str, p_url: str) -> str:
@@ -1478,7 +1481,7 @@ class API:
         #     raise ValueError('Name is blank')
         # return l_name
         # Change requested by TS to use domain name as site name instead of HS site name
-        return urlparse(p_url).hostname.lower()
+        return self.__parse_domain_name_from_url(p_url)
 
     def __upload_websites(self, p_websites: list) -> None:
         # Documentation: https://www.netsparkercloud.com/docs/index#/
@@ -1937,7 +1940,7 @@ class API:
             l_reason = "Could not establish a TLS connection with the web server. In rare cases, this may be due to the site requiring a client certificate for authentication. {}".format(p_error)
         else:
             l_reason = "The domain {} is not listed in the SSL certificate. Consider opening a bug bounty. {}".format(
-                urlparse(p_url).hostname, p_error)
+                self.__parse_domain_name_from_url(p_url), p_error)
         self.__mPrinter.print("TLS error detected for URL {}: {}".format(p_url, p_error), Level.INFO)
         return l_site_is_up, l_site_is_interesting, l_status_code, l_reason
 
@@ -1982,7 +1985,12 @@ class API:
 
         self.__mPrinter.print("Testing site {}".format(p_url), Level.INFO)
 
-        if p_method == PingMethod.INITIAL_TEST.value:
+        if self.__parse_domain_name_from_url(p_url) in Parser.ping_sites_excluded_domains:
+            l_site_is_up = True
+            l_site_is_interesting = False
+            l_status_code = "000"
+            l_reason = "Domain is excluded in configuration file"
+        elif p_method == PingMethod.INITIAL_TEST.value:
 
             try:
                 if not self.__url_is_secure(p_url):
@@ -2068,10 +2076,10 @@ class API:
                 l_site_is_up, l_site_is_interesting, l_status_code, l_reason = self.__handle_uncaught_exception(p_url, str(e))
 
         if self.__web_server_is_redirecting(p_url, l_status_code): # then careful analysis is needed to understand why
-            l_current_domain = urlparse(l_http_response.url).hostname
+            l_current_domain = self.__parse_domain_name_from_url(l_http_response.url)
             l_redirect_url = l_http_response.next.url.lower()
             l_redirect_path = urlparse(l_redirect_url).path
-            l_redirect_domain = urlparse(l_redirect_url).hostname
+            l_redirect_domain = self.__parse_domain_name_from_url(l_redirect_url)
             self.__mPrinter.print("Server redirected from {} to {}".format(l_current_domain, l_redirect_url), Level.INFO)
 
             if self.__is_authentication_domain(l_redirect_domain):
