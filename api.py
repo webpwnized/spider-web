@@ -1920,11 +1920,11 @@ class API:
 
     def __is_authentication_domain(self, p_domain: str) -> bool:
         self.__mPrinter.print("Check if domain {} is authentication domain".format(p_domain), Level.INFO)
-        return p_domain in Parser.authentication_sites
+        return p_domain in Parser.ping_sites_authentication_sites
 
     def __is_authentication_page(self, p_url: str) -> bool:
         self.__mPrinter.print("Check if page {} is authentication page".format(p_url), Level.INFO)
-        for l_keyword in Parser.authentication_page_keywords:
+        for l_keyword in Parser.ping_sites_authentication_page_keywords:
             if l_keyword in p_url:
                 self.__mPrinter.print("Authentication page found. Matched on keyword '{}' within URL {}".format(l_keyword, p_url), Level.INFO)
                 return True
@@ -1977,7 +1977,7 @@ class API:
         l_reason = "Uncaught exception. This is probably a bug in spider-web. Alert the development team: {}".format(p_error)
         return l_site_is_up, l_site_is_interesting, l_status_code, l_reason
 
-    def __ping_url(self, p_url:str, p_method: int):
+    def __ping_url(self, p_url:str, p_method: int, p_api_connection_timeout: int):
 
         l_proxies: dict = {}
         l_site_is_up: bool = False
@@ -1998,7 +1998,7 @@ class API:
                 if self.__m_use_proxy:
                     self.__mPrinter.print("Using upstream proxy", Level.INFO)
                     l_proxies = self.__get_proxies()
-                l_http_response = requests.get(url=p_url, proxies=l_proxies, timeout=self.__m_api_connection_timeout,
+                l_http_response = requests.get(url=p_url, proxies=l_proxies, timeout=p_api_connection_timeout,
                                                verify=self.__m_verify_https_certificate, allow_redirects=False)
                 l_status_code = l_http_response.status_code
                 l_reason = l_http_response.reason
@@ -2025,7 +2025,7 @@ class API:
                 self.__mPrinter.print(
                     "Since proxy enabled and site not responding, checking if site might be internal",
                     Level.INFO)
-                l_http_response = requests.get(url=p_url, timeout=self.__m_api_connection_timeout, allow_redirects=False)
+                l_http_response = requests.get(url=p_url, timeout=p_api_connection_timeout, allow_redirects=False)
                 l_status_code = l_http_response.status_code
                 l_reason = l_http_response.reason
                 self.__mPrinter.print(
@@ -2052,7 +2052,7 @@ class API:
                     "Since proxy is not enabled and site not responding, checking if site might be external. Using proxy configuration from config.py",
                     Level.INFO)
                 l_proxies = self.__get_proxies()
-                l_http_response = requests.get(url=p_url, proxies=l_proxies, timeout=self.__m_api_connection_timeout,
+                l_http_response = requests.get(url=p_url, proxies=l_proxies, timeout=p_api_connection_timeout,
                                                verify=self.__m_verify_https_certificate, allow_redirects=False)
                 l_status_code = l_http_response.status_code
                 l_reason = l_http_response.reason
@@ -2108,7 +2108,8 @@ class API:
 
         return l_site_is_up, l_site_is_interesting, l_status_code, l_reason
 
-    def __ping_sites(self, p_list: list) -> list:
+    def __ping_sites(self, p_list: list, p_api_connection_timeout: int) -> list:
+
         try:
             l_results: list = []
             l_number_sites: int = len(p_list)
@@ -2125,14 +2126,14 @@ class API:
 
                 try:
                     self.__mPrinter.print("Initial test for site {}".format(l_url), Level.INFO)
-                    l_site_is_up, l_site_is_interesting, l_status_code, l_reason = self.__ping_url(l_url, PingMethod.INITIAL_TEST.value)
+                    l_site_is_up, l_site_is_interesting, l_status_code, l_reason = self.__ping_url(l_url, PingMethod.INITIAL_TEST.value, p_api_connection_timeout)
                 except requests.exceptions.ConnectionError as e:
                     # Check our current proxy status and try the opposite
                     self.__mPrinter.print("Second test for site {}".format(l_url), Level.INFO)
                     if self.__m_use_proxy:
-                        l_site_is_up, l_site_is_interesting, l_status_code, l_reason = self.__ping_url(l_url, PingMethod.SECOND_TEST_NO_PROXY.value)
+                        l_site_is_up, l_site_is_interesting, l_status_code, l_reason = self.__ping_url(l_url, PingMethod.SECOND_TEST_NO_PROXY.value, p_api_connection_timeout)
                     else:
-                        l_site_is_up, l_site_is_interesting, l_status_code, l_reason = self.__ping_url(l_url, PingMethod.SECOND_TEST_USE_PROXY.value)
+                        l_site_is_up, l_site_is_interesting, l_status_code, l_reason = self.__ping_url(l_url, PingMethod.SECOND_TEST_USE_PROXY.value, p_api_connection_timeout)
 
                 l_status:str = "Up" if l_site_is_up else "Down"
                 self.__mPrinter.print("Site {} is {}".format(l_name, l_status), Level.INFO)
@@ -2151,7 +2152,7 @@ class API:
             l_list: list = self.__get_scan_profiles()
             for l_record in l_list:
                 l_sites.append((l_record["ProfileName"], l_record["TargetUri"]))
-            l_results: list = self.__ping_sites(l_sites)
+            l_results: list = self.__ping_sites(l_sites, Parser.ping_sites_api_connection_timeout)
             self.__handle_ping_sites_results(l_results)
         except Exception as e:
             self.__mPrinter.print("ping_sites() - {0}".format(str(e)), Level.ERROR)
@@ -2160,7 +2161,7 @@ class API:
 
         try:
             l_sites: list = self.__parse_website_upload()
-            l_results = self.__ping_sites(l_sites)
+            l_results = self.__ping_sites(l_sites, Parser.ping_sites_api_connection_timeout)
             self.__handle_ping_sites_results(l_results)
         except Exception as e:
             self.__mPrinter.print("ping_sites_in_file() - {0}".format(str(e)), Level.ERROR)

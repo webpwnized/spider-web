@@ -25,14 +25,16 @@ VERIFY_HTTPS_CERTIFICATE = True
 # Ensure any SSO or other authentication domains are listed here as comma-separated values. These are used
 # by ping-site to know when the application has redirected to an authentication
 # domain
-AUTHENTICATION_SITES = ["login.microsoftonline.com"]
+PING_SITES_AUTHENTICATION_SITES = ["login.microsoftonline.com"]
 
 # Ensure any keywords that indicate the URL is a login page are listed here. These are used
 # by ping-site to know when the application has redirected to an authentication page
-AUTHENTICATION_PAGE_KEYWORDS = ["login", "logon", "account", "returnurl", "backurl", "auth", "saml", "signin"]
+PING_SITES_AUTHENTICATION_PAGE_KEYWORDS = ["login", "logon", "account", "returnurl", "backurl", "auth", "saml", "signin"]
 
 # Domains to be excluded from the Ping Sites check
 PING_SITES_EXCLUDED_DOMAINS = ["www.sample.site.com","sample.site.com"]
+
+PING_SITES_API_CONNECTION_TIMEOUT = 30
 
 AGENT_HEARTBEAT_TOO_LONG_SECONDS = 600      # How long as agent can fail to check-in before being reported
 AGENT_HEARTBEAT_BREADCRUMB_FILENAME = "agent-heartbeat-report.breadcrumb"

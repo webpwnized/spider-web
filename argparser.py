@@ -158,11 +158,12 @@ class Parser:
         # Auxiliary Features
         Parser.ping_sites = p_args.ping_sites
         Parser.ping_sites_in_file = p_args.ping_sites_in_file
-        Parser.ping_sites_excluded_domains = p_config.PING_SITES_EXCLUDED_DOMAINS
 
-        # Authetication Sites and Pages
-        Parser.authentication_sites = p_config.AUTHENTICATION_SITES
-        Parser.authentication_page_keywords = p_config.AUTHENTICATION_PAGE_KEYWORDS
+        # Ping Sites feature configuration
+        Parser.ping_sites_excluded_domains = p_config.PING_SITES_EXCLUDED_DOMAINS
+        Parser.ping_sites_api_connection_timeout = p_config.PING_SITES_API_CONNECTION_TIMEOUT
+        Parser.ping_sites_authentication_sites = p_config.PING_SITES_AUTHENTICATION_SITES
+        Parser.ping_sites_authentication_page_keywords = p_config.PING_SITES_AUTHENTICATION_PAGE_KEYWORDS
 
         #Reporting Options
         Parser.unattended = p_args.unattended
