@@ -5,8 +5,7 @@ from database import SQLite
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
 from urllib.parse import urlparse
 from urllib import parse
-from datetime import datetime
-from datetime import timezone
+from datetime import datetime, timezone, timedelta
 from dateutil import parser
 from scans import Scans
 
@@ -142,6 +141,7 @@ class TeamMemberTypes(Enum):
     API_ACCOUNTS = "API Accounts"
     SCAN_ACCOUNTS = "Scan Accounts"
     DISABLED_ACCOUNTS = "Disabled Accounts"
+    UNUSED_ACCOUNTS = "Unused Accounts"
 
 
 class TeamMemberUploadFileFields(Enum):
@@ -1099,6 +1099,16 @@ class API:
             for l_account in p_json:
                 if l_account["UserState"] == "Disabled":
                     l_accounts.append(l_account)
+        elif p_type.name == TeamMemberTypes.UNUSED_ACCOUNTS.name:
+            l_cutoff_date: datetime = datetime.now(timezone.utc) - timedelta(days=Parser.unused_accounts_idle_days_permitted)
+            for l_account in p_json:
+                if l_account["LastLoginDate"]:
+                    l_last_login_date: datetime = parser.parse(l_account["LastLoginDate"])
+                else:
+                    l_last_login_date: datetime = parser.parse(l_account["CreatedAt"])
+
+                if l_last_login_date < l_cutoff_date:
+                    l_accounts.append(l_account)
 
         return l_accounts
 
@@ -1223,6 +1233,13 @@ class API:
             self.__upload_team_members(l_team_members)
         except Exception as e:
             self.__mPrinter.print("upload_team_members() - {0}".format(str(e)), Level.ERROR)
+
+    def get_unused_accounts(self) -> None:
+        try:
+            self.__get_team_members(TeamMemberTypes.UNUSED_ACCOUNTS)
+        except Exception as e:
+            self.__mPrinter.print("get_unused_accounts() - {0}".format(str(e)), Level.ERROR)
+
 
     # ------------------------------------------------------------
     # Technologies Methods

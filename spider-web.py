@@ -8,7 +8,7 @@ import config as __config
 from argparse import RawTextHelpFormatter
 import argparse
 
-l_version = '1.0.50'
+l_version = '1.0.51'
 
 def print_version() -> None:
     if Parser.verbose:
@@ -164,6 +164,12 @@ def print_example_usage() -> None:
 
     spider-web -tmgda -pn 1 -ps 200 -of disabled-accounts.txt
     spider-web --get-disabled-accounts --page-number 1 --page-size 200 ---output-file disabled-accounts.txt
+
+    spider-web -tmgua -pn 1 -ps 200
+    spider-web --get-unused-accounts --page-number 1 --page-size 200
+
+    spider-web -tmgua -pn 1 -ps 200 -of unused-accounts.txt
+    spider-web --get-unused-accounts --page-number 1 --page-size 200 ---output-file unused-accounts.txt
 
     --------------------------------
     Create Team Members
@@ -369,7 +375,8 @@ def run_main_program():
         Parser.get_obsolete_technologies or Parser.get_scan_profiles or Parser.get_scan_profile or \
         Parser.get_account_managers or Parser.get_api_accounts or Parser.get_scan_accounts or \
         Parser.get_disabled_accounts or Parser.get_website_managers or Parser.get_team_member or \
-        Parser.get_scan_results or Parser.upload_team_members or Parser.create_team_member:
+        Parser.get_scan_results or Parser.upload_team_members or Parser.create_team_member or \
+        Parser.get_unused_accounts:
             l_api = API(p_parser=Parser)
     else:
         lArgParser.print_usage()
@@ -438,6 +445,10 @@ def run_main_program():
 
     if Parser.get_disabled_accounts:
         l_api.get_disabled_accounts()
+        exit(0)
+
+    if Parser.get_unused_accounts:
+        l_api.get_unused_accounts()
         exit(0)
 
     if Parser.get_technologies:
@@ -765,6 +776,9 @@ if __name__ == '__main__':
                                  action='store_true')
     l_team_member_group.add_argument('-tmgda', '--get-disabled-accounts',
                                  help='List accounts that are disabled and exit. Output fetched in pages.',
+                                 action='store_true')
+    l_team_member_group.add_argument('-tmgua', '--get-unused-accounts',
+                                 help='List accounts that are unused and exit. Output fetched in pages.',
                                  action='store_true')
     l_team_member_group.add_argument('-tmctm', '--create-team-member',
                                  help='Create a team member and exit. Requires -tmn, --team-member-name, -tme, --team-member-email, -tmsso, --team-member-sso-email, and -tmg, --team-member-groups',

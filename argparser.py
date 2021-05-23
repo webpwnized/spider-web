@@ -97,6 +97,7 @@ class Parser:
         Parser.get_api_accounts = p_args.get_api_accounts
         Parser.get_scan_accounts = p_args.get_scan_accounts
         Parser.get_disabled_accounts = p_args.get_disabled_accounts
+        Parser.get_unused_accounts = p_args.get_unused_accounts
         Parser.create_team_member = p_args.create_team_member
         Parser.upload_team_members = p_args.upload_team_members
 
@@ -106,6 +107,7 @@ class Parser:
         Parser.team_member_email = p_args.team_member_email
         Parser.team_member_sso_email = p_args.team_member_sso_email
         Parser.team_member_groups = p_args.team_member_groups
+        Parser.unused_accounts_idle_days_permitted = p_config.UNUSED_ACCOUNTS_IDLE_DAYS_PERMITTED
 
         # Technologies
         Parser.get_technologies = p_args.get_technologies
