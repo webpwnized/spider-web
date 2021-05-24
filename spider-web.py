@@ -778,7 +778,7 @@ if __name__ == '__main__':
                                  help='List accounts that are disabled and exit. Output fetched in pages.',
                                  action='store_true')
     l_team_member_group.add_argument('-tmgua', '--get-unused-accounts',
-                                 help='List accounts that are unused and exit. Output fetched in pages.',
+                                 help='List accounts that are unused and exit. Accounts are considered unused if the Last Login Time is longer that the number of days configured in UNUSED_ACCOUNTS_IDLE_DAYS_PERMITTED. If the user has never logged in, the Created At date is used. Output fetched in pages.',
                                  action='store_true')
     l_team_member_group.add_argument('-tmctm', '--create-team-member',
                                  help='Create a team member and exit. Requires -tmn, --team-member-name, -tme, --team-member-email, -tmsso, --team-member-sso-email, and -tmg, --team-member-groups',

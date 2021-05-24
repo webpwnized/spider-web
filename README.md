@@ -28,24 +28,21 @@
 
 ### Usage
 
-    usage: spider-web [-h] [-V] [-v] [-d] [-o {JSON,CSV}] [-e] [-u] [-t]
-                      [-pn PAGE_NUMBER] [-ps PAGE_SIZE] [-if INPUT_FILENAME]
-                      [-of OUTPUT_FILENAME] [-os OUTPUT_SEPARATOR] [-un]
-                      [-wurl WEBSITE_URL] [-wn WEBSITE_NAME] [-ga] [-gl] [-aga]
-                      [-dsgds] [-dsdds] [-sgs] [-sgsbw] [-turl TARGET_URL]
-                      [-idsd INITIATED_DATE_SORT_DIRECTION] [-spgsp]
-                      [-spid SCAN_PROFILE_ID] [-spn SCAN_PROFILE_NAME] [-spgsps]
-                      [-srgsr] [-sid SCAN_ID] [-tmgtms] [-tmgtm] [-tmgam] [-tmgwm]
-                      [-tmgapia] [-tmgsa] [-tmgda] [-tmctm] [-tmuptm]
-                      [-tmid TEAM_MEMBER_ID] [-tmn TEAM_MEMBER_NAME]
+    usage: spider-web [-h] [-V] [-v] [-d] [-o {JSON,CSV}] [-e] [-u] [-t] [-pn PAGE_NUMBER]
+                      [-ps PAGE_SIZE] [-if INPUT_FILENAME] [-of OUTPUT_FILENAME]
+                      [-os OUTPUT_SEPARATOR] [-un] [-wurl WEBSITE_URL] [-wn WEBSITE_NAME] [-ga]
+                      [-gl] [-aga] [-dsgds] [-dsdds] [-sgs] [-sgsbw] [-turl TARGET_URL]
+                      [-idsd INITIATED_DATE_SORT_DIRECTION] [-spgsp] [-spid SCAN_PROFILE_ID]
+                      [-spn SCAN_PROFILE_NAME] [-spgsps] [-srgsr] [-sid SCAN_ID] [-tmgtms]
+                      [-tmgtm] [-tmgam] [-tmgwm] [-tmgapia] [-tmgsa] [-tmgda] [-tmgua] [-tmctm]
+                      [-tmuptm] [-tmid TEAM_MEMBER_ID] [-tmn TEAM_MEMBER_NAME]
                       [-tme TEAM_MEMBER_EMAIL] [-tmsso TEAM_MEMBER_SSO_EMAIL]
-                      [-tmg TEAM_MEMBER_GROUPS] [-tgt] [-tgot]
-                      [-tn TECHNOLOGY_NAME] [-wgwbu] [-wgwbn] [-wgwbid]
-                      [-wid WEBSITE_ID] [-wgw] [-wgwbgn] [-wgwbgid] [-wupw]
-                      [-wgn WEBSITE_GROUP_NAME] [-wgid WEBSITE_GROUP_ID] [-wggwg]
-                      [-wgupwg] [-vgvtemps] [-vgvtemp] [-vgvtypes]
-                      [-rpi REPORT_POLICY_ID] [-vt VULNERABILITY_TYPE] [-auxps]
-                      [-auxpsif] [-ramh] [-rda] [-ri] [-ribc] [-ribi]
+                      [-tmg TEAM_MEMBER_GROUPS] [-tgt] [-tgot] [-tn TECHNOLOGY_NAME] [-wgwbu]
+                      [-wgwbn] [-wgwbid] [-wid WEBSITE_ID] [-wgw] [-wgwbgn] [-wgwbgid] [-wupw]
+                      [-wgn WEBSITE_GROUP_NAME] [-wgid WEBSITE_GROUP_ID] [-wggwg] [-wgupwg]
+                      [-vgvtemps] [-vgvtemp] [-vgvtypes] [-rpi REPORT_POLICY_ID]
+                      [-vt VULNERABILITY_TYPE] [-auxps] [-auxpsif] [-ramh] [-rda] [-ri] [-ribc]
+                      [-ribi]
 ### Options
 
     optional arguments:
@@ -139,6 +136,8 @@
                             List users with permissions to start scans and exit. Output fetched in pages.
       -tmgda, --get-disabled-accounts
                             List accounts that are disabled and exit. Output fetched in pages.
+      -tmgua, --get-unused-accounts
+                            List accounts that are unused and exit. Accounts are considered unused if the Last Login Time is longer that the number of days configured in UNUSED_ACCOUNTS_IDLE_DAYS_PERMITTED. If the user has never logged in, the Created At date is used. Output fetched in pages.
       -tmctm, --create-team-member
                             Create a team member and exit. Requires -tmn, --team-member-name, -tme, --team-member-email, -tmsso, --team-member-sso-email, and -tmg, --team-member-groups
       -tmuptm, --upload-team-members
@@ -350,6 +349,12 @@
 
     spider-web -tmgda -pn 1 -ps 200 -of disabled-accounts.txt
     spider-web --get-disabled-accounts --page-number 1 --page-size 200 ---output-file disabled-accounts.txt
+
+    spider-web -tmgua -pn 1 -ps 200
+    spider-web --get-unused-accounts --page-number 1 --page-size 200
+
+    spider-web -tmgua -pn 1 -ps 200 -of unused-accounts.txt
+    spider-web --get-unused-accounts --page-number 1 --page-size 200 ---output-file unused-accounts.txt
 
 #### Create Team Members
     spider-web -tmctm -tmn "John Doe" -tme "jdoe@acme.com" -tmsso "100000@acme.com" -tmg "SDG: Airline, Fleet & Freight (AFF)"|"SDG: Customer and Billing (CAB)" 

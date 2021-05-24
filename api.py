@@ -1101,6 +1101,7 @@ class API:
                     l_accounts.append(l_account)
         elif p_type.name == TeamMemberTypes.UNUSED_ACCOUNTS.name:
             l_cutoff_date: datetime = datetime.now(timezone.utc) - timedelta(days=Parser.unused_accounts_idle_days_permitted)
+            l_today_utc: datetime = datetime.now(timezone.utc)
             for l_account in p_json:
                 if l_account["LastLoginDate"]:
                     l_last_login_date: datetime = parser.parse(l_account["LastLoginDate"])
@@ -1108,6 +1109,7 @@ class API:
                     l_last_login_date: datetime = parser.parse(l_account["CreatedAt"])
 
                 if l_last_login_date < l_cutoff_date:
+                    l_account["DaysSinceLastLogin"] = (l_today_utc - l_last_login_date).days
                     l_accounts.append(l_account)
 
         return l_accounts
@@ -1234,12 +1236,57 @@ class API:
         except Exception as e:
             self.__mPrinter.print("upload_team_members() - {0}".format(str(e)), Level.ERROR)
 
+    def __get_unused_accounts_header(self) -> list:
+        return ["Name", "Email", "Days Since Login", "Last Login Date", "Create Date", "Enabled?", "Account ID", "ID"]
+
+    def __parse_unused_accounts_json_to_csv(self, p_json: list) -> list:
+        try:
+            l_team_members: list = []
+            for l_user in p_json:
+                l_last_login_date: str = self.__format_datetime_string(l_user["LastLoginDate"])
+                l_created_date: str = self.__format_datetime_string(l_user["CreatedAt"])
+                l_team_members.append([
+                    l_user["Name"], l_user["Email"], l_user["DaysSinceLastLogin"],
+                    l_last_login_date, l_created_date, l_user["UserState"],
+                    l_user["AccountId"], l_user["Id"]
+                ])
+            return l_team_members
+        except Exception as e:
+            self.__mPrinter.print("__parse_unused_accounts_json_to_csv() - {0}".format(str(e)), Level.ERROR)
+
+    def __print_unused_accounts_csv(self, p_json: list) -> None:
+        try:
+            l_header: list = self.__get_unused_accounts_header()
+            l_team_members: list = self.__parse_unused_accounts_json_to_csv(p_json)
+            l_team_members.sort(key=lambda DaysSinceLogin:DaysSinceLogin[2], reverse=True)
+
+            self.__write_csv(l_header, l_team_members)
+        except Exception as e:
+            self.__mPrinter.print("__print_unused_accounts_csv() - {0}".format(str(e)), Level.ERROR)
+
+    def __get_unused_accounts(self) -> list:
+        try:
+            self.__mPrinter.print("Fetching team members", Level.INFO)
+            l_json: list = self.____get_team_members()
+            self.__mPrinter.print("Found {0} team members".format(len(l_json)), Level.INFO)
+
+            self.__mPrinter.print("Finding unused accounts", Level.INFO)
+            l_team_members: list = self.__filter_team_members(l_json, TeamMemberTypes.UNUSED_ACCOUNTS)
+            self.__mPrinter.print("Found {0} unused accounts".format(len(l_team_members)), Level.INFO)
+
+            if self.__m_output_format == OutputFormat.JSON.value:
+                print(json.dumps(l_team_members))
+            elif self.__m_output_format == OutputFormat.CSV.value:
+                self.__print_unused_accounts_csv(l_team_members)
+
+        except Exception as e:
+            self.__mPrinter.print("__get_unused_accounts() - {0}".format(str(e)), Level.ERROR)
+
     def get_unused_accounts(self) -> None:
         try:
-            self.__get_team_members(TeamMemberTypes.UNUSED_ACCOUNTS)
+            self.__get_unused_accounts()
         except Exception as e:
             self.__mPrinter.print("get_unused_accounts() - {0}".format(str(e)), Level.ERROR)
-
 
     # ------------------------------------------------------------
     # Technologies Methods

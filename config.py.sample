@@ -36,7 +36,7 @@ PING_SITES_EXCLUDED_DOMAINS = ["www.sample.site.com","sample.site.com"]
 
 PING_SITES_API_CONNECTION_TIMEOUT = 30
 
-UNUSED_ACCOUNTS_IDLE_DAYS_PERMITTED = 90
+UNUSED_ACCOUNTS_IDLE_DAYS_PERMITTED = 120
 
 AGENT_HEARTBEAT_TOO_LONG_SECONDS = 600      # How long as agent can fail to check-in before being reported
 AGENT_HEARTBEAT_BREADCRUMB_FILENAME = "agent-heartbeat-report.breadcrumb"
