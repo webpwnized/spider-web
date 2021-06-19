@@ -137,7 +137,7 @@ class WebsiteGroups(Enum):
 class TeamMemberTypes(Enum):
     ALL_ACCOUNTS = "All Accounts"
     ACCOUNT_MANAGERS = "Account Managers"
-    WEBSITE_MANAGERS = "Website Managers"
+    ACCOUNT_OWNERS = "Account Owners"
     API_ACCOUNTS = "API Accounts"
     SCAN_ACCOUNTS = "Scan Accounts"
     DISABLED_ACCOUNTS = "Disabled Accounts"
@@ -178,14 +178,15 @@ class API:
 
     __cAGENTS_LIST_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "agents/list")
 
-    __cTEAM_MEMBER_GET_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "teammembers/get")
-    __cTEAM_MEMBER_GETBYEMAIL_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "teammembers/getbyemail")
-    __cTEAM_MEMBER_CREATE_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "teammembers/new")
-
-    __cTEAM_MEMBERS_LIST_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "teammembers/list")
-
     __cDISCOVERED_SERVICES_LIST_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "discovery/list")
     __cDISCOVERED_SERVICES_DOWNLOAD_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "discovery/export")
+
+    __cTEAMS_LIST_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "team/list")
+
+    __cTEAM_MEMBER_GET_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "members/get")
+    __cTEAM_MEMBER_GETBYEMAIL_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "members/getbyemail")
+    __cTEAM_MEMBER_CREATE_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "members/new")
+    __cTEAM_MEMBERS_LIST_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "members/list")
 
     __cTECHNOLOGIES_LIST_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "technologies/list")
     __cOBSOLETE_TECHNOLOGIES_LIST_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "technologies/outofdatetechnologies")
@@ -698,8 +699,8 @@ class API:
             self.__mPrinter.print("Fetched {} information".format(p_endpoint_name), Level.SUCCESS)
             self.__mPrinter.print("Parsing {} information".format(p_endpoint_name), Level.INFO)
             l_json = json.loads(l_http_response.text)
-            l_number_sites: int = l_json["TotalItemCount"]
-            self.__mPrinter.print("Found {} {}".format(l_number_sites, p_endpoint_name), Level.INFO)
+            l_number_records: int = l_json["TotalItemCount"]
+            self.__mPrinter.print("Found {} {}".format(l_number_records, p_endpoint_name), Level.INFO)
 
             l_list: list = l_json["List"]
 
@@ -868,28 +869,93 @@ class API:
             self.__mPrinter.print("get_license() - {0}".format(str(e)), Level.ERROR)
 
     # ------------------------------------------------------------
+    # Teams Methods
+    # ------------------------------------------------------------
+    def __get_teams_header(self) -> list:
+        return ["Name","Members","Groups","Roles","Id"]
+
+    def __parse_teams_json_to_csv(self, p_json: list) -> list:
+        try:
+            return [[
+                p_json["Name"], p_json["Members"], p_json["Id"],
+            ]]
+        except Exception as e:
+            self.__mPrinter.print("__parse_teams_json_to_csv() - {0}".format(str(e)), Level.ERROR)
+
+    def __print_teams_csv(self, p_json: list) -> None:
+        try:
+            l_header: list = self.__get_teams_header()
+            if p_json:
+                l_teams: list = self.__parse_teams_json_to_csv(p_json)
+                self.__write_csv(l_header, l_teams)
+            else:
+                self.__mPrinter.print("No teams are configured in NetSparker", Level.INFO)
+
+        except Exception as e:
+            self.__mPrinter.print("__print_teams_csv() - {0}".format(str(e)), Level.ERROR)
+
+    def __handle_teams(self, p_list: list) -> None:
+        try:
+            if self.__m_output_format == OutputFormat.JSON.value:
+                print(json.dumps(p_list))
+            elif self.__m_output_format == OutputFormat.CSV.value:
+                self.__print_teams_csv(p_list)
+
+        except Exception as e:
+            self.__mPrinter.print("__handle_teams() - {0}".format(str(e)), Level.ERROR)
+
+    def __get_teams(self) -> list:
+        try:
+            l_base_url = "{0}?page={1}&pageSize={2}".format(
+                self.__cTEAMS_LIST_URL, Parser.page_number, Parser.page_size
+            )
+
+            return self.__get_paged_data(l_base_url, "teams")
+        except Exception as e:
+            self.__mPrinter.print("__get_teams() - {0}".format(str(e)), Level.ERROR)
+
+    def get_teams(self) -> None:
+        try:
+            l_json: list = self.__get_teams()
+            self.__handle_teams(l_json)
+        except Exception as e:
+            self.__mPrinter.print("get_teams() - {0}".format(str(e)), Level.ERROR)
+
+    # ------------------------------------------------------------
     # Team Member Methods
     # ------------------------------------------------------------
     def __get_team_member_header(self) -> list:
-        return ["Name","Email","UserState","LastLoginDate","SelectedGroups",
-                "CanManageApplication","CanManageIssues","CanManageIssuesAsRestricted",
-                "CanManageTeam","CanManageWebsites","CanStartScan","CanViewScanReports",
-                "IsApiAccessEnabled","IsTwoFactorAuthenticationEnabled",
-                "Role","AccountId","Id","CreatedAt"
+        return ["Name","Email","Login","Phone Number",
+                "Teams", "Groups", "Roles",
+                "Enabled?","API Access?","LastLoginDate",
+                "TwoFactorAuthenticationEnabled",
+                "AccountId","Id", "Created At"
         ]
 
-    def __parse_team_member_json_to_csv(self, p_json: list) -> list:
+    def __parse_team_member_json_to_csv(self, l_user: list) -> list:
         try:
+            l_roles: list = []
+            l_groups: list = []
+            for l_mapping in l_user["RoleWebsiteGroupMappings"]:
+                l_roles.append(l_mapping["RoleName"])
+                l_groups.append(l_mapping["WebsiteGroupName"])
+
+            l_roles_string: str = ",".join(l_roles)
+            l_groups_string: str = ",".join(l_groups)
+            l_teams_string: str = ",".join(l_user["Teams"])
+
+            try:
+                l_last_login_date: str = self.__format_datetime_string(l_user["LastLoginDate"])
+            except KeyError as e:
+                l_last_login_date: str = ""
+
             return [[
-                p_json["Name"], p_json["Email"], p_json["UserState"],
-                self.__format_datetime_string(p_json["LastLoginDate"]), p_json["SelectedGroups"],
-                p_json["CanManageApplication"],
-                p_json["CanManageIssues"],p_json["CanManageIssuesAsRestricted"],
-                p_json["CanManageTeam"],p_json["CanManageWebsites"], p_json["CanStartScan"],
-                p_json["CanViewScanReports"], p_json["IsApiAccessEnabled"],
-                p_json["IsTwoFactorAuthenticationEnabled"],
-                p_json["Role"],
-                p_json["AccountId"], p_json["Id"],self.__format_datetime_string(p_json["CreatedAt"]),
+                l_user["Name"], l_user["Email"], l_user["AlternateLoginEmail"],
+                l_user["PhoneNumber"],
+                l_teams_string, l_groups_string, l_roles_string,
+                l_user["State"], l_user["IsApiAccessEnabled"], l_last_login_date,
+                l_user["IsTwoFactorAuthenticationEnabled"],
+                l_user["OnlySsoLogin"], l_user["AccountId"], l_user["Id"], "Feature broken by API changes"
             ]]
         except Exception as e:
             self.__mPrinter.print("__parse_team_member_json_to_csv() - {0}".format(str(e)), Level.ERROR)
@@ -1030,25 +1096,36 @@ class API:
     # Team Members Methods
     # ------------------------------------------------------------
     def __get_team_members_header(self) -> list:
-        return ["Name", "Email", "Role", "Enabled?", "Last Login", "Manage Apps?", "Manage Issues?",
-                "Manage Issues (Restricted)?",
-                "Manage Team?", "Manage Websites?", "Start Scan?", "View Reports?", "API Access?", "2FA?",
-                "Groups", "Account ID", "ID"]
+        return ["Name", "Email", "Login", "Teams", "Groups", "Roles",
+                "Phone Number", "Enabled?", "Last Login Date",
+                "2FA Enabled?", "SSO Enabled?", "Account ID", "ID"]
 
     def __parse_team_members_json_to_csv(self, p_json: list) -> list:
         try:
             l_team_members: list = []
             for l_user in p_json:
-                l_groups: str = ",".join(l_user["SelectedGroups"])
-                l_last_login_date = self.__format_datetime_string(l_user["LastLoginDate"])
+
+                l_roles: list = []
+                l_groups: list = []
+                for l_mapping in l_user["RoleWebsiteGroupMappings"]:
+                    l_roles.append(l_mapping["RoleName"])
+                    l_groups.append(l_mapping["WebsiteGroupName"])
+
+                l_roles_string: str = ",".join(l_roles)
+                l_groups_string: str = ",".join(l_groups)
+                l_teams_string: str = ",".join(l_user["Teams"])
+
+                try:
+                    l_last_login_date: str = self.__format_datetime_string(l_user["LastLoginDate"])
+                except KeyError as e:
+                    l_last_login_date: str = ""
+
                 l_team_members.append([
-                    l_user["Name"], l_user["Email"], l_user["Role"],
-                    l_user["UserState"], l_last_login_date, l_user["CanManageApplication"],
-                    l_user["CanManageIssues"], l_user["CanManageIssuesAsRestricted"], l_user["CanManageTeam"],
-                    l_user["CanManageWebsites"], l_user["CanStartScan"],
-                    l_user["CanViewScanReports"], l_user["IsApiAccessEnabled"],
+                    l_user["Name"], l_user["Email"], l_user["AlternateLoginEmail"],
+                    l_teams_string, l_groups_string, l_roles_string,
+                    l_user["PhoneNumber"], l_user["State"], l_last_login_date,
                     l_user["IsTwoFactorAuthenticationEnabled"],
-                    l_groups, l_user["AccountId"], l_user["Id"]
+                    l_user["OnlySsoLogin"], l_user["AccountId"], l_user["Id"]
                 ])
             return l_team_members
         except Exception as e:
@@ -1077,42 +1154,52 @@ class API:
 
         l_accounts: list = []
 
-        if p_type.name == TeamMemberTypes.ALL_ACCOUNTS.name:
-            return p_json
-        elif p_type.name == TeamMemberTypes.ACCOUNT_MANAGERS.name:
-            for l_account in p_json:
-                if l_account["CanManageTeam"]:
-                    l_accounts.append(l_account)
-        elif p_type.name == TeamMemberTypes.WEBSITE_MANAGERS.name:
-            for l_account in p_json:
-                if l_account["CanManageWebsites"]:
-                    l_accounts.append(l_account)
-        elif p_type.name == TeamMemberTypes.API_ACCOUNTS.name:
-            for l_account in p_json:
-                if l_account["IsApiAccessEnabled"]:
-                    l_accounts.append(l_account)
-        elif p_type.name == TeamMemberTypes.SCAN_ACCOUNTS.name:
-            for l_account in p_json:
-                if l_account["CanStartScan"]:
-                    l_accounts.append(l_account)
-        elif p_type.name == TeamMemberTypes.DISABLED_ACCOUNTS.name:
-            for l_account in p_json:
-                if l_account["UserState"] == "Disabled":
-                    l_accounts.append(l_account)
-        elif p_type.name == TeamMemberTypes.UNUSED_ACCOUNTS.name:
-            l_cutoff_date: datetime = datetime.now(timezone.utc) - timedelta(days=Parser.unused_accounts_idle_days_permitted)
-            l_today_utc: datetime = datetime.now(timezone.utc)
-            for l_account in p_json:
-                if l_account["LastLoginDate"]:
-                    l_last_login_date: datetime = parser.parse(l_account["LastLoginDate"])
-                else:
-                    l_last_login_date: datetime = parser.parse(l_account["CreatedAt"])
+        try:
 
-                if l_last_login_date < l_cutoff_date:
-                    l_account["DaysSinceLastLogin"] = (l_today_utc - l_last_login_date).days
-                    l_accounts.append(l_account)
+            if p_type.name == TeamMemberTypes.ALL_ACCOUNTS.name:
+                return p_json
+            elif p_type.name == TeamMemberTypes.ACCOUNT_MANAGERS.name:
+                for l_account in p_json:
+                    for l_mapping in l_account["RoleWebsiteGroupMappings"]:
+                        if l_mapping["RoleName"] == "Account Administrator":
+                            l_accounts.append(l_account)
+                            break
+            elif p_type.name == TeamMemberTypes.ACCOUNT_OWNERS.name:
+                for l_account in p_json:
+                    for l_mapping in l_account["RoleWebsiteGroupMappings"]:
+                        if l_mapping["RoleName"] == "Account Owner":
+                            l_accounts.append(l_account)
+                            break
+            elif p_type.name == TeamMemberTypes.API_ACCOUNTS.name:
+                for l_account in p_json:
+                    if l_account["IsApiAccessEnabled"]:
+                        l_accounts.append(l_account)
+            elif p_type.name == TeamMemberTypes.SCAN_ACCOUNTS.name:
+                for l_account in p_json:
+                    for l_mapping in l_account["RoleWebsiteGroupMappings"]:
+                        if l_mapping["RoleName"] == "?":
+                            l_accounts.append(l_account)
+                            break
+            elif p_type.name == TeamMemberTypes.DISABLED_ACCOUNTS.name:
+                for l_account in p_json:
+                    if l_account["State"] == "Disabled":
+                        l_accounts.append(l_account)
+            elif p_type.name == TeamMemberTypes.UNUSED_ACCOUNTS.name:
+                l_cutoff_date: datetime = datetime.now(timezone.utc) - timedelta(days=Parser.unused_accounts_idle_days_permitted)
+                l_today_utc: datetime = datetime.now(timezone.utc)
+                for l_account in p_json:
+                    if l_account["LastLoginDate"]:
+                        l_last_login_date: datetime = parser.parse(l_account["LastLoginDate"])
+                    else:
+                        l_last_login_date: datetime = parser.parse(l_account["CreatedAt"])
 
-        return l_accounts
+                    if l_last_login_date < l_cutoff_date:
+                        l_account["DaysSinceLastLogin"] = (l_today_utc - l_last_login_date).days
+                        l_accounts.append(l_account)
+
+            return l_accounts
+        except Exception as e:
+            self.__mPrinter.print("__filter_team_members() - {0}".format(str(e)), Level.ERROR)
 
     def __get_team_members(self, p_type: TeamMemberTypes) -> list:
         try:
@@ -1139,11 +1226,11 @@ class API:
         except Exception as e:
             self.__mPrinter.print("get_account_managers() - {0}".format(str(e)), Level.ERROR)
 
-    def get_website_managers(self) -> None:
+    def get_account_owners(self) -> None:
         try:
-            self.__get_team_members(TeamMemberTypes.WEBSITE_MANAGERS)
+            self.__get_team_members(TeamMemberTypes.ACCOUNT_OWNERS)
         except Exception as e:
-            self.__mPrinter.print("get_website_managers() - {0}".format(str(e)), Level.ERROR)
+            self.__mPrinter.print("get_account_owners() - {0}".format(str(e)), Level.ERROR)
 
     def get_api_accounts(self) -> None:
         try:
@@ -1153,6 +1240,8 @@ class API:
 
     def get_scan_accounts(self) -> None:
         try:
+            self.__mPrinter.print("This feature is broken until NS fixes the API issue", Level.ERROR)
+            exit()
             self.__get_team_members(TeamMemberTypes.SCAN_ACCOUNTS)
         except Exception as e:
             self.__mPrinter.print("get_scan_accounts() - {0}".format(str(e)), Level.ERROR)
@@ -1247,7 +1336,7 @@ class API:
                 l_created_date: str = self.__format_datetime_string(l_user["CreatedAt"])
                 l_team_members.append([
                     l_user["Name"], l_user["Email"], l_user["DaysSinceLastLogin"],
-                    l_last_login_date, l_created_date, l_user["UserState"],
+                    l_last_login_date, l_created_date, l_user["State"],
                     l_user["AccountId"], l_user["Id"]
                 ])
             return l_team_members
@@ -1284,6 +1373,8 @@ class API:
 
     def get_unused_accounts(self) -> None:
         try:
+            self.__mPrinter.print("This feature is broken until NS fixes the API issue", Level.ERROR)
+            exit()
             self.__get_unused_accounts()
         except Exception as e:
             self.__mPrinter.print("get_unused_accounts() - {0}".format(str(e)), Level.ERROR)

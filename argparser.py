@@ -87,13 +87,16 @@ class Parser:
         Parser.get_scan_results = p_args.get_scan_results
         Parser.scan_id = p_args.scan_id
 
+        # Teams Members
+        Parser.get_teams = p_args.get_teams
+
         # Team Member
         Parser.get_team_member = p_args.get_team_member
 
         # Team Members
         Parser.get_team_members = p_args.get_team_members
         Parser.get_account_managers = p_args.get_account_managers
-        Parser.get_website_managers = p_args.get_website_managers
+        Parser.get_account_owners = p_args.get_account_owners
         Parser.get_api_accounts = p_args.get_api_accounts
         Parser.get_scan_accounts = p_args.get_scan_accounts
         Parser.get_disabled_accounts = p_args.get_disabled_accounts

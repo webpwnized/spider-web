@@ -8,7 +8,7 @@ import config as __config
 from argparse import RawTextHelpFormatter
 import argparse
 
-l_version = '1.0.51'
+l_version = '1.0.52'
 
 def print_version() -> None:
     if Parser.verbose:
@@ -121,6 +121,15 @@ def print_example_usage() -> None:
     spider-web --get-scan-results --scan-id 8babd486-02da-4ecd-ba24-ace601ce041b
 
     --------------------------------
+    Get Teams
+    --------------------------------
+    spider-web -tgt -pn 1 -ps 200
+    spider-web --get-teams --page-number 1 --page-size 200
+
+    spider-web -tgt -pn 1 -ps 200 -of teams.txt
+    spider-web --get-teams --page-number 1 --page-size 200 ---output-file teams.txt
+
+    --------------------------------
     Get Team Member Information
     --------------------------------
     spider-web -tmgtms -pn 1 -ps 200
@@ -142,10 +151,10 @@ def print_example_usage() -> None:
     spider-web --get-account-managers --page-number 1 --page-size 200 ---output-file account-managers.txt
 
     spider-web -tmgwm -pn 1 -ps 200
-    spider-web --get-website-managers --page-number 1 --page-size 200
+    spider-web --get-account-owners --page-number 1 --page-size 200
 
-    spider-web -tmgwm -pn 1 -ps 200 -of website-managers.txt
-    spider-web --get-website-managers --page-number 1 --page-size 200 ---output-file website-managers.txt
+    spider-web -tmgwm -pn 1 -ps 200 -of account-owners.txt
+    spider-web --get-account-owners --page-number 1 --page-size 200 ---output-file account-owners.txt
 
     spider-web -tmgapia -pn 1 -ps 200
     spider-web --get-api-accounts --page-number 1 --page-size 200
@@ -186,22 +195,22 @@ def print_example_usage() -> None:
     --------------------------------
     Get Technologies
     --------------------------------
-    spider-web -tgt -pn 1 -ps 200 -wn www.acme.com
+    spider-web -techgt -pn 1 -ps 200 -wn www.acme.com
     spider-web --get-technologies --page-number 1 --page-size 200 --website-name www.acme.com
 
-    spider-web -tgt -pn 1 -ps 200 -tn jQuery
+    spider-web -techgt -pn 1 -ps 200 -tn jQuery
     spider-web --get-technologies --page-number 1 --page-size 200 --technology-name jQuery
 
-    spider-web -tgt -pn 1 -ps 200 -of technologies.txt -wn www.acme.com
+    spider-web -techgt -pn 1 -ps 200 -of technologies.txt -wn www.acme.com
     spider-web --get-technologies --page-number 1 --page-size 200 --website-name www.acme.com --output-file technologies.txt
 
-    spider-web -tgot -pn 1 -ps 200 -wn www.acme.com
+    spider-web -techgot -pn 1 -ps 200 -wn www.acme.com
     spider-web --get-obsolete-technologies --page-number 1 --page-size 200 --website-name www.acme.com
 
-    spider-web -tgot -pn 1 -ps 200 -tn jQuery
+    spider-web -techgot -pn 1 -ps 200 -tn jQuery
     spider-web --get-obsolete-technologies --page-number 1 --page-size 200 --technology-name jQuery
     
-    spider-web -tgot -pn 1 -ps 200 -of technologies.txt
+    spider-web -techgot -pn 1 -ps 200 -of technologies.txt
     spider-web --get-obsolete-technologies --page-number 1 --page-size 200 --website-name www.acme.com ---output-file technologies.txt
 
     --------------------------------
@@ -374,9 +383,9 @@ def run_main_program():
         Parser.get_websites_by_group_name or Parser.get_websites_by_group_id or Parser.get_technologies or \
         Parser.get_obsolete_technologies or Parser.get_scan_profiles or Parser.get_scan_profile or \
         Parser.get_account_managers or Parser.get_api_accounts or Parser.get_scan_accounts or \
-        Parser.get_disabled_accounts or Parser.get_website_managers or Parser.get_team_member or \
+        Parser.get_disabled_accounts or Parser.get_account_owners or Parser.get_team_member or \
         Parser.get_scan_results or Parser.upload_team_members or Parser.create_team_member or \
-        Parser.get_unused_accounts:
+        Parser.get_unused_accounts or Parser.get_teams:
             l_api = API(p_parser=Parser)
     else:
         lArgParser.print_usage()
@@ -396,6 +405,10 @@ def run_main_program():
 
     if Parser.get_agents:
         l_api.get_agents()
+        exit(0)
+
+    if Parser.get_teams:
+        l_api.get_teams()
         exit(0)
 
     if Parser.get_team_member:
@@ -431,8 +444,8 @@ def run_main_program():
         l_api.get_account_managers()
         exit(0)
 
-    if Parser.get_website_managers:
-        l_api.get_website_managers()
+    if Parser.get_account_owners:
+        l_api.get_account_owners()
         exit(0)
 
     if Parser.get_api_accounts:
@@ -755,6 +768,11 @@ if __name__ == '__main__':
                                  type=str,
                                  action='store')
 
+    l_teams_group = lArgParser.add_argument_group(title="Teams Endpoints", description=None)
+    l_teams_group.add_argument('-tgt', '--get-teams',
+                                 help='List teams and exit. Output fetched in pages.',
+                                 action='store_true')
+
     l_team_member_group = lArgParser.add_argument_group(title="Team Member Endpoints", description=None)
     l_team_member_group.add_argument('-tmgtms', '--get-team-members',
                                  help='List users and exit. Output fetched in pages.',
@@ -765,8 +783,8 @@ if __name__ == '__main__':
     l_team_member_group.add_argument('-tmgam', '--get-account-managers',
                                  help='List users able to manage team member accounts and exit. Output fetched in pages.',
                                  action='store_true')
-    l_team_member_group.add_argument('-tmgwm', '--get-website-managers',
-                                 help='List users able to manage websites and exit. Output fetched in pages.',
+    l_team_member_group.add_argument('-tmgao', '--get-account-owners',
+                                 help='List the account owners and exit. Output fetched in pages.',
                                  action='store_true')
     l_team_member_group.add_argument('-tmgapia', '--get-api-accounts',
                                  help='List users with permissions to access the API and exit. Output fetched in pages.',
@@ -810,10 +828,10 @@ if __name__ == '__main__':
                                  action='store')
 
     l_technologies_group = lArgParser.add_argument_group(title="Technologies Endpoints", description=None)
-    l_technologies_group.add_argument('-tgt', '--get-technologies',
+    l_technologies_group.add_argument('-techgt', '--get-technologies',
                                  help='List technologies and exit. Optionally search by -wn, --website-name or -tn, --technology-name or both. Output fetched in pages.',
                                  action='store_true')
-    l_technologies_group.add_argument('-tgot', '--get-obsolete-technologies',
+    l_technologies_group.add_argument('-techgot', '--get-obsolete-technologies',
                                  help='List obsolete technologies and exit. Optionally search by -wn, --website-name or -tn, --technology-name or both. Output fetched in pages.',
                                  action='store_true')
 
