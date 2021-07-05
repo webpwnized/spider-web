@@ -181,6 +181,13 @@ class API:
     __cDISCOVERED_SERVICES_LIST_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "discovery/list")
     __cDISCOVERED_SERVICES_DOWNLOAD_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "discovery/export")
 
+    __cROLES_DELETE_LIST_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "roles/delete")
+    __cROLES_GET_ID_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "roles/get")
+    __cROLES_LIST_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "roles/list")
+    __cROLES_LIST_PERMISSIONS_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "roles/listpermissions")
+    __cROLES_CREATE_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "roles/new")
+    __cROLES_UPDATE_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "roles/update")
+
     __cTEAMS_LIST_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "team/list")
 
     __cTEAM_MEMBER_GET_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "members/get")
@@ -869,6 +876,65 @@ class API:
             self.__mPrinter.print("get_license() - {0}".format(str(e)), Level.ERROR)
 
     # ------------------------------------------------------------
+    # Roles
+    # ------------------------------------------------------------
+    def __get_roles_header(self) -> list:
+        return ["Name","Permission Name","Permission Description","Role ID","Permission ID"]
+
+    def __parse_roles_json_to_csv(self, p_json: list) -> list:
+        try:
+            l_roles: list = []
+            for l_role in p_json:
+                for l_permission in l_role["Permissions"]:
+                    l_roles.append([
+                        l_role["Name"], l_permission["Name"], l_permission["Information"], l_role["Id"], l_permission["Id"]
+                    ])
+
+            return l_roles
+
+        except Exception as e:
+            self.__mPrinter.print("__parse_roles_json_to_csv() - {0}".format(str(e)), Level.ERROR)
+
+    def __print_roles_csv(self, p_json: list) -> None:
+        try:
+            l_header: list = self.__get_roles_header()
+            if p_json:
+                l_roles: list = self.__parse_roles_json_to_csv(p_json)
+                self.__write_csv(l_header, l_roles)
+            else:
+                self.__mPrinter.print("No roles are configured in NetSparker", Level.INFO)
+
+        except Exception as e:
+            self.__mPrinter.print("__print_roles_csv() - {0}".format(str(e)), Level.ERROR)
+
+    def __handle_roles(self, p_list: list) -> None:
+        try:
+            if self.__m_output_format == OutputFormat.JSON.value:
+                print(json.dumps(p_list))
+            elif self.__m_output_format == OutputFormat.CSV.value:
+                self.__print_roles_csv(p_list)
+
+        except Exception as e:
+            self.__mPrinter.print("__handle_roles() - {0}".format(str(e)), Level.ERROR)
+
+    def __get_roles(self) -> list:
+        try:
+            l_base_url = "{0}?page={1}&pageSize={2}".format(
+                self.__cROLES_LIST_URL, Parser.page_number, Parser.page_size
+            )
+
+            return self.__get_paged_data(l_base_url, "roles")
+        except Exception as e:
+            self.__mPrinter.print("__get_roles() - {0}".format(str(e)), Level.ERROR)
+
+    def get_roles(self) -> None:
+        try:
+            l_json: list = self.__get_roles()
+            self.__handle_roles(l_json)
+        except Exception as e:
+            self.__mPrinter.print("get_roles() - {0}".format(str(e)), Level.ERROR)
+
+    # ------------------------------------------------------------
     # Teams Methods
     # ------------------------------------------------------------
     def __get_teams_header(self) -> list:
@@ -1193,7 +1259,7 @@ class API:
             elif p_type.name == TeamMemberTypes.SCAN_ACCOUNTS.name:
                 for l_account in p_json:
                     for l_mapping in l_account["RoleWebsiteGroupMappings"]:
-                        if l_mapping["RoleName"] in ["Account Owner","Account Administrator"]:
+                        if l_mapping["RoleName"] in ["Account Owner","Account Administrator", "Start Scans", "Start Scans from CICD"]:
                             l_accounts.append(l_account)
                             break
             elif p_type.name == TeamMemberTypes.DISABLED_ACCOUNTS.name:

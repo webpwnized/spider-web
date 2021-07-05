@@ -70,6 +70,14 @@ class Parser:
         Parser.output_filename = p_args.output_filename
         Parser.output_separator = p_args.output_separator
 
+        # Role
+        Parser.get_role = p_args.get_role
+        Parser.role_id = p_args.role_id
+
+        # Roles
+        Parser.get_roles = p_args.get_roles
+        Parser.get_permissions = p_args.get_permissions
+
         # Scans
         Parser.get_scans = p_args.get_scans
         Parser.get_scans_by_website = p_args.get_scans_by_website

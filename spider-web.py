@@ -8,7 +8,7 @@ import config as __config
 from argparse import RawTextHelpFormatter
 import argparse
 
-l_version = '1.0.53'
+l_version = '1.0.54'
 
 def print_version() -> None:
     if Parser.verbose:
@@ -81,6 +81,18 @@ def print_example_usage() -> None:
     spider-web -ddds -of netsparker.csv -os Comma
     spider-web --download-discovered-services --output-filename netsparker.csv --output-separator Comma
 
+    --------------------------------
+    Get Roles
+    --------------------------------
+    spider-web -rgrs -pn 1 -ps 200
+    spider-web --get-roles --page-number 1 --page-size 200
+
+    spider-web -rgp
+    spider-web --get-permissions
+    
+    spider-web -rgr -rid 5ba05517-69af-45e3-8c4b-6837d7475832
+    spider-web --get-role --role-id 5ba05517-69af-45e3-8c4b-6837d7475832
+    
     --------------------------------
     Get Scans
     --------------------------------
@@ -385,6 +397,7 @@ def run_main_program():
         Parser.get_account_managers or Parser.get_api_accounts or Parser.get_scan_accounts or \
         Parser.get_disabled_accounts or Parser.get_account_owners or Parser.get_team_member or \
         Parser.get_scan_results or Parser.upload_team_members or Parser.create_team_member or \
+        Parser.get_roles or Parser.get_permissions or Parser.get_role or \
         Parser.get_unused_accounts or Parser.get_teams:
             l_api = API(p_parser=Parser)
     else:
@@ -405,6 +418,23 @@ def run_main_program():
 
     if Parser.get_agents:
         l_api.get_agents()
+        exit(0)
+
+    if Parser.get_roles:
+        l_api.get_roles()
+        exit(0)
+
+    if Parser.get_permissions:
+        l_api.get_permissions()
+        exit(0)
+
+    if Parser.get_role:
+        if not Parser.role_id:
+            lArgParser.print_usage()
+            Printer.print("-rid, --role-id is required but not provided", Level.ERROR, Force.FORCE, LINES_BEFORE,
+                          LINES_AFTER)
+            exit(0)
+        l_api.get_role()
         exit(0)
 
     if Parser.get_teams:
@@ -716,6 +746,25 @@ if __name__ == '__main__':
                                  action='store_true')
     l_discovery_group.add_argument('-dsdds', '--download-discovered-services',
                                  help='Download discovered services as CSV file and exit. Output filename is required. Specify output filename with -o, --output-format.',
+                                 action='store_true')
+
+    l_role_group = lArgParser.add_argument_group(title="Role Endpoints", description=None)
+    l_role_group.add_argument('-rgr', '--get-role',
+                                 help='List role and exit. Requires -rid, --role-id.',
+                                 action='store_true')
+
+    l_role_options_group = lArgParser.add_argument_group(title="Role Endpoints Options", description=None)
+    l_role_options_group.add_argument('-rid', '--role-id',
+                                 help='The ID of the role',
+                                 type=str,
+                                 action='store')
+
+    l_roles_group = lArgParser.add_argument_group(title="Roles Endpoints", description=None)
+    l_roles_group.add_argument('-rgrs', '--get-roles',
+                                 help='List roles and exit. Output fetched in pages.',
+                                 action='store_true')
+    l_roles_group.add_argument('-rgp', '--get-permissions',
+                                 help='List permissions and exit.',
                                  action='store_true')
 
     l_scans_group = lArgParser.add_argument_group(title="Scans Endpoints", description=None)
