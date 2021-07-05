@@ -876,6 +876,58 @@ class API:
             self.__mPrinter.print("get_license() - {0}".format(str(e)), Level.ERROR)
 
     # ------------------------------------------------------------
+    # Permissions
+    # ------------------------------------------------------------
+    def __get_permissions_header(self) -> list:
+        return ["Name","Description","ID"]
+
+    def __parse_permissions_json_to_csv(self, p_json: list) -> list:
+        try:
+            l_permissions: list = []
+            for l_permission in p_json:
+                l_permissions.append([
+                    l_permission["Name"], l_permission["Information"], l_permission["Id"]
+                ])
+            return l_permissions
+        except Exception as e:
+            self.__mPrinter.print("__parse_permissions_json_to_csv() - {0}".format(str(e)), Level.ERROR)
+
+    def __print_permissions_csv(self, p_json: list) -> None:
+        try:
+            l_header: list = self.__get_permissions_header()
+            if p_json:
+                l_permissions: list = self.__parse_permissions_json_to_csv(p_json)
+                self.__write_csv(l_header, l_permissions)
+            else:
+                self.__mPrinter.print("No permissions are configured in NetSparker", Level.INFO)
+
+        except Exception as e:
+            self.__mPrinter.print("__print_permissions_csv() - {0}".format(str(e)), Level.ERROR)
+
+    def __handle_permissions(self, p_list: list) -> None:
+        try:
+            if self.__m_output_format == OutputFormat.JSON.value:
+                print(json.dumps(p_list))
+            elif self.__m_output_format == OutputFormat.CSV.value:
+                self.__print_permissions_csv(p_list)
+
+        except Exception as e:
+            self.__mPrinter.print("__handle_permissions() - {0}".format(str(e)), Level.ERROR)
+
+    def __get_permissions(self) -> list:
+        try:
+            return self.__get_unpaged_data(self.__cROLES_LIST_PERMISSIONS_URL, "permissions")
+        except Exception as e:
+            self.__mPrinter.print("__get_permissions() - {0}".format(str(e)), Level.ERROR)
+
+    def get_permissions(self) -> None:
+        try:
+            l_json: list = self.__get_permissions()
+            self.__handle_permissions(l_json)
+        except Exception as e:
+            self.__mPrinter.print("get_permissions() - {0}".format(str(e)), Level.ERROR)
+
+    # ------------------------------------------------------------
     # Roles
     # ------------------------------------------------------------
     def __get_roles_header(self) -> list:
