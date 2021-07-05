@@ -8,7 +8,7 @@ import config as __config
 from argparse import RawTextHelpFormatter
 import argparse
 
-l_version = '1.0.56'
+l_version = '1.0.57'
 
 def print_version() -> None:
     if Parser.verbose:
@@ -208,6 +208,12 @@ def print_example_usage() -> None:
     spider-web --upload-team-members --input-file new-team-members.csv
 
     --------------------------------
+    Delete Team Member
+    --------------------------------
+    spider-web -tmdtm -tmid f18e1179-56fb-41e7-e3b7-acbf0450fe37
+    spider-web --delete-team-member --team-member-id f18e1179-56fb-41e7-e3b7-acbf0450fe37
+
+    --------------------------------
     Get Technologies
     --------------------------------
     spider-web -techgt -pn 1 -ps 200 -wn www.acme.com
@@ -400,7 +406,7 @@ def run_main_program():
         Parser.get_account_managers or Parser.get_api_accounts or Parser.get_scan_accounts or \
         Parser.get_disabled_accounts or Parser.get_account_owners or Parser.get_team_member or \
         Parser.get_scan_results or Parser.upload_team_members or Parser.create_team_member or \
-        Parser.get_roles or Parser.get_permissions or Parser.get_role or \
+        Parser.get_roles or Parser.get_permissions or Parser.get_role or Parser.delete_team_member or \
         Parser.get_unused_accounts or Parser.get_teams:
             l_api = API(p_parser=Parser)
     else:
@@ -463,6 +469,14 @@ def run_main_program():
             Printer.print("Requires -tmn, --team-member-name, -tme, --team-member-email, -tmsso, --team-member-sso-email, and -tmg, --team-member-groups", Level.ERROR, Force.FORCE, LINES_BEFORE, LINES_AFTER)
             exit(0)
         l_api.create_team_member()
+        exit(0)
+
+    if Parser.delete_team_member:
+        if not (Parser.team_member_id):
+            lArgParser.print_usage()
+            Printer.print("Requires -tmid, --team-member-id", Level.ERROR, Force.FORCE, LINES_BEFORE, LINES_AFTER)
+            exit(0)
+        l_api.delete_team_member()
         exit(0)
 
     if Parser.upload_team_members:
@@ -855,6 +869,9 @@ if __name__ == '__main__':
                                  action='store_true')
     l_team_member_group.add_argument('-tmuptm', '--upload-team-members',
                                  help='Create team members and exit. Requires properly formatted input file: CSV with fields TEAM_MEMBER_NAME, TEAM_MEMBER_EMAIL, TEAM_MEMBER_SSO_EMAIL, TEAM_MEMBER_GROUPS. TEAM_MEMBER_GROUPS must be pipe delimited. All the rules of CSV formatting apply such as quoting fields that contain special characters. Include input file with -if, --input-filename',
+                                 action='store_true')
+    l_team_member_group.add_argument('-tmdtm', '--delete-team-member',
+                                 help='Delete a team member and exit. Requires -tmid, --team-member-id',
                                  action='store_true')
 
     l_scan_profiles_options_group = lArgParser.add_argument_group(title="Team Member Endpoints Options", description=None)

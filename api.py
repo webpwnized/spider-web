@@ -194,6 +194,7 @@ class API:
     __cTEAM_MEMBER_GETBYEMAIL_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "members/getbyemail")
     __cTEAM_MEMBER_CREATE_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "members/new")
     __cTEAM_MEMBERS_LIST_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "members/list")
+    __cTEAM_MEMBER_DELETE_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "members/delete")
 
     __cTECHNOLOGIES_LIST_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "technologies/list")
     __cOBSOLETE_TECHNOLOGIES_LIST_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "technologies/outofdatetechnologies")
@@ -722,6 +723,19 @@ class API:
         except Exception as e:
             self.__mPrinter.print("__get_paged_data() - {0}".format(str(e)), Level.ERROR)
 
+            l_http_response = self.__connect_to_api(p_url=self.__cTEAM_MEMBER_CREATE_URL,
+                                                    p_method=HTTPMethod.POST.value,
+                                                    p_data=None, p_json=l_json)
+
+    def __post_data(self, p_url: str, p_endpoint_name: str, p_data: str=None, p_json=None) -> None:
+        try:
+            self.__mPrinter.print("Posting data to {} endpiont at {}".format(p_endpoint_name, p_url), Level.INFO)
+            l_http_response = self.__connect_to_api(
+                p_url=p_url, p_method=HTTPMethod.POST.value, p_data=p_data, p_json=p_json)
+            self.__mPrinter.print("Posted data to {} endpoint at {}".format(p_endpoint_name, p_url), Level.INFO)
+        except Exception as e:
+            self.__mPrinter.print("__post_data() - {0}".format(str(e)), Level.ERROR)
+
     # ------------------------------------------------------------
     # Account Methods
     # ------------------------------------------------------------
@@ -1010,7 +1024,7 @@ class API:
                 l_role: list = self.__parse_role_json_to_csv(p_json)
                 self.__write_csv(l_header, l_role)
             else:
-                self.__mPrinter.print("No role are configured in NetSparker", Level.INFO)
+                self.__mPrinter.print("The role is not configured in NetSparker", Level.INFO)
 
         except Exception as e:
             self.__mPrinter.print("__print_role_csv() - {0}".format(str(e)), Level.ERROR)
@@ -1093,7 +1107,7 @@ class API:
             self.__mPrinter.print("get_teams() - {0}".format(str(e)), Level.ERROR)
 
     # ------------------------------------------------------------
-    # Team Member Methods
+    # Get Team Member Methods
     # ------------------------------------------------------------
     def __get_team_member_header(self) -> list:
         return ["Name","Email","Login","Phone Number",
@@ -1161,10 +1175,16 @@ class API:
     def get_team_member(self) -> None:
         try:
             l_json: list = self.__get_team_member()
-            self.__handle_team_member(l_json)
+            if l_json:
+                self.__handle_team_member(l_json)
+            else:
+                self.__mPrinter.print("Team member not found", Level.ERROR)
         except Exception as e:
             self.__mPrinter.print("get_team_member() - {0}".format(str(e)), Level.ERROR)
 
+    # ------------------------------------------------------------
+    # Create Team Member Methods
+    # ------------------------------------------------------------
     def __parse_team_member_name(self, p_name: str) -> str:
         if not p_name:
             raise ValueError('__parse_team_member_name(): Name cannot be blank')
@@ -1236,18 +1256,21 @@ class API:
             self.__mPrinter.print("__build_team_member_create_json() - {0}".format(str(e)), Level.ERROR)
 
     def __create_team_member(self, p_name: str, p_email: str, p_sso_email: str, p_groups: str) -> None:
-        l_json = self.__build_team_member_create_json(
-            p_name, p_email,
-            p_sso_email, p_groups
-        )
-        self.__mPrinter.print("Creating team member {}".format(l_json), Level.INFO)
-        l_http_response = self.__connect_to_api(p_url=self.__cTEAM_MEMBER_CREATE_URL,
-                                                p_method=HTTPMethod.POST.value,
-                                                p_data=None, p_json=l_json)
-        if l_http_response:
-            self.__mPrinter.print("Created team member {0}".format(p_name), Level.INFO, Force.FORCE)
-        else:
-            raise ImportError("Unable to create team member {}".format(p_name))
+        try:
+            l_json = self.__build_team_member_create_json(
+                p_name, p_email,
+                p_sso_email, p_groups
+            )
+            self.__mPrinter.print("Creating team member {}".format(l_json), Level.INFO)
+            l_http_response = self.__connect_to_api(p_url=self.__cTEAM_MEMBER_CREATE_URL,
+                                                    p_method=HTTPMethod.POST.value,
+                                                    p_data=None, p_json=l_json)
+            if l_http_response:
+                self.__mPrinter.print("Created team member {0}".format(p_name), Level.INFO, Force.FORCE)
+            else:
+                raise ImportError("Unable to create team member {}".format(p_name))
+        except Exception as e:
+            self.__mPrinter.print("__create_team_member() - {0}".format(str(e)), Level.ERROR)
 
     def create_team_member(self) -> None:
         try:
@@ -1261,7 +1284,25 @@ class API:
             self.__mPrinter.print("create_team_member() - {0}".format(str(e)), Level.ERROR)
 
     # ------------------------------------------------------------
-    # Team Members Methods
+    # Delete Team Member Methods
+    # ------------------------------------------------------------
+    def __delete_team_member(self) -> None:
+        try:
+            self.__mPrinter.print("Deleting team member {}".format(Parser.team_member_id), Level.INFO)
+            l_base_url = "{}/{}".format(self.__cTEAM_MEMBER_DELETE_URL, Parser.team_member_id)
+            self.__post_data(l_base_url, "team member", None, None)
+            self.__mPrinter.print("Deleted team member {}".format(Parser.team_member_id), Level.INFO)
+        except Exception as e:
+            self.__mPrinter.print("__delete_team_member() - {0}".format(str(e)), Level.ERROR)
+
+    def delete_team_member(self) -> None:
+        try:
+            self.__delete_team_member()
+        except Exception as e:
+            self.__mPrinter.print("delete_team_member() - {0}".format(str(e)), Level.ERROR)
+
+    # ------------------------------------------------------------
+    # Get Team Members Methods
     # ------------------------------------------------------------
     def __get_team_members_header(self) -> list:
         return ["Name", "Email", "Login", "Phone Number", "Enabled?",
@@ -1457,6 +1498,9 @@ class API:
         except Exception as e:
             self.__mPrinter.print("get_unused_accounts() - {0}".format(str(e)), Level.ERROR)
 
+    # ------------------------------------------------------------
+    # Upload Team Members Methods
+    # ------------------------------------------------------------
     def __parse_team_member_upload(self) -> list:
         try:
             self.__mPrinter.print("Opening file for reading {}".format(Parser.input_filename), Level.INFO)
