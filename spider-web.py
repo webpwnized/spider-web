@@ -8,7 +8,7 @@ import config as __config
 from argparse import RawTextHelpFormatter
 import argparse
 
-l_version = '1.0.55'
+l_version = '1.0.56'
 
 def print_version() -> None:
     if Parser.verbose:
@@ -82,6 +82,12 @@ def print_example_usage() -> None:
     spider-web --download-discovered-services --output-filename netsparker.csv --output-separator Comma
 
     --------------------------------
+    Get Role
+    --------------------------------
+    spider-web -rgr -rid 6994ec49-6045-447d-9169-aa044466f201
+    spider-web --get-role --role-id 6994ec49-6045-447d-9169-aa044466f201
+
+    --------------------------------
     Get Roles
     --------------------------------
     spider-web -rgrs -pn 1 -ps 200
@@ -89,9 +95,6 @@ def print_example_usage() -> None:
 
     spider-web -rgp
     spider-web --get-permissions
-    
-    spider-web -rgr -rid 5ba05517-69af-45e3-8c4b-6837d7475832
-    spider-web --get-role --role-id 5ba05517-69af-45e3-8c4b-6837d7475832
     
     --------------------------------
     Get Scans

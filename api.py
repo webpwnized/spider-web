@@ -987,6 +987,59 @@ class API:
             self.__mPrinter.print("get_roles() - {0}".format(str(e)), Level.ERROR)
 
     # ------------------------------------------------------------
+    # Role
+    # ------------------------------------------------------------
+    def __get_role_header(self) -> list:
+        return ["Name","Permission Name","Permission Description","Role ID","Permission ID"]
+
+    def __parse_role_json_to_csv(self, p_role: list) -> list:
+        try:
+            l_permissions: list = []
+            for l_permission in p_role["Permissions"]:
+                l_permissions.append([
+                    p_role["Name"], l_permission["Name"], l_permission["Information"], p_role["Id"], l_permission["Id"]
+                ])
+            return l_permissions
+        except Exception as e:
+            self.__mPrinter.print("__parse_role_json_to_csv() - {0}".format(str(e)), Level.ERROR)
+
+    def __print_role_csv(self, p_json: list) -> None:
+        try:
+            l_header: list = self.__get_role_header()
+            if p_json:
+                l_role: list = self.__parse_role_json_to_csv(p_json)
+                self.__write_csv(l_header, l_role)
+            else:
+                self.__mPrinter.print("No role are configured in NetSparker", Level.INFO)
+
+        except Exception as e:
+            self.__mPrinter.print("__print_role_csv() - {0}".format(str(e)), Level.ERROR)
+
+    def __handle_role(self, p_list: list) -> None:
+        try:
+            if self.__m_output_format == OutputFormat.JSON.value:
+                print(json.dumps(p_list))
+            elif self.__m_output_format == OutputFormat.CSV.value:
+                self.__print_role_csv(p_list)
+
+        except Exception as e:
+            self.__mPrinter.print("__handle_role() - {0}".format(str(e)), Level.ERROR)
+
+    def __get_role(self) -> list:
+        try:
+            l_base_url = "{}/{}".format(self.__cROLES_GET_ID_URL, Parser.role_id)
+            return self.__get_unpaged_data(l_base_url, "role")
+        except Exception as e:
+            self.__mPrinter.print("__get_role() - {0}".format(str(e)), Level.ERROR)
+
+    def get_role(self) -> None:
+        try:
+            l_json: list = self.__get_role()
+            self.__handle_role(l_json)
+        except Exception as e:
+            self.__mPrinter.print("get_role() - {0}".format(str(e)), Level.ERROR)
+
+    # ------------------------------------------------------------
     # Teams Methods
     # ------------------------------------------------------------
     def __get_teams_header(self) -> list:
