@@ -462,6 +462,9 @@ class API:
                 l_basic_auth_credentials: str = base64.standard_b64encode(l_credentials.encode("utf-8")).decode("utf-8")
                 l_authentication_header = "Basic {}".format(l_basic_auth_credentials)
 
+            if Parser.debug:
+                self.__mPrinter.print("Authenticating with {}".format(self.api_authentication_method), Level.DEBUG)
+
             l_headers = {
                 self.__cAPI_KEY_HEADER: l_authentication_header,
                 self.__cUSER_AGENT_HEADER: self.__cUSER_AGENT_VALUE,
@@ -486,6 +489,7 @@ class API:
             if self.__m_use_proxy:
                 self.__mPrinter.print("Using upstream proxy", Level.INFO)
                 l_proxies = self.__get_proxies()
+
             if Parser.debug:
                 Printer.print("URL: {}".format(p_url), Level.DEBUG)
                 Printer.print("Headers: {}".format(p_headers), Level.DEBUG)
@@ -498,10 +502,17 @@ class API:
                 elif p_method == HTTPMethod.POST.value:
                     #Note: data takes precedence over json unless data=None
                     l_http_response = requests.post(url=p_url, headers=p_headers, data=p_data, json=p_json, proxies=l_proxies, timeout=self.__m_api_connection_timeout, verify=self.__m_verify_https_certificate)
-            except Exception as lRequestError:
-                exit("Fatal - Cannot connect to API. Check connectivity to {}. {}".format(
-                    self.__cBASE_URL,
-                    'Upstream proxy is enabled in config.py. Ensure proxy settings are correct.' if self.__m_use_proxy else 'The proxy is not enabled. Should it be?'))
+            except Exception as e:
+                l_message: str = 'Upstream proxy is enabled in config.py. Ensure proxy settings are correct.' if self.__m_use_proxy else 'The proxy is not enabled. Should it be?'
+                self.__mPrinter.print("Type of exception: {}".format(str(type(e))), Level.ERROR)
+                self.__mPrinter.print("Exception: {}".format(str(e)), Level.ERROR)
+                self.__mPrinter.print("Exception: {}".format(l_message), Level.ERROR)
+                self.__mPrinter.print("Cannot connect to API. Check connectivity to {}".format(self.__cBASE_URL), Level.ERROR)
+
+            if Parser.debug:
+                self.__mPrinter.print("Response Status Code: {}".format(l_http_response.status_code), Level.DEBUG)
+                self.__mPrinter.print("Response Reason: {}".format(l_http_response.reason), Level.DEBUG)
+                self.__mPrinter.print("Response Text: {}".format(l_http_response.text), Level.DEBUG)
 
             if l_http_response.status_code not in [200, 201]:
                 l_error_message ="{} {} - {}".format(l_http_response.status_code, l_http_response.reason, l_http_response.text)
@@ -727,12 +738,13 @@ class API:
                                                     p_method=HTTPMethod.POST.value,
                                                     p_data=None, p_json=l_json)
 
-    def __post_data(self, p_url: str, p_endpoint_name: str, p_data: str=None, p_json=None) -> None:
+    def __post_data(self, p_url: str, p_endpoint_name: str, p_data: str=None, p_json=None) -> requests.Response:
         try:
             self.__mPrinter.print("Posting data to {} endpiont at {}".format(p_endpoint_name, p_url), Level.INFO)
             l_http_response = self.__connect_to_api(
                 p_url=p_url, p_method=HTTPMethod.POST.value, p_data=p_data, p_json=p_json)
             self.__mPrinter.print("Posted data to {} endpoint at {}".format(p_endpoint_name, p_url), Level.INFO)
+            return l_http_response
         except Exception as e:
             self.__mPrinter.print("__post_data() - {0}".format(str(e)), Level.ERROR)
 
@@ -1121,13 +1133,18 @@ class API:
         try:
             l_roles: list = []
             l_groups: list = []
+            l_teams: list = []
+
             for l_mapping in l_user["RoleWebsiteGroupMappings"]:
                 l_roles.append(l_mapping["RoleName"])
                 l_groups.append(l_mapping["WebsiteGroupName"])
 
+            for l_team in l_user["Teams"]:
+                l_teams.append(l_team["Name"])
+
             l_roles_string: str = ",".join(l_roles)
             l_groups_string: str = ",".join(l_groups)
-            l_teams_string: str = ",".join(l_user["Teams"])
+            l_teams_string: str = ",".join(l_teams)
 
             l_last_login_date: str = self.__format_datetime_string(l_user["LastLoginDate"]) if "LastLoginDate" in l_user else ""
 
@@ -1262,13 +1279,14 @@ class API:
                 p_sso_email, p_groups
             )
             self.__mPrinter.print("Creating team member {}".format(l_json), Level.INFO)
-            l_http_response = self.__connect_to_api(p_url=self.__cTEAM_MEMBER_CREATE_URL,
-                                                    p_method=HTTPMethod.POST.value,
-                                                    p_data=None, p_json=l_json)
+            l_http_response = self.__post_data(
+                p_url=self.__cTEAM_MEMBER_CREATE_URL, p_endpoint_name="team member", p_json=l_json
+            )
             if l_http_response:
                 self.__mPrinter.print("Created team member {0}".format(p_name), Level.INFO, Force.FORCE)
             else:
                 raise ImportError("Unable to create team member {}".format(p_name))
+
         except Exception as e:
             self.__mPrinter.print("__create_team_member() - {0}".format(str(e)), Level.ERROR)
 
@@ -1317,13 +1335,18 @@ class API:
 
                 l_roles: list = []
                 l_groups: list = []
+                l_teams: list = []
+
                 for l_mapping in l_user["RoleWebsiteGroupMappings"]:
                     l_roles.append(l_mapping["RoleName"])
                     l_groups.append(l_mapping["WebsiteGroupName"])
 
+                for l_team in l_user["Teams"]:
+                    l_teams.append(l_team["Name"])
+
                 l_roles_string: str = ",".join(l_roles)
                 l_groups_string: str = ",".join(l_groups)
-                l_teams_string: str = ",".join(l_user["Teams"])
+                l_teams_string: str = ",".join(l_teams)
 
                 l_team_members.append([
                     l_user["Name"], l_user["Email"], l_user["AlternateLoginEmail"],
