@@ -490,25 +490,34 @@ class API:
                 l_proxies = self.__get_proxies()
 
             Printer.print("URL: {}".format(p_url), Level.DEBUG)
-            Printer.print("Proxy: {}".format(l_proxies), Level.DEBUG)
-            Printer.print("Verify certificate: {}".format(self.__m_verify_https_certificate), Level.DEBUG)
-            Printer.print("URL: {}".format(p_url), Level.DEBUG)
             Printer.print("Method: {}".format(p_method), Level.DEBUG)
             Printer.print("Timeout: {}".format(self.__m_api_connection_timeout), Level.DEBUG)
             Printer.print("Post data: {}".format(p_data), Level.DEBUG)
             Printer.print("Post JSON: {}".format(p_json), Level.DEBUG)
+            Printer.print("Verify certificate: {}".format(self.__m_verify_https_certificate), Level.DEBUG)
 
             try:
+                self.__mPrinter.print("Sending {} request to {}".format(p_method, p_url), Level.INFO)
+
+                l_start_time: float = time.time()
+
                 if p_method == HTTPMethod.GET.value:
                     l_http_response = requests.get(url=p_url, headers=p_headers, proxies=l_proxies, timeout=self.__m_api_connection_timeout, verify=self.__m_verify_https_certificate)
                 elif p_method == HTTPMethod.POST.value:
                     #Note: data takes precedence over json unless data=None
                     l_http_response = requests.post(url=p_url, headers=p_headers, data=p_data, json=p_json, proxies=l_proxies, timeout=self.__m_api_connection_timeout, verify=self.__m_verify_https_certificate)
 
-                self.__mPrinter.print("Response Status Code: {}".format(l_http_response.status_code), Level.DEBUG)
-                self.__mPrinter.print("Response Reason: {}".format(l_http_response.reason), Level.DEBUG)
-                if l_http_response and l_http_response.status_code not in [200, 201]:
-                    self.__mPrinter.print("Response Text: {}".format(l_http_response.text), Level.DEBUG)
+                l_end_time: float = time.time()
+                l_total_time: int = int(l_end_time - l_start_time)
+                self.__mPrinter.print("Response time: {} seconds".format(l_total_time), Level.INFO)
+
+                if l_http_response:
+                    self.__mPrinter.print("Response Status Code: {}".format(l_http_response.status_code), Level.DEBUG)
+                    self.__mPrinter.print("Response Reason: {}".format(l_http_response.reason), Level.DEBUG)
+                    if l_http_response and l_http_response.status_code not in [200, 201]:
+                        self.__mPrinter.print("Response Text: {}".format(l_http_response.text), Level.DEBUG)
+                else:
+                    self.__mPrinter.print("The HTTP Response is NULL", Level.DEBUG)
 
             except requests.exceptions.ReadTimeout as e:
                 self.__mPrinter.print("Read Timeout Exception: {}".format(str(e)), Level.ERROR)
@@ -626,14 +635,21 @@ class API:
             l_next_page_number: int = l_current_page_number + 1
             l_base_url = p_base_url.replace("page={}".format(l_current_page_number),
                                             "page={}".format(l_next_page_number))
+            self.__mPrinter.print("Fetching next page at URL {}".format(l_base_url), Level.INFO)
+
+            if l_next_page_number == 24:
+                print("24")
+
             l_http_response = self.__connect_to_api(l_base_url)
+            self.__mPrinter.print("Parsing fetched content: {}".format(l_http_response.text), Level.DEBUG)
             l_json = json.loads(l_http_response.text)
 
             l_list: list = l_json["List"]
 
             l_next_page = l_json["HasNextPage"]
             if l_next_page:
-                l_list.extend(self.__get_next_page(l_base_url, l_json))
+                l_next_list: list = self.__get_next_page(l_base_url, l_json)
+                l_list.extend(l_next_list)
 
             return l_list
         except Exception as e:
