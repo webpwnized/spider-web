@@ -462,8 +462,7 @@ class API:
                 l_basic_auth_credentials: str = base64.standard_b64encode(l_credentials.encode("utf-8")).decode("utf-8")
                 l_authentication_header = "Basic {}".format(l_basic_auth_credentials)
 
-            if Parser.debug:
-                self.__mPrinter.print("Authenticating with {}".format(self.api_authentication_method), Level.DEBUG)
+            self.__mPrinter.print("Authenticating with {}".format(self.api_authentication_method), Level.DEBUG)
 
             l_headers = {
                 self.__cAPI_KEY_HEADER: l_authentication_header,
@@ -490,11 +489,14 @@ class API:
                 self.__mPrinter.print("Using upstream proxy", Level.INFO)
                 l_proxies = self.__get_proxies()
 
-            if Parser.debug:
-                Printer.print("URL: {}".format(p_url), Level.DEBUG)
-                Printer.print("Headers: {}".format(p_headers), Level.DEBUG)
-                Printer.print("Proxy: {}".format(l_proxies), Level.DEBUG)
-                Printer.print("Verify certificate: {}".format(self.__m_verify_https_certificate), Level.DEBUG)
+            Printer.print("URL: {}".format(p_url), Level.DEBUG)
+            Printer.print("Proxy: {}".format(l_proxies), Level.DEBUG)
+            Printer.print("Verify certificate: {}".format(self.__m_verify_https_certificate), Level.DEBUG)
+            Printer.print("URL: {}".format(p_url), Level.DEBUG)
+            Printer.print("Method: {}".format(p_method), Level.DEBUG)
+            Printer.print("Timeout: {}".format(self.__m_api_connection_timeout), Level.DEBUG)
+            Printer.print("Post data: {}".format(p_data), Level.DEBUG)
+            Printer.print("Post JSON: {}".format(p_json), Level.DEBUG)
 
             try:
                 if p_method == HTTPMethod.GET.value:
@@ -502,19 +504,37 @@ class API:
                 elif p_method == HTTPMethod.POST.value:
                     #Note: data takes precedence over json unless data=None
                     l_http_response = requests.post(url=p_url, headers=p_headers, data=p_data, json=p_json, proxies=l_proxies, timeout=self.__m_api_connection_timeout, verify=self.__m_verify_https_certificate)
+
+                self.__mPrinter.print("Response Status Code: {}".format(l_http_response.status_code), Level.DEBUG)
+                self.__mPrinter.print("Response Reason: {}".format(l_http_response.reason), Level.DEBUG)
+                if l_http_response and l_http_response.status_code not in [200, 201]:
+                    self.__mPrinter.print("Response Text: {}".format(l_http_response.text), Level.DEBUG)
+
+            except requests.exceptions.ReadTimeout as e:
+                self.__mPrinter.print("Read Timeout Exception: {}".format(str(e)), Level.ERROR)
+                Printer.print("URL: {}".format(p_url), Level.ERROR)
+                Printer.print("Method: {}".format(p_method), Level.ERROR)
+                Printer.print("Timeout: {}".format(self.__m_api_connection_timeout), Level.ERROR)
+                Printer.print("Post data: {}".format(p_data), Level.ERROR)
+                Printer.print("Post JSON: {}".format(p_json), Level.ERROR)
+
+                #Printer.print("Trying to call the API again".format(p_json), Level.INFO)
+                #try:
+                #    l_http_response = self.__call_api(p_url=p_url, p_headers=p_headers,p_method=p_method,p_data=p_data,p_json=p_json)
+                #except Exception as e:
+                #    self.__mPrinter.print("The second attempt to connect to the API failed", Level.ERROR)
+                #    self.__mPrinter.print("Exception: {}".format(str(e)), Level.ERROR)
+                #    sys.exit("The second attempt to connect to the API failed")
+
             except Exception as e:
                 l_message: str = 'Upstream proxy is enabled in config.py. Ensure proxy settings are correct.' if self.__m_use_proxy else 'The proxy is not enabled. Should it be?'
                 self.__mPrinter.print("Type of exception: {}".format(str(type(e))), Level.ERROR)
                 self.__mPrinter.print("Exception: {}".format(str(e)), Level.ERROR)
-                self.__mPrinter.print("Exception: {}".format(l_message), Level.ERROR)
-                self.__mPrinter.print("Cannot connect to API. Check connectivity to {}".format(self.__cBASE_URL), Level.ERROR)
+                self.__mPrinter.print(l_message, Level.ERROR)
+                self.__mPrinter.print("Cannot connect to {}".format(p_url), Level.ERROR)
+                sys.exit("Cannot connect to {}".format(p_url))
 
-            if Parser.debug:
-                self.__mPrinter.print("Response Status Code: {}".format(l_http_response.status_code), Level.DEBUG)
-                self.__mPrinter.print("Response Reason: {}".format(l_http_response.reason), Level.DEBUG)
-                self.__mPrinter.print("Response Text: {}".format(l_http_response.text), Level.DEBUG)
-
-            if l_http_response.status_code not in [200, 201]:
+            if l_http_response and l_http_response.status_code not in [200, 201]:
                 l_error_message ="{} {} - {}".format(l_http_response.status_code, l_http_response.reason, l_http_response.text)
                 l_message = "Call to API returned status {}".format(l_error_message)
                 raise ValueError(l_message)
@@ -3124,12 +3144,18 @@ class API:
             l_best_scans: Scans = Scans()
 
             l_scans: list = self.__get_scans()
-            l_number_scans: int = len(l_scans)
+            l_number_scans: int = len(l_scans) if l_scans else 0
             self.__mPrinter.print("Fetched {} scans".format(l_number_scans), Level.INFO)
 
-            self.__mPrinter.print("Checking each scan to find the most recent, complete scans", Level.INFO)
-            for l_scan in l_scans:
-                l_best_scans.append_if_better(l_scan)
+            if l_scans:
+                self.__mPrinter.print("Checking each scan to find the most recent, complete scans", Level.INFO)
+                l_current_scan: int = l_number_scans
+                for l_scan in l_scans:
+                    self.__mPrinter.print("Working on scan {}".format(l_current_scan), Level.INFO)
+                    l_best_scans.append_if_better(l_scan)
+                    l_current_scan = l_current_scan - 1
+            else:
+                self.__mPrinter.print("No scans were found", Level.ERROR)
 
             return l_best_scans.scans()
 
