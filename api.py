@@ -637,9 +637,6 @@ class API:
                                             "page={}".format(l_next_page_number))
             self.__mPrinter.print("Fetching next page at URL {}".format(l_base_url), Level.INFO)
 
-            if l_next_page_number == 24:
-                print("24")
-
             l_http_response = self.__connect_to_api(l_base_url)
             self.__mPrinter.print("Parsing fetched content: {}".format(l_http_response.text), Level.DEBUG)
             l_json = json.loads(l_http_response.text)
