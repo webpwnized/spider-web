@@ -1341,8 +1341,21 @@ class API:
         try:
             self.__mPrinter.print("Deleting team member {}".format(Parser.team_member_id), Level.INFO)
             l_base_url = "{}/{}".format(self.__cTEAM_MEMBER_DELETE_URL, Parser.team_member_id)
-            self.__post_data(l_base_url, "team member", None, None)
-            self.__mPrinter.print("Deleted team member {}".format(Parser.team_member_id), Level.INFO)
+            l_http_resposne: requests.Response = self.__post_data(l_base_url, "team member", None, None)
+
+            if l_http_resposne.status_code == 200:
+                l_message: str = "Deleted team member {}".format(Parser.team_member_id)
+                self.__mPrinter.print(l_message, Level.SUCCESS)
+            else:
+                if l_http_resposne.status_code == 400:
+                    l_message: str = "Bad request {}".format(l_http_resposne.reason)
+                elif l_http_resposne.status_code == 404:
+                    l_message: str = "Team member {} was not found".format(Parser.team_member_id)
+                else:
+                    l_message: str = "Could not delete team member {} - {} {}".format(Parser.team_member_id, l_http_resposne.status_code, l_http_resposne.reason)
+
+                self.__mPrinter.print(l_message, Level.ERROR)
+
         except Exception as e:
             self.__mPrinter.print("__delete_team_member() - {0}".format(str(e)), Level.ERROR)
 
