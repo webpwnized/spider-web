@@ -1159,7 +1159,7 @@ class API:
                 "Teams", "Groups", "Roles",
                 "Enabled?","API Access?","LastLoginDate",
                 "TwoFactorAuthenticationEnabled",
-                "AccountId","Id", "Created At"
+                "Created Date", "Id"
         ]
 
     def __parse_team_member_json_to_csv(self, l_user: list) -> list:
@@ -1187,7 +1187,7 @@ class API:
                 l_teams_string, l_groups_string, l_roles_string,
                 l_user["State"], l_user["IsApiAccessEnabled"], l_last_login_date,
                 l_user["IsTwoFactorAuthenticationEnabled"],
-                l_user["OnlySsoLogin"], l_user["AccountId"], l_user["Id"], "Feature broken by API changes"
+                l_user["OnlySsoLogin"], l_user["CreatedAtString"], l_user["Id"]
             ]]
         except Exception as e:
             self.__mPrinter.print("__parse_team_member_json_to_csv() - {0}".format(str(e)), Level.ERROR)
@@ -1218,7 +1218,11 @@ class API:
             if Parser.team_member_email:
                 l_base_url = "{}?email={}".format(self.__cTEAM_MEMBER_GETBYEMAIL_URL, Parser.team_member_email)
 
-            return self.__get_unpaged_data(l_base_url, "team member")
+            l_team_member: dict = self.__get_unpaged_data(l_base_url, "team member")
+
+            l_team_member["CreatedAtString"] = self.__format_datetime_string(l_team_member["CreatedAt"])
+
+            return l_team_member
         except Exception as e:
             self.__mPrinter.print("__get_team_member() - {0}".format(str(e)), Level.ERROR)
 
@@ -1372,7 +1376,7 @@ class API:
         return ["Name", "Email", "Login", "Phone Number", "Enabled?",
                 "Days Since Login", "Last Login Date",
                 "Teams", "Groups", "Roles", "2FA Enabled?",
-                "SSO Enabled?", "Created Date", "Account ID", "ID"]
+                "SSO Enabled?", "Created Date", "ID"]
 
     def __parse_team_members_json_to_csv(self, p_json: list) -> list:
         try:
@@ -1401,7 +1405,7 @@ class API:
                     l_teams_string, l_groups_string, l_roles_string,
                     l_user["IsTwoFactorAuthenticationEnabled"],
                     l_user["OnlySsoLogin"], l_user["CreatedAtString"],
-                    l_user["AccountId"], l_user["Id"]
+                    l_user["Id"]
                 ])
 
             return l_team_members
