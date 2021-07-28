@@ -137,6 +137,7 @@ class TeamMemberRoles(Enum):
     VIEW_SCHEDULED_SCANS = "563e9174-96a1-4c84-1123-ad4e034ccd9d"
     MANAGE_ISSUES_RESTRICTED = "8bb0642b-0523-4e8a-8786-597cfa36edb7"
     VIEW_REPORTS = "ca7ae289-131b-45d2-ab34-c625b99be90e"
+
 class TeamMemberTypes(Enum):
     ALL_ACCOUNTS = "All Accounts"
     ACCOUNT_MANAGERS = "Account Managers"
