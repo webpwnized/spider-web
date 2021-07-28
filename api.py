@@ -133,7 +133,10 @@ class SortDirection(Enum):
 class WebsiteGroups(Enum):
     ON_BALANCED_SCORECARD = 'b9d6581c-9ebe-4e56-3313-ac4e038c2393'
 
-
+class TeamMemberRoles(Enum):
+    VIEW_SCHEDULED_SCANS = "563e9174-96a1-4c84-1123-ad4e034ccd9d"
+    MANAGE_ISSUES_RESTRICTED = "8bb0642b-0523-4e8a-8786-597cfa36edb7"
+    VIEW_REPORTS = "ca7ae289-131b-45d2-ab34-c625b99be90e"
 class TeamMemberTypes(Enum):
     ALL_ACCOUNTS = "All Accounts"
     ACCOUNT_MANAGERS = "Account Managers"
@@ -244,6 +247,7 @@ class API:
     __m_output_format: OutputFormat
     __m_accept_header: AcceptHeader = AcceptHeader.JSON
 
+    __m_groups: list = []
     # ---------------------------------
     # "Public" class variables
     # ---------------------------------
@@ -714,7 +718,7 @@ class API:
                 l_file = sys.stdout
 
             self.__mPrinter.print("Writing {} rows to {}".format(len(p_data), l_file.name), Level.INFO)
-            l_csv_writer = csv.writer(l_file, quoting=csv.QUOTE_ALL)
+            l_csv_writer = csv.writer(l_file, quoting=csv.QUOTE_ALL, lineterminator="\n")
             l_csv_writer.writerow(p_header)
             l_csv_writer.writerows(p_data)
             self.__mPrinter.print("Wrote {} rows to {}".format(len(p_data), l_file.name), Level.INFO)
@@ -1260,52 +1264,45 @@ class API:
             raise ValueError('__parse_team_member_sso_email(): SSO email is not valid')
         return l_sso_email
 
-    def __parse_team_member_groups(self, p_groups: str) -> str:
+    def __parse_team_member_groups(self, p_groups: str) -> list: 
         if not p_groups:
             raise ValueError('__parse_team_member_groups(): Team member groups cannot be blank')
 
         l_groups: list = p_groups.split("|")
-        l_groups_string: str = ', '.join('"{0}"'.format(g) for g in l_groups)
+        l_role_groups: list = []
 
-        return l_groups_string
+        for group in l_groups:
+            l_group_id = self.__get_team_group_id(group)
+            for role in TeamMemberRoles:
+                l_role: dict = {
+                    "WebsiteGroupId": l_group_id,
+                    "RoleId": role.value
+                }
+                l_role_groups.append(l_role)
+
+        return l_role_groups
 
     def __build_team_member_create_json(self, p_name: str, p_email: str, p_sso_email: str, p_groups: str) -> str:
-        # Example Model
-        # {
-        #     "OnlySsoLogin": false,
-        #     "AutoGeneratePassword": true,
-        #     "Password": "",
-        #     "SendNotification": true,
-        #     "PhoneNumber": "",
-        #     "AccountPermissions": "ManageWebsites",
-        #     "TimezoneId": "GMT Standard Time",
-        #     "WebsiteGroupNames": ["SDG: Advanced Analytics Group (AAG)"],
-        #     "ScanPermissions": "",
-        #     "DateTimeFormat": "dd/MM/yyyy",
-        #     "Email": "jdoe@email.com",
-        #     "Name": "string",
-        #     "ConfirmPassword": "",
-        #     "IsApiAccessEnabled": true,
-        #     "AllowedWebsiteLimit": 0
-        # }
-
         try:
-            l_json: str = \
-                '{"OnlySsoLogin": true, ' + \
-                '"AutoGeneratePassword": true, ' + \
-                '"SendNotification": true, ' + \
-                '"PhoneNumber": "", ' + \
-                '"AccountPermissions": "", ' + \
-                '"TimezoneId": "Eastern Standard Time", ' + \
-                '"WebsiteGroupNames": [' + p_groups + '], ' + \
-                '"ScanPermissions": "ViewScanReports,ManageIssuesAsRestricted", ' + \
-                '"DateTimeFormat": "MM/dd/yyyy", ' + \
-                '"Email": "' + p_email + '", ' + \
-                '"AlternateLoginEmail": "' + p_sso_email + '", ' + \
-                '"Name": "' + p_name + '", ' + \
-                '"IsApiAccessEnabled": false, ' + \
-                '"AllowedWebsiteLimit": 0}'
-            return json.loads(l_json)
+            l_json: dict = {
+                "OnlySsoLogin": True,
+                "AutoGeneratePassword": True,
+                "Password": "",
+                "ConfirmPassword": "",
+                "SendNotification": True,
+                "PhoneNumber": "",
+                "Teams": [],
+                "TimezoneId": "Eastern Standard Time",
+                "DateTimeFormat": "MM/dd/yyyy", 
+                "Email": p_email, 
+                "AlternateLoginEmail": p_sso_email,
+                "Name": p_name,
+                "IsApiAccessEnabled": True,
+                "AllowedWebsiteLimit": 0,
+                "RoleWebsiteGroupMappings": p_groups
+            }
+
+            return l_json
         except Exception as e:
             self.__mPrinter.print("__build_team_member_create_json() - {0}".format(str(e)), Level.ERROR)
 
@@ -1332,7 +1329,7 @@ class API:
             l_name: str = self.__parse_team_member_name(Parser.team_member_name)
             l_email: str = self.__parse_team_member_email(Parser.team_member_email)
             l_sso_email: str = self.__parse_team_member_sso_email(Parser.team_member_sso_email)
-            l_groups: str = self.__parse_team_member_groups(Parser.team_member_groups)
+            l_groups: list = self.__parse_team_member_groups(Parser.team_member_groups)
 
             self.__create_team_member(l_name, l_email, l_sso_email, l_groups)
         except Exception as e:
@@ -1600,6 +1597,22 @@ class API:
         finally:
             if l_input_file:
                 l_input_file.close()
+
+    def __get_team_groups(self) -> None:
+        l_json = self.__get_website_groups()
+
+        for group in l_json:
+            if "SDG" in group["Name"]:
+                self.__m_groups.append(group)
+
+
+    def __get_team_group_id(self, p_group_name: str) -> str:
+        if not self.__m_groups:
+            self.__get_team_groups()
+        
+        for group in self.__m_groups:
+            if p_group_name in group["Name"]:
+                return group["Id"]
 
     def __upload_team_members(self, p_team_members: list) -> None:
         # Documentation: https://www.netsparkercloud.com/docs/index#/
@@ -2687,7 +2700,7 @@ class API:
 
     def __get_vulnerability_template(self) -> list:
         try:
-            l_base_url = "{0}?type={1}".format(
+            l_base_url = "{0}?type={1}&reportPolicyId={3}".format(
                 self.__cVULNERABILITY_TEMPLATE_URL,
                 Parser.vulnerability_type, Parser.report_policy_id
             )
