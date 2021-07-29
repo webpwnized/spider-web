@@ -1177,11 +1177,13 @@ class API:
                 l_roles.append(l_mapping["RoleName"])
                 l_groups.append(l_mapping["WebsiteGroupName"])
 
+            l_groups = list(set(l_groups))
+
             for l_team in l_user["Teams"]:
                 l_teams.append(l_team["Name"])
 
             l_roles_string: str = ",".join(l_roles)
-            l_groups_string: str = ",".join(l_groups)
+            l_groups_string: str = "|".join(l_groups)
             l_teams_string: str = ",".join(l_teams)
 
             l_last_login_date: str = self.__format_datetime_string(l_user["LastLoginDate"]) if "LastLoginDate" in l_user else ""
@@ -1389,11 +1391,13 @@ class API:
                     l_roles.append(l_mapping["RoleName"])
                     l_groups.append(l_mapping["WebsiteGroupName"])
 
+                l_groups = list(set(l_groups))
+
                 for l_team in l_user["Teams"]:
                     l_teams.append(l_team["Name"])
 
                 l_roles_string: str = ",".join(l_roles)
-                l_groups_string: str = ",".join(l_groups)
+                l_groups_string: str = "|".join(l_groups)
                 l_teams_string: str = ",".join(l_teams)
 
                 l_team_members.append([
