@@ -72,6 +72,54 @@ class CSVSeparatorFormat(Enum):
         return self.value
 
 
+class IssueSeverity(Enum):
+    BEST_PRACTICE="BestPractice"
+    INFORMATION="Information"
+    LOW="Low"
+    MEDIUM="Medium"
+    HIGH="High"
+    CRITICAL="Critical"
+
+
+class IssueIncludeRawDetails(Enum):
+    TRUE="True"
+    FALSE="False"
+
+
+class IssueIntegration(Enum):
+    Jira="Jira"
+    GitHub="GitHub"
+    TFS="TFS"
+    FogBugz="FogBugz"
+    ServiceNow="ServiceNow"
+    Slack="Slack"
+    GitLab="GitLab"
+    Bitbucket="Bitbucket"
+    Unfuddle="Unfuddle"
+    Zapier="Zapier"
+    AzureDevOps="AzureDevOps"
+    Redmine="Redmine"
+    Bugzilla="Bugzilla"
+    Kafka="Kafka"
+    PagerDuty="PagerDuty"
+    MicrosoftTeams="MicrosoftTeams"
+    Clubhouse="Clubhouse"
+    Trello="Trello"
+    Asana="Asana"
+    Webhook="Webhook"
+    Kenna="Kenna"
+    Freshservice="Freshservice"
+    YouTrack="YouTrack"
+    NetsparkerEnterprise="NetsparkerEnterprise"
+    Splunk="Splunk"
+    Mattermost="Mattermost"
+    Hashicorp="Hashicorp"
+    PivotalTracker="PivotalTracker"
+    CyberArk="CyberArk"
+    DefectDojo="DefectDojo"
+    JazzTeam="JazzTeam"
+
+
 class HTTPMethod(Enum):
     GET="GET"
     POST="POST"
@@ -133,10 +181,12 @@ class SortDirection(Enum):
 class WebsiteGroups(Enum):
     ON_BALANCED_SCORECARD = 'b9d6581c-9ebe-4e56-3313-ac4e038c2393'
 
+
 class TeamMemberRoles(Enum):
     VIEW_SCHEDULED_SCANS = "563e9174-96a1-4c84-1123-ad4e034ccd9d"
     MANAGE_ISSUES_RESTRICTED = "8bb0642b-0523-4e8a-8786-597cfa36edb7"
     VIEW_REPORTS = "ca7ae289-131b-45d2-ab34-c625b99be90e"
+
 
 class TeamMemberTypes(Enum):
     ALL_ACCOUNTS = "All Accounts"
@@ -184,6 +234,9 @@ class API:
 
     __cDISCOVERED_SERVICES_LIST_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "discovery/list")
     __cDISCOVERED_SERVICES_DOWNLOAD_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "discovery/export")
+
+    __cISSUES_ALLISSUES_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "issues/allissues")
+    __cISSUES_REPORT_DOWNLOAD_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "issues/report")
 
     __cROLES_DELETE_LIST_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "roles/delete")
     __cROLES_GET_ID_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "roles/get")
@@ -938,6 +991,127 @@ class API:
 
         except Exception as e:
             self.__mPrinter.print("get_license() - {0}".format(str(e)), Level.ERROR)
+
+    # ------------------------------------------------------------
+    # Discovered Services Methods
+    # ------------------------------------------------------------
+    def __get_discovered_services(self) -> list:
+        try:
+            l_base_url = "{0}?page={1}&pageSize={2}".format(
+                self.__cDISCOVERED_SERVICES_LIST_URL, Parser.page_number, Parser.page_size)
+            return self.__get_paged_data(l_base_url, "discovered services")
+        except Exception as e:
+            self.__mPrinter.print("__get_discovered_services() - {0}".format(str(e)), Level.ERROR)
+
+    def get_discovered_services(self) -> None:
+        try:
+            l_json: list = self.__get_discovered_services()
+            print(json.dumps(l_json))
+        except Exception as e:
+            self.__mPrinter.print("get_discovered_services() - {0}".format(str(e)), Level.ERROR)
+
+    def download_discovered_services(self) -> None:
+        try:
+            self.__mPrinter.print("Fetching discovered services information", Level.INFO)
+            l_base_url = "{0}?csvSeparator={1}".format(self.__cDISCOVERED_SERVICES_DOWNLOAD_URL, Parser.output_separator)
+            l_http_response = self.__connect_to_api(l_base_url)
+            self.__mPrinter.print("Fetched discovered services information", Level.SUCCESS)
+
+            self.__mPrinter.print("Writing discovered services to file {}".format(Parser.output_filename), Level.INFO)
+            open(Parser.output_filename, FileMode.WRITE.value).write(l_http_response.text)
+            self.__mPrinter.print("Wrote discovered services to file {}".format(Parser.output_filename), Level.SUCCESS)
+
+        except Exception as e:
+            self.__mPrinter.print("download_discovered_services() - {0}".format(str(e)), Level.ERROR)
+
+    # ------------------------------------------------------------
+    # Issues Methods
+    # ------------------------------------------------------------
+    def __get_issues_header(self) -> list:
+        return ["Title", "Website Name", "CVSS Score", "Severity", "First Seen", "Last Seen", "URL", "Website ID", "Issue ID"]
+
+    def __parse_issues_json_to_csv(self, p_json: list) -> list:
+        try:
+            l_issues: list = []
+            for l_issue in p_json:
+                l_cvss_score: str = ""
+                try:
+                    l_cvss_score: str = l_issue["CvssVector"]["Temporal"]["Score"]["Value"]
+                except KeyError as e:
+                    try:
+                        l_cvss_score: str = l_issue["CvssVector"]["Base"]["Score"]["Value"]
+                    except KeyError as e:
+                        pass
+
+                l_issues.append([
+                    l_issue["Title"], l_issue["WebsiteName"], l_cvss_score,
+                    l_issue["Severity"], self.__format_datetime_string(l_issue["FirstSeenDate"]),
+                    self.__format_datetime_string(l_issue["LastSeenDate"]),
+                    l_issue["WebsiteRootUrl"], l_issue["WebsiteId"], l_issue["Id"]
+                ])
+            return l_issues
+        except Exception as e:
+            self.__mPrinter.print("__parse_issues_json_to_csv() - {0}".format(str(e)), Level.ERROR)
+
+    def __print_issues_csv(self, p_json: list) -> None:
+        try:
+            l_header: list = self.__get_issues_header()
+            if p_json:
+                l_issues: list = self.__parse_issues_json_to_csv(p_json)
+                self.__write_csv(l_header, l_issues)
+            else:
+                self.__mPrinter.print("No issues found in NetSparker", Level.INFO)
+
+        except Exception as e:
+            self.__mPrinter.print("__print_issues_csv() - {0}".format(str(e)), Level.ERROR)
+
+    def __handle_issues(self, p_list: list) -> None:
+        try:
+            if self.__m_output_format == OutputFormat.JSON.value:
+                print(json.dumps(p_list))
+            elif self.__m_output_format == OutputFormat.CSV.value:
+                self.__print_issues_csv(p_list)
+
+        except Exception as e:
+            self.__mPrinter.print("__handle_issues() - {0}".format(str(e)), Level.ERROR)
+
+    def __get_issues(self) -> list:
+        try:
+            l_base_url = "{0}?page={1}&pageSize={2}&severity={3}&webSiteName={4}&websiteGroupName={5}" \
+                         "&sortType={6}&lastSeenDate={7}&rawDetails={8}&integration={9}".format(
+                    self.__cISSUES_ALLISSUES_URL, Parser.page_number, Parser.page_size,
+                        Parser.issue_severity, parse.quote(Parser.website_name), parse.quote(Parser.website_group_name),
+                        Parser.sort_direction, Parser.issue_last_seen_date,
+                        Parser.issue_include_raw_details, Parser.issue_integration
+                    )
+            return self.__get_paged_data(l_base_url, "issues")
+        except Exception as e:
+            self.__mPrinter.print("__get_issues() - {0}".format(str(e)), Level.ERROR)
+
+    def get_issues(self) -> None:
+        try:
+            l_json: list = self.__get_issues()
+            self.__handle_issues(l_json)
+        except Exception as e:
+            self.__mPrinter.print("get_issues() - {0}".format(str(e)), Level.ERROR)
+
+    def download_issues(self) -> None:
+        try:
+            self.__mPrinter.print("Fetching issues", Level.INFO)
+            l_base_url = "{0}?csvSeparator={1}&severity={2}&webSiteName={3}&websiteGroupName={4}&startDate={5}&endDate={6}".format(
+                self.__cISSUES_REPORT_DOWNLOAD_URL, Parser.output_separator,
+                Parser.issue_severity, parse.quote(Parser.website_name), parse.quote(Parser.website_group_name),
+                Parser.issue_start_date, Parser.issue_end_date
+            )
+            l_http_response = self.__connect_to_api(l_base_url)
+            self.__mPrinter.print("Fetched issues information", Level.SUCCESS)
+
+            self.__mPrinter.print("Writing issues to file {}".format(Parser.output_filename), Level.INFO)
+            open(Parser.output_filename, FileMode.WRITE.value).write(l_http_response.text)
+            self.__mPrinter.print("Wrote issues to file {}".format(Parser.output_filename), Level.SUCCESS)
+
+        except Exception as e:
+            self.__mPrinter.print("download_issues() - {0}".format(str(e)), Level.ERROR)
 
     # ------------------------------------------------------------
     # Permissions
@@ -1715,7 +1889,7 @@ class API:
                 p_url, Parser.page_number, Parser.page_size
             )
             if Parser.website_name:
-                l_base_url = "{}&webSiteName={}".format(l_base_url, Parser.website_name)
+                l_base_url = "{}&webSiteName={}".format(l_base_url, parse.quote(Parser.website_name))
             if Parser.technology_name:
                 l_base_url = "{}&technologyName={}".format(l_base_url, Parser.technology_name)
 
@@ -1797,38 +1971,6 @@ class API:
                     self.__mPrinter.print("Uploaded website group {}".format(l_line), Level.INFO)
         except Exception as e:
             self.__mPrinter.print("upload_website_groups() - {0}".format(str(e)), Level.ERROR)
-
-    # ------------------------------------------------------------
-    # Discovered Services Methods
-    # ------------------------------------------------------------
-    def __get_discovered_services(self) -> list:
-        try:
-            l_base_url = "{0}?page={1}&pageSize={2}".format(
-                self.__cDISCOVERED_SERVICES_LIST_URL, Parser.page_number, Parser.page_size)
-            return self.__get_paged_data(l_base_url, "discovered services")
-        except Exception as e:
-            self.__mPrinter.print("__get_discovered_services() - {0}".format(str(e)), Level.ERROR)
-
-    def get_discovered_services(self) -> None:
-        try:
-            l_json: list = self.__get_discovered_services()
-            print(json.dumps(l_json))
-        except Exception as e:
-            self.__mPrinter.print("get_discovered_services() - {0}".format(str(e)), Level.ERROR)
-
-    def download_discovered_services(self) -> None:
-        try:
-            self.__mPrinter.print("Fetching discovered services information", Level.INFO)
-            l_base_url = "{0}?csvSeparator={1}".format(self.__cDISCOVERED_SERVICES_DOWNLOAD_URL, Parser.output_separator)
-            l_http_response = self.__connect_to_api(l_base_url)
-            self.__mPrinter.print("Fetched discovered services information", Level.SUCCESS)
-
-            self.__mPrinter.print("Writing issues to file {}".format(Parser.output_filename), Level.INFO)
-            open(Parser.output_filename, FileMode.WRITE.value).write(l_http_response.text)
-            self.__mPrinter.print("Wrote issues to file {}".format(Parser.output_filename), Level.SUCCESS)
-
-        except Exception as e:
-            self.__mPrinter.print("download_discovered_services() - {0}".format(str(e)), Level.ERROR)
 
     # ------------------------------------------------------------
     # Upload Website Methods
@@ -2835,7 +2977,7 @@ class API:
         try:
             l_base_url = "{0}?page={1}&pageSize={2}&initiatedDateSortType={3}".format(
                 self.__cSCANS_LIST_BY_WEBSITE_URL,
-                Parser.page_number, Parser.page_size, Parser.initiated_date_sort_direction
+                Parser.page_number, Parser.page_size, Parser.sort_direction
             )
             if Parser.website_url:
                 l_base_url = "{}&websiteUrl={}".format(l_base_url, Parser.website_url)

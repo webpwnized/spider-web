@@ -70,6 +70,18 @@ class Parser:
         Parser.output_filename = p_args.output_filename
         Parser.output_separator = p_args.output_separator
 
+        #Issues
+        Parser.get_issues = p_args.get_issues
+        Parser.download_issues = p_args.download_issues
+
+        # Issues options
+        Parser.issue_severity = p_args.issue_severity or ""
+        Parser.issue_last_seen_date = p_args.issue_last_seen_date or ""
+        Parser.issue_include_raw_details = p_args.issue_include_raw_details or "False"
+        Parser.issue_integration = p_args.issue_integration or ""
+        Parser.issue_start_date = p_args.issue_start_date or ""
+        Parser.issue_end_date = p_args.issue_end_date or ""
+
         # Role
         Parser.get_role = p_args.get_role
         Parser.role_id = p_args.role_id
@@ -83,7 +95,7 @@ class Parser:
         Parser.get_scans_by_website = p_args.get_scans_by_website
         Parser.website_url = p_args.website_url
         Parser.target_url = p_args.target_url
-        Parser.initiated_date_sort_direction = p_args.initiated_date_sort_direction
+        Parser.sort_direction = p_args.sort_direction
 
         # Scan Profiles
         Parser.get_scan_profiles = p_args.get_scan_profiles
@@ -132,7 +144,7 @@ class Parser:
         Parser.get_website_by_id = p_args.get_website_by_id
 
         Parser.website_url = p_args.website_url
-        Parser.website_name = p_args.website_name
+        Parser.website_name = p_args.website_name or ""
         Parser.website_id = p_args.website_id
 
         if Parser.get_website_by_url:
@@ -146,7 +158,7 @@ class Parser:
         Parser.get_websites_by_group_name = p_args.get_websites_by_group_name
         Parser.get_websites_by_group_id = p_args.get_websites_by_group_id
 
-        Parser.website_group_name = p_args.website_group_name
+        Parser.website_group_name = p_args.website_group_name or ""
         Parser.website_group_id = p_args.website_group_id
 
         if Parser.get_websites_by_group_name:
