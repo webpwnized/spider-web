@@ -301,7 +301,7 @@ class API:
     __m_output_format: OutputFormat
     __m_accept_header: AcceptHeader = AcceptHeader.JSON
 
-    __m_groups: list = []
+    __m_teams: list = []
     # ---------------------------------
     # "Public" class variables
     # ---------------------------------
@@ -1441,25 +1441,35 @@ class API:
             raise ValueError('__parse_team_member_sso_email(): SSO email is not valid')
         return l_sso_email
 
-    def __parse_team_member_groups(self, p_groups: str) -> list: 
+    def __parse_team_member_teams(self, p_groups: str) -> list: 
         if not p_groups:
-            raise ValueError('__parse_team_member_groups(): Team member groups cannot be blank')
+            raise ValueError('__parse_team_member_teams(): Team member team cannot be blank')
 
         l_groups: list = p_groups.split("|")
-        l_role_groups: list = []
+        l_teams: list = []
 
-        for group in l_groups:
-            l_group_id = self.__get_team_group_id(group)
-            for role in TeamMemberRoles:
-                l_role: dict = {
-                    "WebsiteGroupId": l_group_id,
-                    "RoleId": role.value
-                }
-                l_role_groups.append(l_role)
+        for l_group in l_groups:
+            l_team_id = self.__get_team_id(l_group)
+            l_teams.append(l_team_id)
+            
+        return l_teams
 
-        return l_role_groups
+    def __set_teams(self) -> None:
+        l_json: list = self.__get_teams()
 
-    def __build_team_member_create_json(self, p_name: str, p_email: str, p_sso_email: str, p_groups: str) -> str:
+        for l_team in l_json:
+            if "SDG" in l_team["Name"]:
+                self.__m_teams.append([l_team["Name"], l_team["Id"]])
+
+    def __get_team_id(self, p_group_name: str) -> str:
+        if not self.__m_teams:
+            self.__set_teams()
+        
+        for l_team in self.__m_teams:
+            if p_group_name in l_team[0]:
+                return l_team[1]
+
+    def __build_team_member_create_json(self, p_name: str, p_email: str, p_sso_email: str, p_teams: list) -> str:
         try:
             l_json: dict = {
                 "OnlySsoLogin": True,
@@ -1468,7 +1478,7 @@ class API:
                 "ConfirmPassword": "",
                 "SendNotification": True,
                 "PhoneNumber": "",
-                "Teams": [],
+                "Teams": p_teams,
                 "TimezoneId": "Eastern Standard Time",
                 "DateTimeFormat": "MM/dd/yyyy", 
                 "Email": p_email, 
@@ -1476,18 +1486,18 @@ class API:
                 "Name": p_name,
                 "IsApiAccessEnabled": True,
                 "AllowedWebsiteLimit": 0,
-                "RoleWebsiteGroupMappings": p_groups
+                "RoleWebsiteGroupMappings": []
             }
 
             return l_json
         except Exception as e:
             self.__mPrinter.print("__build_team_member_create_json() - {0}".format(str(e)), Level.ERROR)
 
-    def __create_team_member(self, p_name: str, p_email: str, p_sso_email: str, p_groups: str) -> None:
+    def __create_team_member(self, p_name: str, p_email: str, p_sso_email: str, p_teams: list) -> None:
         try:
             l_json = self.__build_team_member_create_json(
                 p_name, p_email,
-                p_sso_email, p_groups
+                p_sso_email, p_teams
             )
             self.__mPrinter.print("Creating team member {}".format(l_json), Level.INFO)
             l_http_response = self.__post_data(
@@ -1506,9 +1516,9 @@ class API:
             l_name: str = self.__parse_team_member_name(Parser.team_member_name)
             l_email: str = self.__parse_team_member_email(Parser.team_member_email)
             l_sso_email: str = self.__parse_team_member_sso_email(Parser.team_member_sso_email)
-            l_groups: list = self.__parse_team_member_groups(Parser.team_member_groups)
+            l_teams: list = self.__parse_team_member_teams(Parser.team_member_groups)
 
-            self.__create_team_member(l_name, l_email, l_sso_email, l_groups)
+            self.__create_team_member(l_name, l_email, l_sso_email, l_teams)
         except Exception as e:
             self.__mPrinter.print("create_team_member() - {0}".format(str(e)), Level.ERROR)
 
@@ -1777,29 +1787,13 @@ class API:
             if l_input_file:
                 l_input_file.close()
 
-    def __get_team_groups(self) -> None:
-        l_json = self.__get_website_groups()
-
-        for group in l_json:
-            if "SDG" in group["Name"]:
-                self.__m_groups.append(group)
-
-
-    def __get_team_group_id(self, p_group_name: str) -> str:
-        if not self.__m_groups:
-            self.__get_team_groups()
-        
-        for group in self.__m_groups:
-            if p_group_name in group["Name"]:
-                return group["Id"]
-
     def __upload_team_members(self, p_team_members: list) -> None:
         # Documentation: https://www.netsparkercloud.com/docs/index#/
         try:
             l_name: str = ""
             l_email: str = ""
             l_sso_email: str = ""
-            l_groups: str = ""
+            l_teams: list = []
 
             l_file_timestamp_pattern: str = '%a-%b-%d-%Y-%H-%M-%S'
             l_output_file = open("{}{}{}{}".format(Parser.input_filename, ".failed.", time.strftime(l_file_timestamp_pattern), ".csv"), FileMode.WRITE_CREATE.value)
@@ -1810,19 +1804,19 @@ class API:
                     l_name = self.__parse_team_member_name(l_team_member[TeamMemberUploadFileFields.NAME.value])
                     l_email = self.__parse_team_member_email(l_team_member[TeamMemberUploadFileFields.EMAIL.value])
                     l_sso_email = self.__parse_team_member_sso_email(l_team_member[TeamMemberUploadFileFields.SSO_EMAIL.value])
-                    l_groups = self.__parse_team_member_groups(l_team_member[TeamMemberUploadFileFields.GROUPS.value])
+                    l_teams = self.__parse_team_member_teams(l_team_member[TeamMemberUploadFileFields.GROUPS.value])
 
-                    self.__create_team_member(l_name, l_email, l_sso_email, l_groups)
+                    self.__create_team_member(l_name, l_email, l_sso_email, l_teams)
 
                 except ValueError as e:
                     self.__mPrinter.print(e, Level.ERROR, Force.FORCE)
-                    l_csv_writer.writerow([l_name, l_email, l_sso_email, l_groups, e])
+                    l_csv_writer.writerow([l_name, l_email, l_sso_email, l_teams, e])
                 except ImportError as e:
                     self.__mPrinter.print(e, Level.ERROR, Force.FORCE)
-                    l_csv_writer.writerow([l_name, l_email, l_sso_email, l_groups, e])
+                    l_csv_writer.writerow([l_name, l_email, l_sso_email, l_teams, e])
                 except Exception as e:
                     self.__mPrinter.print(e, Level.ERROR, Force.FORCE)
-                    l_csv_writer.writerow([l_name, l_email, l_sso_email, l_groups, e])
+                    l_csv_writer.writerow([l_name, l_email, l_sso_email, l_teams, e])
         except FileNotFoundError as e:
             self.__mPrinter.print("__upload_team_members(): Cannot find the input file - {0}".format(str(e)), Level.ERROR)
         except Exception as e:
