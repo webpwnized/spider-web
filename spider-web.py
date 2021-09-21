@@ -9,7 +9,7 @@ import config as __config
 from argparse import RawTextHelpFormatter
 import argparse
 
-l_version = '1.0.67'
+l_version = '1.0.68'
 
 def print_version() -> None:
     if Parser.verbose:
@@ -438,12 +438,14 @@ if __name__ == '__main__':
                                   help='Get system license information and exit',
                                   action='store_true')
 
+    l_agent_groups_group = lArgParser.add_argument_group(title="Agent Groups Endpoint", description=None)
+    l_agent_groups_group.add_argument('-aggags', '--get-agent-groups',
+                                 help='List agent groups and exit. Output fetched in pages.',
+                                 action='store_true')
+
     l_agents_group = lArgParser.add_argument_group(title="Agents Endpoint", description=None)
     l_agents_group.add_argument('-aga', '--get-agents',
                                  help='List agents and exit. Output fetched in pages.',
-                                 action='store_true')
-    l_agents_group.add_argument('-aggags', '--get-agent-groups',
-                                 help='List agent groups and exit. Output fetched in pages.',
                                  action='store_true')
 
     l_discovery_group = lArgParser.add_argument_group(title="Discovery Endpoint", description=None)
@@ -511,7 +513,7 @@ if __name__ == '__main__':
     l_scans_group.add_argument('-sgs', '--get-scans',
                                  help='List scans and exit. Output fetched in pages.',
                                  action='store_true')
-    l_scans_group.add_argument('-ssgss', '--get-scheduled-scans',
+    l_scans_group.add_argument('-sgss', '--get-scheduled-scans',
                                  help='List scheduled scans and exit. Output fetched in pages.',
                                  action='store_true')
     l_scans_group.add_argument('-sgsbw', '--get-scans-by-website',
@@ -716,7 +718,7 @@ if __name__ == '__main__':
                                  help='Report issues and exit. Report issues by CVSS with -ribc, --report-issues-by-cvss. Report issues by issue with -ribi, --report-issues-by-issue',
                                  action='store_true')
     l_report_group.add_argument('-rbsc', '--report-bsc',
-                                 help='Report balanced scorecard data.',
+                                 help='Report balanced scorecard data',
                                  action='store_true')
 
     l_vulnerability_options_group = lArgParser.add_argument_group(title="Reports Endpoint Options", description=None)
