@@ -9,7 +9,7 @@ import config as __config
 from argparse import RawTextHelpFormatter
 import argparse
 
-l_version = '1.0.66'
+l_version = '1.0.67'
 
 def print_version() -> None:
     if Parser.verbose:
@@ -45,13 +45,13 @@ def run_main_program():
         print_version()
         exit(0)
 
-    if Parser.test_connectivity or Parser.get_account or Parser.get_license or Parser.get_agents or \
+    if Parser.test_connectivity or Parser.get_account or Parser.get_license or Parser.get_agents or Parser.get_agent_groups or \
         Parser.get_team_members or Parser.get_website_groups or Parser.get_discovered_services or \
         Parser.download_discovered_services or Parser.get_website_groups or Parser.upload_website_groups or \
         Parser.get_websites or Parser.upload_websites or Parser.get_vulnerability_templates or \
         Parser.get_vulnerability_template or Parser.get_vulnerability_types or Parser.ping_sites or \
         Parser.ping_sites_in_file or Parser.report_agents_missing_heartbeat or Parser.report_disabled_agents or \
-        Parser.report_issues or Parser.get_scans or Parser.get_scans_by_website or \
+        Parser.report_issues or Parser.get_scans or Parser.get_scheduled_scans or Parser.get_scans_by_website or \
         Parser.get_website_by_url or Parser.get_website_by_name or Parser.get_website_by_id or \
         Parser.get_websites_by_group_name or Parser.get_websites_by_group_id or Parser.get_technologies or \
         Parser.get_obsolete_technologies or Parser.get_scan_profiles or Parser.get_scan_profile or \
@@ -59,7 +59,8 @@ def run_main_program():
         Parser.get_disabled_accounts or Parser.get_account_owners or Parser.get_team_member or \
         Parser.get_scan_results or Parser.upload_team_members or Parser.create_team_member or \
         Parser.get_roles or Parser.get_permissions or Parser.get_role or Parser.delete_team_member or \
-        Parser.get_unused_accounts or Parser.get_teams or Parser.get_issues or Parser.download_issues:
+        Parser.get_unused_accounts or Parser.get_teams or Parser.get_issues or Parser.download_issues or \
+        Parser.report_bsc:
             l_api = API(p_parser=Parser)
     else:
         lArgParser.print_usage()
@@ -79,6 +80,10 @@ def run_main_program():
 
     if Parser.get_agents:
         l_api.get_agents()
+        exit(0)
+
+    if Parser.get_agent_groups:
+        l_api.get_agent_groups()
         exit(0)
 
     if Parser.get_issues:
@@ -298,6 +303,10 @@ def run_main_program():
         l_api.get_scans()
         exit(0)
 
+    if Parser.get_scheduled_scans:
+        l_api.get_scheduled_scans()
+        exit(0)
+
     if Parser.get_scans_by_website:
         if not Parser.website_url and not Parser.target_url:
             lArgParser.print_usage()
@@ -328,6 +337,10 @@ def run_main_program():
 
     if Parser.report_issues:
         l_api.report_issues()
+        exit(0)
+
+    if Parser.report_bsc:
+        l_api.report_bsc()
         exit(0)
 
 if __name__ == '__main__':
@@ -429,6 +442,9 @@ if __name__ == '__main__':
     l_agents_group.add_argument('-aga', '--get-agents',
                                  help='List agents and exit. Output fetched in pages.',
                                  action='store_true')
+    l_agents_group.add_argument('-aggags', '--get-agent-groups',
+                                 help='List agent groups and exit. Output fetched in pages.',
+                                 action='store_true')
 
     l_discovery_group = lArgParser.add_argument_group(title="Discovery Endpoint", description=None)
     l_discovery_group.add_argument('-dsgds', '--get-discovered-services',
@@ -494,6 +510,9 @@ if __name__ == '__main__':
     l_scans_group = lArgParser.add_argument_group(title="Scans Endpoints", description=None)
     l_scans_group.add_argument('-sgs', '--get-scans',
                                  help='List scans and exit. Output fetched in pages.',
+                                 action='store_true')
+    l_scans_group.add_argument('-ssgss', '--get-scheduled-scans',
+                                 help='List scheduled scans and exit. Output fetched in pages.',
                                  action='store_true')
     l_scans_group.add_argument('-sgsbw', '--get-scans-by-website',
                                  help='List scans by website and exit. Output fetched in pages. Requires either -wurl, --website-url or -turl, --target-url or both. Sort by Initiated Date with -sd, --sort-direction. . Default sort is descending.',
@@ -695,6 +714,9 @@ if __name__ == '__main__':
                                  action='store_true')
     l_report_group.add_argument('-ri', '--report-issues',
                                  help='Report issues and exit. Report issues by CVSS with -ribc, --report-issues-by-cvss. Report issues by issue with -ribi, --report-issues-by-issue',
+                                 action='store_true')
+    l_report_group.add_argument('-rbsc', '--report-bsc',
+                                 help='Report balanced scorecard data.',
                                  action='store_true')
 
     l_vulnerability_options_group = lArgParser.add_argument_group(title="Reports Endpoint Options", description=None)

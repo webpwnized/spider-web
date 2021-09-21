@@ -31,6 +31,7 @@ class Scan():
         self.__m_initiated_at_datetime = parser.parse(p_scan["InitiatedAt"])
         self.__m_target_url = p_scan["TargetUrl"]
         self.__m_scan_profile_id = p_scan["ScanTaskProfileId"]
+        self.__m_scan_profile_name = p_scan["ScanTaskProfileName"]
         self.__m_is_completed = p_scan["IsCompleted"]
         self.__m_total_vulnerability_count = p_scan["TotalVulnerabilityCount"]
         self.__m_vulnerability_critical_count = p_scan["VulnerabilityCriticalCount"]
@@ -47,6 +48,7 @@ class Scan():
         self.__m_scan_phase = p_scan["Phase"]
         self.__m_scan_percentage = p_scan["Percentage"]
         self.__m_scan_failure_reason = p_scan["FailureReason"]
+        self.__m_scan_tags = p_scan["Tags"]
 
     @property  # getter method
     def scan_id(self) -> str:
@@ -67,6 +69,10 @@ class Scan():
     @property  # getter method
     def scan_profile_id(self) -> str:
         return self.__m_scan_profile_id
+
+    @property  # getter method
+    def scan_profile_name(self) -> str:
+        return self.__m_scan_profile_name
 
     @property  # getter method
     def is_completed(self) -> bool:
@@ -131,3 +137,7 @@ class Scan():
     @property  # getter method
     def scan_failure_reason(self) -> str:
         return self.__m_scan_failure_reason
+
+    @property  # getter method
+    def scan_tags(self) -> str:
+        return self.__m_scan_tags

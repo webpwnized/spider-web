@@ -63,6 +63,7 @@ class Parser:
 
         # Agents
         Parser.get_agents = p_args.get_agents
+        Parser.get_agent_groups = p_args.get_agent_groups
 
         # Discovered Services
         Parser.get_discovered_services = p_args.get_discovered_services
@@ -92,6 +93,7 @@ class Parser:
 
         # Scans
         Parser.get_scans = p_args.get_scans
+        Parser.get_scheduled_scans = p_args.get_scheduled_scans
         Parser.get_scans_by_website = p_args.get_scans_by_website
         Parser.website_url = p_args.website_url
         Parser.target_url = p_args.target_url
@@ -209,3 +211,6 @@ class Parser:
         Parser.report_issues_by_issue = p_args.report_issues_by_issue
         Parser.report_issues_breadcrumb_filename = p_config.REPORT_ISSUES_BREADCRUMB_FILENAME
         Parser.report_issues_notification_interval_minutes = p_config.REPORT_ISSUES_NOTIFICATION_INTERVAL_MINUTES
+
+        # Report BSC
+        Parser.report_bsc = p_args.report_bsc
