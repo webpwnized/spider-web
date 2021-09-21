@@ -439,7 +439,7 @@ if __name__ == '__main__':
                                   action='store_true')
 
     l_agent_groups_group = lArgParser.add_argument_group(title="Agent Groups Endpoint", description=None)
-    l_agent_groups_group.add_argument('-aggags', '--get-agent-groups',
+    l_agent_groups_group.add_argument('-aggag', '--get-agent-groups',
                                  help='List agent groups and exit. Output fetched in pages.',
                                  action='store_true')
 
