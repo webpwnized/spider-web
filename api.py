@@ -275,7 +275,10 @@ class API:
     __cSCAN_RESULTS_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "scans/result")
 
     __cSCANS_LIST_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "scans/list")
+    __cSCANS_LIST_BY_STATE_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "scans/listbystate")
     __cSCANS_LIST_BY_WEBSITE_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "scans/listbywebsite")
+
+    __cSCHEDULED_SCANS_LIST_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "scans/list-scheduled")
 
     __m_script_directory: str = os.path.dirname(__file__)
 
@@ -2952,6 +2955,17 @@ class API:
         except Exception as e:
             self.__mPrinter.print("__get_scans() - {0}".format(str(e)), Level.ERROR)
 
+    def __get_complete_scans(self) -> list:
+        try:
+            l_base_url = "{0}?page={1}&pageSize={2}&scanTaskState=Complete".format(
+                self.__cSCANS_LIST_BY_STATE_URL,
+                Parser.page_number, Parser.page_size
+            )
+            return self.__get_paged_data(l_base_url, "scans by state")
+
+        except Exception as e:
+            self.__mPrinter.print("__get_complete_scans() - {0}".format(str(e)), Level.ERROR)
+
     def get_scans(self):
         try:
             l_list: list = self.__get_scans()
@@ -3053,6 +3067,61 @@ class API:
 
         except Exception as e:
             self.__mPrinter.print("get_scan_results() - {0}".format(str(e)), Level.ERROR)
+
+
+    # ------------------------------------------------------------
+    # Get Scheduled Scans Methods
+    # ------------------------------------------------------------
+    def __get_scheduled_scans_header(self) -> list:
+        return [
+                "Name", "TargetUrl", "AgentGroupId", 
+                "AgentId", "ScheduleRunType", "UserId"
+            ]
+
+    def __parse_scheduled_scans_json_to_csv(self, p_json: list) -> list:
+        try:
+            l_scans: list = []
+            for l_scan in p_json:
+                l_scans.append([
+                    l_scan["Name"], l_scan["TargetUrl"], l_scan["AgentGroupId"],
+                    l_scan["AgentId"], l_scan["ScheduleRunType"], l_scan["UserId"]
+                ])
+            return l_scans
+        except Exception as e:
+            self.__mPrinter.print("__parse_scheduled_scans_json_to_csv() - {0}".format(str(e)), Level.ERROR)
+
+    def __print_scheduled_scans_csv(self, l_json: list) -> None:
+        try:
+            l_scans: list = self.__parse_scheduled_scans_json_to_csv(l_json)
+            l_header: list = self.__get_scheduled_scans_header()
+
+            self.__write_csv(l_header, l_scans)
+        except Exception as e:
+            self.__mPrinter.print("__print_scheduled_scans_csv() - {0}".format(str(e)), Level.ERROR)
+
+    def __get_scheduled_scans(self) -> list:
+        try:
+            l_base_url = "{0}?page={1}&pageSize={2}".format(
+                self.__cSCHEDULED_SCANS_LIST_URL,
+                Parser.page_number, Parser.page_size
+            )
+            return self.__get_paged_data(l_base_url, "scheduled scans")
+
+        except Exception as e:
+            self.__mPrinter.print("__get_scheduled_scans() - {0}".format(str(e)), Level.ERROR)
+
+    def get_scheduled_scans(self):
+        try:
+            l_list: list = self.__get_scheduled_scans()
+
+            if self.__m_output_format == OutputFormat.JSON.value:
+                print(json.dumps(l_list))
+            elif self.__m_output_format == OutputFormat.CSV.value:
+                self.__print_scheduled_scans_csv(l_list)
+
+        except Exception as e:
+            self.__mPrinter.print("get_scheduled_scans() - {0}".format(str(e)), Level.ERROR)
+
 
     # ------------------------------------------------------------
     # Report Helper Methods
@@ -3327,7 +3396,7 @@ class API:
         try:
             l_best_scans: Scans = Scans()
 
-            l_scans: list = self.__get_scans()
+            l_scans: list = self.__get_complete_scans()
             l_number_scans: int = len(l_scans) if l_scans else 0
             self.__mPrinter.print("Fetched {} scans".format(l_number_scans), Level.INFO)
 
@@ -3423,3 +3492,9 @@ class API:
 
         except Exception as e:
             self.__mPrinter.print("report_issues() - {0}".format(str(e)), Level.ERROR)
+
+    def report_bsc(self): 
+        l_best_scans = self.__get_best_scans()
+        
+        for l_scan in l_best_scans:
+            print(l_best_scans[l_scan].scan_profile_name)
