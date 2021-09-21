@@ -9,7 +9,7 @@ import config as __config
 from argparse import RawTextHelpFormatter
 import argparse
 
-l_version = '1.0.66'
+l_version = '1.0.67'
 
 def print_version() -> None:
     if Parser.verbose:
@@ -45,7 +45,7 @@ def run_main_program():
         print_version()
         exit(0)
 
-    if Parser.test_connectivity or Parser.get_account or Parser.get_license or Parser.get_agents or \
+    if Parser.test_connectivity or Parser.get_account or Parser.get_license or Parser.get_agents or Parser.get_agent_groups or \
         Parser.get_team_members or Parser.get_website_groups or Parser.get_discovered_services or \
         Parser.download_discovered_services or Parser.get_website_groups or Parser.upload_website_groups or \
         Parser.get_websites or Parser.upload_websites or Parser.get_vulnerability_templates or \
@@ -80,6 +80,10 @@ def run_main_program():
 
     if Parser.get_agents:
         l_api.get_agents()
+        exit(0)
+
+    if Parser.get_agent_groups:
+        l_api.get_agent_groups()
         exit(0)
 
     if Parser.get_issues:
@@ -437,6 +441,9 @@ if __name__ == '__main__':
     l_agents_group = lArgParser.add_argument_group(title="Agents Endpoint", description=None)
     l_agents_group.add_argument('-aga', '--get-agents',
                                  help='List agents and exit. Output fetched in pages.',
+                                 action='store_true')
+    l_agents_group.add_argument('-aggags', '--get-agent-groups',
+                                 help='List agent groups and exit. Output fetched in pages.',
                                  action='store_true')
 
     l_discovery_group = lArgParser.add_argument_group(title="Discovery Endpoint", description=None)

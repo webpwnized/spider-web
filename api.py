@@ -231,6 +231,7 @@ class API:
     __cACCOUNT_ME_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "account/me")
 
     __cAGENTS_LIST_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "agents/list")
+    __cAGENT_GROUPS_LIST_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "agentgroups/list")
 
     __cDISCOVERED_SERVICES_LIST_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "discovery/list")
     __cDISCOVERED_SERVICES_DOWNLOAD_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "discovery/export")
@@ -935,6 +936,58 @@ class API:
 
         except Exception as e:
             self.__mPrinter.print("get_agents() - {0}".format(str(e)), Level.ERROR)
+
+
+    # ------------------------------------------------------------
+    # Agent Groups Methods
+    # ------------------------------------------------------------
+    def __get_agent_groups_header(self) -> list:
+        return ["Id", "Name", "Agents"]
+
+    def __parse_agent_groups_json_to_csv(self, p_json: list) -> list:
+        try:
+            l_agents: list = []
+            for l_agent in p_json:
+                l_agent_list = "|".join(l_agent["Agents"])
+                l_agents.append([
+                    l_agent["Id"], l_agent["Name"], l_agent_list
+                ])
+            return l_agents
+        except Exception as e:
+            self.__mPrinter.print("__parse_agent_groups_json_to_csv() - {0}".format(str(e)), Level.ERROR)
+
+    def __print_agent_groups_csv(self, p_json: list) -> None:
+        try:
+            l_agents: list = self.__parse_agent_groups_json_to_csv(p_json)
+            l_header: list = self.__get_agent_groups_header()
+
+            self.__write_csv(l_header, l_agents)
+        except Exception as e:
+            self.__mPrinter.print("__print_agent_groups_csv() - {0}".format(str(e)), Level.ERROR)
+
+    def __get_agent_groups(self) -> list:
+        try:
+            l_base_url = "{0}?page={1}&pageSize={2}".format(
+                self.__cAGENT_GROUPS_LIST_URL,
+                Parser.page_number, Parser.page_size
+            )
+            return self.__get_paged_data(l_base_url, "agents")
+
+        except Exception as e:
+            self.__mPrinter.print("__get_agent_groups() - {0}".format(str(e)), Level.ERROR)
+
+    def get_agent_groups(self) -> None:
+        try:
+            l_list: list = self.__get_agent_groups()
+
+            if self.__m_output_format == OutputFormat.JSON.value:
+                print(json.dumps(l_list))
+            elif self.__m_output_format == OutputFormat.CSV.value:
+                self.__print_agent_groups_csv(l_list)
+
+        except Exception as e:
+            self.__mPrinter.print("get_agent_groups() - {0}".format(str(e)), Level.ERROR)
+
 
     # ------------------------------------------------------------
     # License Methods

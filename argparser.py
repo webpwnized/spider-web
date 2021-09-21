@@ -63,6 +63,7 @@ class Parser:
 
         # Agents
         Parser.get_agents = p_args.get_agents
+        Parser.get_agent_groups = p_args.get_agent_groups
 
         # Discovered Services
         Parser.get_discovered_services = p_args.get_discovered_services
