@@ -9,7 +9,7 @@ import config as __config
 from argparse import RawTextHelpFormatter
 import argparse
 
-l_version = '1.0.68'
+l_version = '1.0.69'
 
 def print_version() -> None:
     if Parser.verbose:
@@ -60,7 +60,7 @@ def run_main_program():
         Parser.get_scan_results or Parser.upload_team_members or Parser.create_team_member or \
         Parser.get_roles or Parser.get_permissions or Parser.get_role or Parser.delete_team_member or \
         Parser.get_unused_accounts or Parser.get_teams or Parser.get_issues or Parser.download_issues or \
-        Parser.report_bsc:
+        Parser.report_bsc or Parser.get_unpatched_issues:
             l_api = API(p_parser=Parser)
     else:
         lArgParser.print_usage()
@@ -88,6 +88,10 @@ def run_main_program():
 
     if Parser.get_issues:
         l_api.get_issues()
+        exit(0)
+
+    if Parser.get_unpatched_issues:
+        l_api.get_unpatched_issues()
         exit(0)
 
     if Parser.download_issues:
@@ -459,6 +463,9 @@ if __name__ == '__main__':
     l_discovery_group = lArgParser.add_argument_group(title="Issues Endpoint", description=None)
     l_discovery_group.add_argument('-igi', '--get-issues',
                                  help='List issues and exit. Filter by website name, website group name, or Issues Endpoints Options. Sort by Last Seen Date with -sd, --sort-direction. Default sort is descending. Output fetched in pages.',
+                                 action='store_true')
+    l_discovery_group.add_argument('-igui', '--get-unpatched-issues',
+                                 help='List issues and exit. Filter by website name, website group name, or issue severity. Output fetched in pages.',
                                  action='store_true')
     l_discovery_group.add_argument('-idi', '--download-issues',
                                  help='Download issues as CSV file and exit. Output filename is required. Specify output filename with -of, --output-filename. Filter by website name, website group name, or Issues Endpoints Options.',

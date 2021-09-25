@@ -73,6 +73,7 @@ class Parser:
 
         #Issues
         Parser.get_issues = p_args.get_issues
+        Parser.get_unpatched_issues = p_args.get_unpatched_issues
         Parser.download_issues = p_args.download_issues
 
         # Issues options

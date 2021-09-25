@@ -237,6 +237,7 @@ class API:
     __cDISCOVERED_SERVICES_DOWNLOAD_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "discovery/export")
 
     __cISSUES_ALLISSUES_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "issues/allissues")
+    __cISSUES_TODO_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "issues/todo")
     __cISSUES_REPORT_DOWNLOAD_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "issues/report")
 
     __cROLES_DELETE_LIST_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "roles/delete")
@@ -1131,6 +1132,16 @@ class API:
         except Exception as e:
             self.__mPrinter.print("__handle_issues() - {0}".format(str(e)), Level.ERROR)
 
+    def __get_unpatched_issues(self) -> list:
+        try:
+            l_base_url = "{0}?page={1}&pageSize={2}&severity={3}&webSiteName={4}&websiteGroupName={5}".format(
+                        self.__cISSUES_TODO_URL, Parser.page_number, Parser.page_size,
+                        Parser.issue_severity, parse.quote(Parser.website_name), parse.quote(Parser.website_group_name)
+                    )
+            return self.__get_paged_data(l_base_url, "unpatched issues")
+        except Exception as e:
+            self.__mPrinter.print("__get_unpatched_issues() - {0}".format(str(e)), Level.ERROR)
+
     def __get_issues(self) -> list:
         try:
             l_base_url = "{0}?page={1}&pageSize={2}&severity={3}&webSiteName={4}&websiteGroupName={5}" \
@@ -1150,6 +1161,13 @@ class API:
             self.__handle_issues(l_json)
         except Exception as e:
             self.__mPrinter.print("get_issues() - {0}".format(str(e)), Level.ERROR)
+
+    def get_unpatched_issues(self) -> None:
+        try:
+            l_json: list = self.__get_unpatched_issues()
+            self.__handle_issues(l_json)
+        except Exception as e:
+            self.__mPrinter.print("get_unpatched_issues() - {0}".format(str(e)), Level.ERROR)
 
     def download_issues(self) -> None:
         try:
