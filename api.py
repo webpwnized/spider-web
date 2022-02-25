@@ -638,7 +638,7 @@ class API:
                 ':' if self.__m_proxy_port else '',
                 self.__m_proxy_port if self.__m_proxy_port else ''
             )
-            l_https_proxy_url = l_http_proxy_url.replace('http://', 'http://')
+            l_https_proxy_url = l_http_proxy_url.replace('http://', 'https://')
             l_password_mask = '*' * len(self.__m_proxy_password)
             l_proxy_handlers = {'http':l_http_proxy_url, 'https':l_https_proxy_url}
             self.__mPrinter.print("Building proxy handlers: {},{}".format(
