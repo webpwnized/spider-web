@@ -9,6 +9,8 @@ class Scan():
     __m_target_url: str = ""
     __m_total_vulnerability_count: int = 0
     __m_scan_profile_id: str = ""
+    __m_scan_profile_name: str = ""
+    __m_scan_profile_tags: str = ""
     __m_is_completed: bool = False
     __m_vulnerability_critical_count: int = 0
     __m_vulnerability_high_count: int = 0
@@ -18,12 +20,13 @@ class Scan():
     __m_vulnerability_info_count: int = 0
     __m_website_id: str = ""
     __m_website_name: str = ""
-    __m_scan_duration: str =""
-    __m_scan_scope: str =""
-    __m_scan_state: str =""
-    __m_scan_phase: str =""
+    __m_scan_duration: str = ""
+    __m_scan_scope: str = ""
+    __m_scan_state: str = ""
+    __m_scan_phase: str = ""
     __m_scan_percentage: int = 0
-    __m_scan_failure_reason: str =""
+    __m_scan_failure_reason: str = ""
+    __m_scan_tags: str = ""
 
     def __init__(self, p_scan: dict) -> None:
         self.__m_scan_id = p_scan["Id"]
@@ -31,7 +34,8 @@ class Scan():
         self.__m_initiated_at_datetime = parser.parse(p_scan["InitiatedAt"])
         self.__m_target_url = p_scan["TargetUrl"]
         self.__m_scan_profile_id = p_scan["ScanTaskProfileId"]
-        self.__m_scan_profile_name = p_scan["ScanTaskProfileName"]
+        self.__m_scan_profile_name = p_scan["ScanTaskProfile"]["Name"]
+        self.__m_scan_profile_tags = p_scan["ScanTaskProfile"]["Tags"]
         self.__m_is_completed = p_scan["IsCompleted"]
         self.__m_total_vulnerability_count = p_scan["TotalVulnerabilityCount"]
         self.__m_vulnerability_critical_count = p_scan["VulnerabilityCriticalCount"]
@@ -73,6 +77,10 @@ class Scan():
     @property  # getter method
     def scan_profile_name(self) -> str:
         return self.__m_scan_profile_name
+
+    @property  # getter method
+    def scan_profile_tags(self) -> str:
+        return "|".join(self.__m_scan_profile_tags)
 
     @property  # getter method
     def is_completed(self) -> bool:
@@ -140,4 +148,13 @@ class Scan():
 
     @property  # getter method
     def scan_tags(self) -> str:
-        return self.__m_scan_tags
+        return "|".join(self.__m_scan_tags)
+
+    @property  # getter method
+    def is_compliant(self) -> bool:
+        if self.__m_total_vulnerability_count == 0:
+            return True
+        elif self.__m_vulnerability_critical_count == 0 and self.__m_vulnerability_high_count == 0 and self.__m_vulnerability_medium_count == 0:
+            return True
+        else:
+            return False

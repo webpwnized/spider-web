@@ -9,7 +9,7 @@ import config as __config
 from argparse import RawTextHelpFormatter
 import argparse
 
-l_version = '1.0.69'
+l_version = '1.1.0'
 
 def print_version() -> None:
     if Parser.verbose:
@@ -725,7 +725,7 @@ if __name__ == '__main__':
                                  help='Report issues and exit. Report issues by CVSS with -ribc, --report-issues-by-cvss. Report issues by issue with -ribi, --report-issues-by-issue',
                                  action='store_true')
     l_report_group.add_argument('-rbsc', '--report-bsc',
-                                 help='Report balanced scorecard data',
+                                 help='Report balanced scorecard data and exit.',
                                  action='store_true')
 
     l_vulnerability_options_group = lArgParser.add_argument_group(title="Reports Endpoint Options", description=None)

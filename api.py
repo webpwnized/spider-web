@@ -2,7 +2,7 @@ from printer import Printer, Level, Force
 from argparser import Parser
 from enum import Enum
 from database import SQLite
-from requests.packages.urllib3.exceptions import InsecureRequestWarning
+from urllib3.exceptions import InsecureRequestWarning
 from urllib.parse import urlparse
 from urllib import parse
 from datetime import datetime, timezone, timedelta
@@ -20,9 +20,10 @@ import csv
 import pytz
 import sys
 import ssl
+import urllib3
 
 # Disable warning about insecure proxy when proxy enabled
-requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
+urllib3.disable_warnings(InsecureRequestWarning)
 
 
 class Override(Enum):
@@ -178,14 +179,8 @@ class SortDirection(Enum):
         return self.value
 
 
-class WebsiteGroups(Enum):
-    ON_BALANCED_SCORECARD = 'b9d6581c-9ebe-4e56-3313-ac4e038c2393'
-
-
-class TeamMemberRoles(Enum):
-    VIEW_SCHEDULED_SCANS = "563e9174-96a1-4c84-1123-ad4e034ccd9d"
-    MANAGE_ISSUES_RESTRICTED = "8bb0642b-0523-4e8a-8786-597cfa36edb7"
-    VIEW_REPORTS = "ca7ae289-131b-45d2-ab34-c625b99be90e"
+class Policies(Enum):
+    REPORT_POLICY = "8e52636cc67248badbdeac4e03a90d52"
 
 
 class TeamMemberTypes(Enum):
@@ -275,6 +270,7 @@ class API:
     __cSCAN_PROFILES_LIST_BY_NAME_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "scanprofiles/get")
 
     __cSCAN_RESULTS_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "scans/result")
+    __cSCAN_REPORT_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "scans/report")
 
     __cSCANS_LIST_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "scans/list")
     __cSCANS_LIST_BY_STATE_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "scans/listbystate")
@@ -642,7 +638,7 @@ class API:
                 ':' if self.__m_proxy_port else '',
                 self.__m_proxy_port if self.__m_proxy_port else ''
             )
-            l_https_proxy_url = l_http_proxy_url.replace('http://', 'https://')
+            l_https_proxy_url = l_http_proxy_url.replace('http://', 'http://')
             l_password_mask = '*' * len(self.__m_proxy_password)
             l_proxy_handlers = {'http':l_http_proxy_url, 'https':l_https_proxy_url}
             self.__mPrinter.print("Building proxy handlers: {},{}".format(
@@ -829,10 +825,6 @@ class API:
 
         except Exception as e:
             self.__mPrinter.print("__get_paged_data() - {0}".format(str(e)), Level.ERROR)
-
-            l_http_response = self.__connect_to_api(p_url=self.__cTEAM_MEMBER_CREATE_URL,
-                                                    p_method=HTTPMethod.POST.value,
-                                                    p_data=None, p_json=l_json)
 
     def __post_data(self, p_url: str, p_endpoint_name: str, p_data: str=None, p_json=None) -> requests.Response:
         try:
@@ -2227,7 +2219,7 @@ class API:
             l_groups: list = p_json["Groups"]
             l_groups_string: str = ""
             for l_group in l_groups:
-                l_groups_string = "{},{}".format(l_groups_string, l_group["Name"])
+                l_groups_string = "{}|{}".format(l_groups_string, l_group["Name"])
             return [
                 p_json["Name"], p_json["RootUrl"], p_json["TechnicalContactEmail"],
                 p_json["IsVerified"], p_json["AgentMode"], l_groups_string[1:],
@@ -2387,8 +2379,8 @@ class API:
     # Get Scan Profile
     # ------------------------------------------------------------
     def __get_scan_profile_header(self) -> list:
-        return ["Profile Name", "Target URI", "Profile ID", "Policy ID",
-                "Report Policy ID", "User ID", "Agent ID", "Agent Group ID"]
+        return ["Profile ID", "Profile Name", "Target URI", "Policy ID",
+                "Report Policy ID", "User ID", "Agent ID", "Agent Group ID", "Tags"]
 
     def __parse_scan_profile_json_to_csv(self, p_json: list) -> list:
         try:
@@ -2467,12 +2459,12 @@ class API:
     def __parse_scan_profiles_json(self, p_json: list) -> list:
         try:
             return [
-                p_json["ProfileName"], p_json["TargetUri"], p_json["ProfileId"],
+                p_json["ProfileId"], p_json["ProfileName"], p_json["TargetUri"],
                 p_json["PolicyId"], p_json["ReportPolicyId"], p_json["UserId"],
-                p_json["AgentId"], p_json["AgentGroupId"]
+                p_json["AgentId"], p_json["AgentGroupId"], "|".join(p_json["Tags"])
             ]
         except Exception as e:
-            self.__mPrinter.print("__parse_scan_profiles_json_to_csv() - {0}".format(str(e)), Level.ERROR)
+            self.__mPrinter.print("__parse_scan_profiles_json() - {0}".format(str(e)), Level.ERROR)
 
     def __parse_scan_profiles_json_to_csv(self, p_json: list) -> list:
         try:
@@ -2821,7 +2813,7 @@ class API:
     # Vulnerability Templates Methods
     # ------------------------------------------------------------
     def __get_vulnerability_templates_header(self) -> list:
-        return ["Type", "Name", "CVSSv3", "Severity"]
+        return ["Type", "Name", "CVSSv3", "Severity", "Summary", "Remedy", "Remedy Reference"]
 
     def __parse_vulnerability_templates_json_to_csv(self, p_json: list) -> list:
         try:
@@ -2829,15 +2821,28 @@ class API:
 
             for l_template in p_json:
                 l_cvssv3: str = "0.0"
+
                 try:
-                    l_cvssv3 = l_template["Cvss31Vector"]["Base"]["Score"]["Value"]
+                    l_cvssv3 = l_template["Cvss31Vector"]["Temporal"]["Score"]["Value"]
                     if not l_cvssv3:
                         raise ValueError()
                 except:
                     try:
-                        l_cvssv3 = l_template["CvssVector"]["Base"]["Score"]["Value"]
+                        l_cvssv3 = l_template["CvssVector"]["Temporal"]["Score"]["Value"]
                     except:
                         pass
+                    
+                if l_cvssv3 == "0.0":   
+                    try:
+                        l_cvssv3 = l_template["Cvss31Vector"]["Base"]["Score"]["Value"]
+                        if not l_cvssv3:
+                            raise ValueError()
+                    except:
+                        try:
+                            l_cvssv3 = l_template["CvssVector"]["Base"]["Score"]["Value"]
+                        except:
+                            pass
+                
                 l_vulnerability_templates.append([l_template["Type"], l_template["Description"], l_cvssv3, l_template["Severity"]])
 
             return l_vulnerability_templates
@@ -3139,6 +3144,145 @@ class API:
         except Exception as e:
             self.__mPrinter.print("get_scan_results() - {0}".format(str(e)), Level.ERROR)
 
+    # ------------------------------------------------------------
+    # Get Scans Report by Scan ID
+    # ------------------------------------------------------------
+    def __get_scan_report_header(self) -> list:
+        return ["Issue Type", "Title", "Severity", "Affected URL", 
+                "State", "First Seen Date", "Last Seen Date"]
+
+    def __parse_scan_report_json_to_csv(self, p_json: list) -> list:
+        try:
+            l_scan_results: list = []
+            for l_scan_result in p_json["Vulnerabilities"]:
+                l_scan_results.append([
+                    l_scan_result["Type"], l_scan_result["Name"], l_scan_result["Severity"], l_scan_result["Url"], 
+                    l_scan_result["State"], l_scan_result["FirstSeenDate"], l_scan_result["LastSeenDate"]
+                ])
+            return l_scan_results
+        except Exception as e:
+            self.__mPrinter.print("__parse_scan_report_json_to_csv() - {0}".format(str(e)), Level.ERROR)
+
+    def __print_scan_report_csv(self, l_json: list) -> None:
+        try:
+            l_scan_results: list = self.__parse_scan_report_json_to_csv(l_json)
+            l_header: list = self.__get_scan_report_header()
+
+            self.__write_csv(l_header, l_scan_results)
+        except Exception as e:
+            self.__mPrinter.print("__print_scan_report_csv() - {0}".format(str(e)), Level.ERROR)
+
+    def ____get_scan_report(self, p_scan_id: str) -> list:
+        try:
+            l_base_url = "{0}?id={1}&excludeResponseData=true&format=JSON&type=vulnerabilities".format(
+                self.__cSCAN_REPORT_URL, p_scan_id
+            )
+            return self.__get_unpaged_data(l_base_url, "scan report")
+
+        except Exception as e:
+            self.__mPrinter.print("____get_scan_report() - {0}".format(str(e)), Level.ERROR)
+
+    def __get_scan_report(self) -> list:
+        try:
+            return self.____get_scan_report(Parser.scan_id)
+        except Exception as e:
+            self.__mPrinter.print("__get_scan_report() - {0}".format(str(e)), Level.ERROR)
+
+    def __get_scan_report(self, p_scan_id: str) -> list:
+        try:
+            return self.____get_scan_report(p_scan_id)
+        except Exception as e:
+            self.__mPrinter.print("__get_scan_report() - {0}".format(str(e)), Level.ERROR)
+
+    def get_scan_report(self):
+        try:
+            l_list: list = self.__get_scan_report()
+
+            if self.__m_output_format == OutputFormat.JSON.value:
+                print(json.dumps(l_list))
+            elif self.__m_output_format == OutputFormat.CSV.value:
+                self.__print_scan_report_csv(l_list)
+
+        except Exception as e:
+            self.__mPrinter.print("get_scan_report() - {0}".format(str(e)), Level.ERROR)
+
+    
+    # ------------------------------------------------------------
+    # Get Scan Vulnerability Report by Scan ID
+    # ------------------------------------------------------------
+    def __get_scan_vuln_report_header(self) -> list:
+        return ["Issue Type", "Name", "First Seen Date", "Last Seen Date", 
+                "Severity", "Cvss3 Score", "Id", "Scan Id"
+            ]
+
+    def __parse_scan_vuln_cvss(self, p_cvss: dict) -> str:
+        l_cvss_score: str = "0.0"
+        try:
+            l_cvss_score: str = p_cvss["Cvss"]["EnvironmentalScore"]["Value"]
+        except:
+            try:
+                l_cvss_score: str = p_cvss["Cvss"]["BaseScore"]["Value"]
+            except:
+                pass
+        return l_cvss_score
+
+    def __parse_scan_vuln_report_json_to_csv(self, p_scan_id: str, p_json: list) -> list:
+        try:
+            l_scan_results: list = []
+            for l_scan_result in p_json:
+                l_cvss_score = self.__parse_scan_vuln_cvss(l_scan_result["Classification"])
+                l_scan_results.append([
+                    l_scan_result["Type"], l_scan_result["Name"], l_scan_result["FirstSeenDate"], 
+                    l_scan_result["LastSeenDate"], l_scan_result["Severity"], l_cvss_score, 
+                    l_scan_result["LookupId"], p_scan_id
+                ])
+            return l_scan_results
+        except Exception as e:
+            self.__mPrinter.print("__parse_scan_vuln_report_json_to_csv() - {0}".format(str(e)), Level.ERROR)
+
+    def __print_scan_vuln_report_csv(self, l_json: list) -> None:
+        try:
+            l_scan_id = l_json["Target"]["ScanId"]
+            l_list: list = self.__parse_scan_vuln_report_json_to_csv(l_scan_id, l_json["Vulnerabilities"])
+            l_header: list = self.__get_scan_vuln_report_header()
+
+            self.__write_csv(l_header, l_list)
+        except Exception as e:
+            self.__mPrinter.print("__print_scan_vuln_report_csv() - {0}".format(str(e)), Level.ERROR)
+
+    def ____get_scan_vuln_report(self, p_scan_id: str) -> list:
+        try:
+            l_base_url = "{0}/?excludeResponseData=true&format=JSON&type=vulnerabilities&id={1}".format(
+                self.__cSCAN_REPORT_URL, p_scan_id
+            )
+            return self.__get_unpaged_data(l_base_url, "scan vulnerability report")
+
+        except Exception as e:
+            self.__mPrinter.print("____get_scan_vuln_report() - {0}".format(str(e)), Level.ERROR)
+
+    def __get_scan_vuln_report(self) -> list:
+        try:
+            return self.____get_scan_vuln_report(Parser.scan_id)
+        except Exception as e:
+            self.__mPrinter.print("__get_scan_vuln_report(Parser) - {0}".format(str(e)), Level.ERROR)
+
+    def __get_scan_vuln_report_by_id(self, p_scan_id: str) -> list:
+        try:
+            return self.____get_scan_vuln_report(p_scan_id)
+        except Exception as e:
+            self.__mPrinter.print("__get_scan_vuln_report(Param) - {0}".format(str(e)), Level.ERROR)
+
+    def get_scan_vuln_report(self):
+        try:
+            l_list = self.__get_scan_vuln_report()
+
+            if self.__m_output_format == OutputFormat.JSON.value:
+                print(json.dumps(l_list))
+            elif self.__m_output_format == OutputFormat.CSV.value:
+                self.__print_scan_vuln_report_csv(l_list)
+
+        except Exception as e:
+            self.__mPrinter.print("get_scan_vuln_report() - {0}".format(str(e)), Level.ERROR)
 
     # ------------------------------------------------------------
     # Get Scheduled Scans Methods
@@ -3564,8 +3708,99 @@ class API:
         except Exception as e:
             self.__mPrinter.print("report_issues() - {0}".format(str(e)), Level.ERROR)
 
-    def report_bsc(self): 
+
+    def __get_best_scans_header(self) -> list:
+        return ["Scan Id", "Profile Name", "Scan Profile Id", "Scan Date",
+                "Target URL", "Vulnerability Count", "Website Id", "Tags"]
+
+    def __parse_best_scans_to_csv(self, p_scans: dict) -> list:
+        try:
+            l_scans: list = []
+
+            for l_scan in p_scans:
+                l_scans.append([
+                    p_scans[l_scan].scan_id, p_scans[l_scan].scan_profile_name, p_scans[l_scan].scan_profile_id,
+                    p_scans[l_scan].initiated_at, p_scans[l_scan].total_vulnerability_count, p_scans[l_scan].website_id, 
+                    p_scans[l_scan].target_url, p_scans[l_scan].is_compliant, p_scans[l_scan].scan_tags
+                ])
+            return l_scans
+
+        except Exception as e:
+            self.__mPrinter.print("__parse_best_scans_to_csv() - {0}".format(str(e)), Level.ERROR)
+
+    def __print_best_scans_csv(self, p_scans: dict) -> None:
+        try:
+            self.__mPrinter.print("Printing best scans in CSV format", Level.INFO)
+            l_header: list = self.__get_best_scans_header()
+            l_scans: list = self.__parse_best_scans_to_csv(p_scans)
+            self.__write_csv(l_header, l_scans)
+        except Exception as e:
+            self.__mPrinter.print("__print_best_scans_csv() - {0}".format(str(e)), Level.ERROR)
+
+
+    # ------------------------------------------------------------
+    # Report Methods: Scorecard
+    # ------------------------------------------------------------
+    def __get_scorecard_header(self) -> list:
+        return ["Group Name", "Profile Name", "Target URL", "Issue Name", "CVSS Score",
+                "Severity", "Dev Source", "Scan Date", "Scan Id"]
+
+    def __print_scorecard_csv(self, p_rows: dict) -> None:
+        try:
+            self.__mPrinter.print("Printing scorecard results in CSV format", Level.INFO)
+            l_header: list = self.__get_scorecard_header()
+            self.__write_csv(l_header, p_rows)
+        except Exception as e:
+            self.__mPrinter.print("__print_scorecard_csv() - {0}".format(str(e)), Level.ERROR)
+
+    def __save_best_scans(self) -> None:
         l_best_scans = self.__get_best_scans()
-        
-        for l_scan in l_best_scans:
-            print(l_best_scans[l_scan].scan_profile_name)
+        l_scans_list = self.__parse_best_scans_to_csv(l_best_scans)
+        SQLite.insert_scans(l_scans_list)
+
+    def __save_websites(self) -> None:
+        l_websites = self.__get_websites()
+        l_websites_list = self.__parse_websites_json_to_csv(l_websites)
+        SQLite.insert_websites(l_websites_list)
+
+    def __get_scans_missing_issues(self) -> None:
+        l_scans = SQLite.select_missing_issues()
+        for l_scan_id in l_scans:
+            self.__save_scan_issues(l_scan_id[0])
+
+    def __save_scan_issues(self, p_scan_id: str) -> None:
+        try:
+            l_issues = self.____get_scan_report(p_scan_id)
+            l_list = self.__parse_scan_report_json_to_csv(l_issues)
+            for l_issue in l_list:
+                l_issue.append(p_scan_id)
+            SQLite.insert_issues(l_list)
+        except Exception as e:
+            self.__mPrinter.print("__save_scan_issues() scan {0} - {1}".format(p_scan_id, str(e)), Level.ERROR)
+
+    def __save_vulnerability_types(self) -> None:
+        try:
+            Parser.report_policy_id = Policies.REPORT_POLICY.value
+            l_vulns = self.__get_vulnerability_templates()
+            l_list = self.__parse_vulnerability_templates_json_to_csv(l_vulns)
+            SQLite.insert_vulnerability_types(l_list)
+        except Exception as e:
+            self.__mPrinter.print("__save_vulnerability_types - {0}".format(str(e)), Level.ERROR)
+
+    def __setup_database(self) -> None:
+        if not SQLite.verify_database_exists(): 
+            SQLite.create_database()
+            SQLite.create_tables()
+        else:
+            SQLite.empty_tables()
+
+    def report_bsc(self): 
+        self.__setup_database()
+        self.__save_websites()
+        self.__save_vulnerability_types()
+        self.__save_best_scans()
+        self.__get_scans_missing_issues()
+        SQLite.create_views()
+        SQLite.update_false_issues()
+        l_results = SQLite.select_scorecard_results()
+        self.__print_scorecard_csv(l_results)
