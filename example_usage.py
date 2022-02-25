@@ -364,5 +364,11 @@ class ExampleUsage:
         ----------------------------------------------------------------        
         spider-web -ri -ribc -ribi -v
         spider-web --report-issues --report-issues-by-cvss --report-issues-by-issue --verbose
+
+        ----------------------------------------------------------------
+        Reports: Balanced Scorecard
+        ----------------------------------------------------------------        
+        spider-web -rbsc
+        spider-web --report-bsc
     """)
 
