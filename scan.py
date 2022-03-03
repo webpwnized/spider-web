@@ -34,8 +34,8 @@ class Scan():
         self.__m_initiated_at_datetime = parser.parse(p_scan["InitiatedAt"])
         self.__m_target_url = p_scan["TargetUrl"]
         self.__m_scan_profile_id = p_scan["ScanTaskProfileId"]
-        self.__m_scan_profile_name = p_scan["ScanTaskProfile"]["Name"]
-        self.__m_scan_profile_tags = p_scan["ScanTaskProfile"]["Tags"]
+        self.__m_scan_profile_name = p_scan.get("ScanTaskProfile", {}).get("Name")
+        self.__m_scan_profile_tags = p_scan.get("ScanTaskProfile", {}).get("Tags")
         self.__m_is_completed = p_scan["IsCompleted"]
         self.__m_total_vulnerability_count = p_scan["TotalVulnerabilityCount"]
         self.__m_vulnerability_critical_count = p_scan["VulnerabilityCriticalCount"]
@@ -149,6 +149,13 @@ class Scan():
     @property  # getter method
     def scan_tags(self) -> str:
         return "|".join(self.__m_scan_tags)
+
+    @property  # getter method
+    def tags(self) -> str:
+        if len(self.scan_profile_tags):
+            return self.scan_profile_tags
+        else:
+            return self.scan_tags
 
     @property  # getter method
     def is_compliant(self) -> bool:

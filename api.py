@@ -3721,7 +3721,7 @@ class API:
                 l_scans.append([
                     p_scans[l_scan].scan_id, p_scans[l_scan].scan_profile_name, p_scans[l_scan].scan_profile_id,
                     p_scans[l_scan].initiated_at, p_scans[l_scan].total_vulnerability_count, p_scans[l_scan].website_id, 
-                    p_scans[l_scan].target_url, p_scans[l_scan].is_compliant, p_scans[l_scan].scan_tags
+                    p_scans[l_scan].target_url, p_scans[l_scan].is_compliant, p_scans[l_scan].tags
                 ])
             return l_scans
 
