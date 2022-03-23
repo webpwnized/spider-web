@@ -3787,6 +3787,26 @@ class API:
         except Exception as e:
             self.__mPrinter.print("__save_vulnerability_types - {0}".format(str(e)), Level.ERROR)
 
+    def __import_false_issues(self) -> None:
+        try:
+            self.__mPrinter.print("Opening file for reading {}".format(Parser.input_filename), Level.INFO)
+            if Parser.input_filename:
+                with open(Parser.input_filename, FileMode.READ.value) as l_input_file:
+                    l_csv_reader = csv.reader(l_input_file)
+
+                    l_false_issues: list = []
+                    for l_row in l_csv_reader:
+                        if l_row:
+                            l_false_issues.append([l_row[0], l_row[1]])
+                        
+                SQLite.insert_false_issues(l_false_issues)
+        except Exception as e:
+            self.__mPrinter.print("__import_false_issues(): {0}".format(str(e)), Level.ERROR)
+        finally:
+            if l_input_file:
+                l_input_file.close()
+
+
     def __setup_database(self) -> None:
         if not SQLite.verify_database_exists(): 
             SQLite.create_database()
@@ -3801,6 +3821,7 @@ class API:
         self.__save_best_scans()
         self.__get_scans_missing_issues()
         SQLite.create_views()
-        SQLite.update_false_issues()
+        self.__import_false_issues()
+        
         l_results = SQLite.select_scorecard_results()
         self.__print_scorecard_csv(l_results)

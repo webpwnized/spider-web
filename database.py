@@ -199,6 +199,7 @@ class SQLite():
                     DELETE FROM Websites;
                     DELETE FROM WebsiteGroups;
                     DELETE FROM ProfileTags;
+                    DELETE FROM FalsePositiveImport;
                     VACUUM;
                 """
             SQLite.__execute_script(l_connection, l_query)
@@ -231,13 +232,17 @@ class SQLite():
                     SELECT * FROM WebsiteGroups
                     WHERE group_name = 'On Balanced Score Card (BSC)';
 
-                    CREATE VIEW IF NOT EXISTS TrackedIssues AS
-                    SELECT Issues.*, VulnerabilityTypes.cvss_value, VulnerabilityTypes.cvss_severity
-                    FROM Issues
-                        JOIN VulnerabilityTypes ON Issues.name = VulnerabilityTypes.title AND Issues.type = VulnerabilityTypes.id
-                    WHERE VulnerabilityTypes.cvss_value >= 6.0
-                    AND Issues.state NOT LIKE '%Fixed%'
-                    AND Issues.state NOT LIKE '%FalsePositive%';
+                    DROP VIEW IF EXISTS TrackedIssues;
+                    CREATE VIEW TrackedIssues AS
+                        SELECT Issues.*, VulnerabilityTypes.cvss_value, VulnerabilityTypes.cvss_severity
+                        FROM Issues
+                            JOIN VulnerabilityTypes ON Issues.name = VulnerabilityTypes.title AND Issues.type = VulnerabilityTypes.id
+                            JOIN Scans ON Issues.scan_id = Scans.id
+                            LEFT JOIN FalsePositiveImport ON Issues.name = FalsePositiveImport.issue_name AND Scans.profile_name = FalsePositiveImport.profile_name
+                        WHERE VulnerabilityTypes.cvss_value >= 6.0
+                            AND Issues.state NOT LIKE '%Fixed%'
+                            AND Issues.state NOT LIKE '%FalsePositive%'
+                            AND FalsePositiveImport.issue_name IS NULL
 
                     CREATE VIEW IF NOT EXISTS WebsiteSegment AS
                     SELECT * FROM WebsiteGroups
@@ -634,10 +639,10 @@ class SQLite():
             l_connection = SQLite.__connect_to_database(Mode.READ_WRITE)
             l_query = """
                     CREATE TABLE "FalsePositiveImport" (
-                    "profile_name"	TEXT,
-                    "issue_name"	TEXT
-                    PRIMARY KEY("profile_name", "issue_name")
-                )
+                        "profile_name"	TEXT,
+                        "issue_name"	TEXT,
+                        PRIMARY KEY("profile_name", "issue_name")
+                    );
                 """
             SQLite.__execute_script(l_connection, l_query)
         except:
@@ -646,30 +651,18 @@ class SQLite():
             if l_connection:
                 l_connection.close()
 
-    def update_false_issues() -> None:
+    @staticmethod
+    def insert_false_issues(p_issues: list) -> None:
         l_connection: sqlite3.Connection = None
         try:
             l_connection = SQLite.__connect_to_database(Mode.READ_WRITE)
             if not SQLite.__verify_table_exists(l_connection, "FalsePositiveImport"): 
                 SQLite.__create_false_positive_table()
-
-            Printer.print("Updating false positive issues state", Level.INFO)
-            l_query = """
-                UPDATE Issues
-                SET state = state || ', FalsePositive'
-                WHERE scan_id IN (SELECT a.scan_id
-                    FROM Issues AS a
-                    JOIN Scans AS b ON a.scan_id = b.id
-                    JOIN FalsePositiveImport AS c ON a.name = c.issue_name AND b.profile_name = c.profile_name)
-                    AND name IN (SELECT a.name
-                    FROM Issues AS a
-                    JOIN Scans AS b ON a.scan_id = b.id
-                    JOIN FalsePositiveImport AS c ON a.name = c.issue_name AND b.profile_name = c.profile_name)
-                AND state NOT LIKE '%FalsePositive%'
-            """
-            SQLite.__execute_script(l_connection, l_query)
+            Printer.print("Inserting false issues", Level.INFO)
+            l_query = "INSERT OR IGNORE INTO FalsePositiveImport VALUES(?,?);"
+            SQLite.__execute_parameterized_queries(l_connection, l_query, p_issues)
         except:
-             Printer.print("Error updating false positive issues", Level.ERROR)
+             Printer.print("Error inserting false issues", Level.ERROR)
         finally:
             if l_connection:
                 l_connection.close()
