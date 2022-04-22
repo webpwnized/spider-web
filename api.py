@@ -3810,7 +3810,6 @@ class API:
     def __setup_database(self) -> None:
         if not SQLite.verify_database_exists(): 
             SQLite.create_database()
-            SQLite.create_tables()
         else:
             SQLite.empty_tables()
 
@@ -3820,8 +3819,8 @@ class API:
         self.__save_vulnerability_types()
         self.__save_best_scans()
         self.__get_scans_missing_issues()
-        SQLite.create_views()
         self.__import_false_issues()
+        SQLite.create_views()
         
         l_results = SQLite.select_scorecard_results()
         self.__print_scorecard_csv(l_results)

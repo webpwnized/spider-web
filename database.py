@@ -105,8 +105,8 @@ class SQLite():
 
     @staticmethod
     def __verify_table_exists(p_connection: sqlite3.Connection, p_table_name: str) -> bool:
-        l_query: str = "SELECT name FROM sqlite_master WHERE type='table' AND name='{}';".format(p_table_name)
-        l_rows: list = SQLite.__execute_query(p_connection, l_query)
+        l_query: str = "SELECT name FROM sqlite_master WHERE type='table' AND name=?;"
+        l_rows: list = SQLite.__execute_parameterized_query(p_connection, l_query, [p_table_name])
         if not l_rows:
             Printer.print("Table {} not found in database".format(p_table_name), Level.ERROR)
         return bool(l_rows)
@@ -155,8 +155,8 @@ class SQLite():
         try:
             Printer.print("Fetching column metadata for table {}".format(p_table_name), Level.INFO)
             l_connection = SQLite.__connect_to_database(Mode.READ_ONLY)
-            l_query = "SELECT * FROM pragma_table_info('{}');".format(p_table_name)
-            return SQLite.__execute_query(l_connection, l_query)
+            l_query = "SELECT * FROM pragma_table_info(?);"
+            return SQLite.__execute_parameterized_query(l_connection, l_query, [p_table_name])
         except sqlite3.Error as l_error:
             Printer.print("Error fetching column metadata for table {}: {}".format(p_table_name, l_error), Level.WARNING)
         finally:
@@ -194,12 +194,12 @@ class SQLite():
             Printer.print("Emptying database tables", Level.INFO)
             l_connection = SQLite.__connect_to_database(Mode.READ_WRITE)
             l_query = """
-                    DELETE FROM Scans;
-                    DELETE FROM VulnerabilityTypes;
-                    DELETE FROM Websites;
-                    DELETE FROM WebsiteGroups;
-                    DELETE FROM ProfileTags;
-                    DELETE FROM FalsePositiveImport;
+                    DROP TABLE IF EXISTS Scans;
+                    DROP TABLE IF EXISTS VulnerabilityTypes;
+                    DROP TABLE IF EXISTS Websites;
+                    DROP TABLE IF EXISTS WebsiteGroups;
+                    DROP TABLE IF EXISTS ProfileTags;
+                    DROP TABLE IF EXISTS FalsePositiveImport;
                     VACUUM;
                 """
             SQLite.__execute_script(l_connection, l_query)
@@ -210,25 +210,19 @@ class SQLite():
                 l_connection.close()
 
     @staticmethod
-    def create_tables() -> None:
-        try:
-            Printer.print("Creating database tables", Level.INFO)
-            SQLite.__create_issues_table()
-        except:
-             Printer.print("Error emptying database tables", Level.ERROR)
-
-    @staticmethod
     def create_views() -> None:
         l_connection: sqlite3.Connection = None
         try:
             Printer.print("Creating views", Level.INFO)
             l_connection = SQLite.__connect_to_database(Mode.READ_WRITE)
             l_query = """
-                    CREATE VIEW IF NOT EXISTS WebsiteSDG AS 
+                    DROP VIEW IF EXISTS WebsiteSDG;
+                    CREATE VIEW WebsiteSDG AS 
                     SELECT * FROM WebsiteGroups
                     WHERE group_name LIKE 'SDG:%';
 
-                    CREATE VIEW IF NOT EXISTS WebsiteOnBsc AS
+                    DROP VIEW IF EXISTS WebsiteOnBsc;
+                    CREATE VIEW WebsiteOnBsc AS
                     SELECT * FROM WebsiteGroups
                     WHERE group_name = 'On Balanced Score Card (BSC)';
 
@@ -242,9 +236,10 @@ class SQLite():
                         WHERE VulnerabilityTypes.cvss_value >= 6.0
                             AND Issues.state NOT LIKE '%Fixed%'
                             AND Issues.state NOT LIKE '%FalsePositive%'
-                            AND FalsePositiveImport.issue_name IS NULL
+                            AND FalsePositiveImport.issue_name IS NULL;
 
-                    CREATE VIEW IF NOT EXISTS WebsiteSegment AS
+                    DROP VIEW IF EXISTS WebsiteSegment;
+                    CREATE VIEW WebsiteSegment AS
                     SELECT * FROM WebsiteGroups
                     WHERE group_name LIKE 'Segment:%';
                 """
@@ -595,6 +590,7 @@ class SQLite():
                     LEFT JOIN ExcludeFromReports ON Scans.profile_id = ExcludeFromReports.profile_id
                 WHERE 
                     ExcludeFromReports.profile_id IS NULL
+                    AND Scans.profile_name NOT LIKE 'Product Test%'
 
                 UNION
 
@@ -618,6 +614,7 @@ class SQLite():
                 WHERE 
                     TrackedIssues.scan_id IS NULL
                     AND ExcludeFromReports.profile_id IS NULL
+                    AND Scans.profile_name NOT LIKE 'Product Test%'
                     
                 ORDER BY WebsiteSDG.group_name, Scans.profile_name;
             """
