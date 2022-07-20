@@ -246,7 +246,7 @@ class API:
 
     __cTEAM_MEMBER_GET_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "members/get")
     __cTEAM_MEMBER_GETBYEMAIL_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "members/getbyemail")
-    __cTEAM_MEMBER_CREATE_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "members/new")
+    __cTEAM_MEMBER_CREATE_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "members/newinvitation")
     __cTEAM_MEMBERS_LIST_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "members/list")
     __cTEAM_MEMBER_DELETE_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "members/delete")
 
@@ -544,6 +544,7 @@ class API:
     def __call_api(self, p_url: str, p_headers: dict, p_method: str=HTTPMethod.GET.value, p_data: str=None, p_json=None) -> requests.Response:
         l_proxies: dict = {}
         try:
+            l_session = requests.Session()
             if self.__m_use_proxy:
                 self.__mPrinter.print("Using upstream proxy", Level.INFO)
                 l_proxies = self.__get_proxies()
@@ -561,10 +562,10 @@ class API:
                 l_start_time: float = time.time()
 
                 if p_method == HTTPMethod.GET.value:
-                    l_http_response = requests.get(url=p_url, headers=p_headers, proxies=l_proxies, timeout=self.__m_api_connection_timeout, verify=self.__m_verify_https_certificate)
+                    l_http_response = l_session.get(url=p_url, headers=p_headers, proxies=l_proxies, timeout=self.__m_api_connection_timeout, verify=self.__m_verify_https_certificate)
                 elif p_method == HTTPMethod.POST.value:
                     #Note: data takes precedence over json unless data=None
-                    l_http_response = requests.post(url=p_url, headers=p_headers, data=p_data, json=p_json, proxies=l_proxies, timeout=self.__m_api_connection_timeout, verify=self.__m_verify_https_certificate)
+                    l_http_response = l_session.post(url=p_url, headers=p_headers, data=p_data, json=p_json, proxies=l_proxies, timeout=self.__m_api_connection_timeout, verify=self.__m_verify_https_certificate)
 
                 l_end_time: float = time.time()
                 l_total_time: int = int(l_end_time - l_start_time)
@@ -1539,10 +1540,6 @@ class API:
         try:
             l_json: dict = {
                 "OnlySsoLogin": True,
-                "AutoGeneratePassword": True,
-                "Password": "",
-                "ConfirmPassword": "",
-                "SendNotification": True,
                 "PhoneNumber": "",
                 "Teams": p_teams,
                 "TimezoneId": "Eastern Standard Time",
@@ -1646,9 +1643,9 @@ class API:
                 for l_team in l_user["Teams"]:
                     l_teams.append(l_team["Name"])
 
-                l_roles_string: str = ",".join(l_roles)
+                l_roles_string: str = "|".join(l_roles)
                 l_groups_string: str = "|".join(l_groups)
-                l_teams_string: str = ",".join(l_teams)
+                l_teams_string: str = "|".join(l_teams)
 
                 l_team_members.append([
                     l_user["Name"], l_user["Email"], l_user["AlternateLoginEmail"],
@@ -2380,7 +2377,7 @@ class API:
     # ------------------------------------------------------------
     def __get_scan_profile_header(self) -> list:
         return ["Profile ID", "Profile Name", "Target URI", "Policy ID",
-                "Report Policy ID", "User ID", "Agent ID", "Agent Group ID", "Tags"]
+                "Report Policy ID", "User ID", "Agent ID", "Agent Group ID", "Tags", "Scanner Login"]
 
     def __parse_scan_profile_json_to_csv(self, p_json: list) -> list:
         try:
@@ -2458,10 +2455,13 @@ class API:
     # ------------------------------------------------------------
     def __parse_scan_profiles_json(self, p_json: list) -> list:
         try:
+            l_persona = p_json.get("FormAuthenticationSettingModel", {}).get("Personas", [])
+            l_username = l_persona[0].get("UserName", "")
             return [
                 p_json["ProfileId"], p_json["ProfileName"], p_json["TargetUri"],
                 p_json["PolicyId"], p_json["ReportPolicyId"], p_json["UserId"],
-                p_json["AgentId"], p_json["AgentGroupId"], "|".join(p_json["Tags"])
+                p_json["AgentId"], p_json["AgentGroupId"], "|".join(p_json["Tags"]),
+                l_username
             ]
         except Exception as e:
             self.__mPrinter.print("__parse_scan_profiles_json() - {0}".format(str(e)), Level.ERROR)
@@ -3806,10 +3806,10 @@ class API:
             if l_input_file:
                 l_input_file.close()
 
-
     def __setup_database(self) -> None:
         if not SQLite.verify_database_exists(): 
             SQLite.create_database()
+            SQLite.empty_tables()
         else:
             SQLite.empty_tables()
 

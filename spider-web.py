@@ -9,7 +9,7 @@ import config as __config
 from argparse import RawTextHelpFormatter
 import argparse
 
-l_version = '1.1.4'
+l_version = '1.1.5'
 
 def print_version() -> None:
     if Parser.verbose:
