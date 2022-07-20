@@ -195,6 +195,7 @@ class SQLite():
             l_connection = SQLite.__connect_to_database(Mode.READ_WRITE)
             l_query = """
                     DROP TABLE IF EXISTS Scans;
+                    DROP TABLE IF EXISTS Issues;
                     DROP TABLE IF EXISTS VulnerabilityTypes;
                     DROP TABLE IF EXISTS Websites;
                     DROP TABLE IF EXISTS WebsiteGroups;
@@ -453,6 +454,25 @@ class SQLite():
             if l_connection:
                 l_connection.close()
 
+    @staticmethod
+    def select_groups() -> list:
+        l_connection: sqlite3.Connection = None
+        try:
+            l_connection = SQLite.__connect_to_database(Mode.READ_WRITE)
+            Printer.print("Querying for groups", Level.INFO)
+            l_query = """
+                SELECT substr(group_name,6) as group_name 
+                FROM WebsiteGroups
+                WHERE group_name LIKE 'SDG:%'
+                GROUP BY group_name
+            """
+            return SQLite.__execute_query(l_connection, l_query)
+        except:
+             Printer.print("Error querying for groups", Level.ERROR)
+        finally:
+            if l_connection:
+                l_connection.close()
+
     
     # ------------------------------------------------------------
     # Scan Issues table methods
@@ -508,9 +528,7 @@ class SQLite():
             l_query = """
                 SELECT Scans.Id
                 FROM Scans
-                    LEFT JOIN Issues ON Scans.Id = Issues.scan_id
                 WHERE Scans.is_compliant = 0
-                    AND Issues.scan_id IS NULL
                 GROUP BY Scans.id
             """
             return SQLite.__execute_query(l_connection, l_query)
