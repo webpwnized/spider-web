@@ -229,7 +229,7 @@ class SQLite():
 
                     DROP VIEW IF EXISTS TrackedIssues;
                     CREATE VIEW TrackedIssues AS
-                        SELECT Issues.*, VulnerabilityTypes.cvss_value, VulnerabilityTypes.cvss_severity
+                        SELECT Scans.profile_name, Issues.*, VulnerabilityTypes.cvss_value, VulnerabilityTypes.cvss_severity
                         FROM Issues
                             JOIN VulnerabilityTypes ON Issues.name = VulnerabilityTypes.title AND Issues.type = VulnerabilityTypes.id
                             JOIN Scans ON Issues.scan_id = Scans.id
@@ -245,12 +245,91 @@ class SQLite():
                     WHERE group_name LIKE 'Segment:%';
                 """
             SQLite.__execute_script(l_connection, l_query)
+            SQLite.create_scorecard_view()
         except:
              Printer.print("Error creating views", Level.ERROR)
         finally:
             if l_connection:
                 l_connection.close()       
 
+    @staticmethod
+    def create_scorecard_view() -> None:
+        l_connection: sqlite3.Connection = None
+        try:
+            Printer.print("Creating scorecard view", Level.INFO)
+            l_connection = SQLite.__connect_to_database(Mode.READ_WRITE)
+            l_query = """
+                    DROP VIEW IF EXISTS ScorecardResults;
+                    CREATE VIEW ScorecardResults AS
+                        SELECT 
+                            WebsiteSDG.group_name,
+                            Scans.profile_name, 
+                            Scans.target_url, 
+                            TrackedIssues.name,
+                            TrackedIssues.cvss_value,
+                            TrackedIssues.cvss_severity,
+                            SUBSTR(DevSource.tag,13,100) as dev_source,
+                            SUBSTR(max(Scans.initiated_date),1,10) as scan_date,
+                            max(Scans.id) as scan_id
+                        FROM
+                            Scans
+                            JOIN WebsiteOnBsc ON Scans.website_id = WebsiteOnBsc.website_id
+                            JOIN TrackedIssues ON Scans.id = TrackedIssues.scan_id
+                            LEFT JOIN WebsiteSDG ON Scans.website_id = WebsiteSDG.website_id
+                            LEFT JOIN DevSource ON Scans.profile_id = DevSource.profile_id
+                            LEFT JOIN ExcludeFromReports ON Scans.profile_id = ExcludeFromReports.profile_id
+                        WHERE 
+                            ExcludeFromReports.profile_id IS NULL
+                            AND Scans.profile_name NOT LIKE 'Product Test%'
+                        GROUP BY 
+                            WebsiteSDG.group_name,
+                            Scans.profile_name, 
+                            Scans.target_url, 
+                            TrackedIssues.name,
+                            TrackedIssues.cvss_value,
+                            TrackedIssues.cvss_severity,
+                            DevSource.tag
+
+                        UNION
+
+                        SELECT 
+                            WebsiteSDG.group_name,
+                            Scans.profile_name, 
+                            Scans.target_url, 
+                            'Compliant' AS name,
+                            '' AS cvss_value,
+                            '' AS cvss_severity,
+                            SUBSTR(DevSource.tag,13,100) as dev_source,
+                            SUBSTR(max(Scans.initiated_date),1,10) as scan_date,
+                            max(Scans.id) as scan_id
+                        FROM
+                            Scans
+                            JOIN WebsiteOnBsc ON Scans.website_id = WebsiteOnBsc.website_id
+                            LEFT JOIN TrackedIssues ON Scans.profile_name = TrackedIssues.profile_name
+                            LEFT JOIN WebsiteSDG ON Scans.website_id = WebsiteSDG.website_id
+                            LEFT JOIN DevSource ON Scans.profile_id = DevSource.profile_id
+                            LEFT JOIN ExcludeFromReports ON Scans.profile_id = ExcludeFromReports.profile_id
+                        WHERE 
+                            TrackedIssues.scan_id IS NULL
+                            AND ExcludeFromReports.profile_id IS NULL
+                            AND Scans.profile_name NOT LIKE 'Product Test%'
+                        GROUP BY 
+                            WebsiteSDG.group_name,
+                            Scans.profile_name, 
+                            Scans.target_url, 
+                            TrackedIssues.name,
+                            TrackedIssues.cvss_value,
+                            TrackedIssues.cvss_severity,
+                            DevSource.tag,
+                            scan_id
+                        ORDER BY WebsiteSDG.group_name, Scans.profile_name
+                """
+            SQLite.__execute_script(l_connection, l_query)
+        except:
+             Printer.print("Error creating scorecard view", Level.ERROR)
+        finally:
+            if l_connection:
+                l_connection.close()  
 
     # ------------------------------------------------------------
     # Scan table methods
@@ -291,6 +370,7 @@ class SQLite():
             l_query = "INSERT OR IGNORE INTO Scans VALUES(?,?,?,?,?,?,?,?,?);"
             SQLite.__execute_parameterized_queries(l_connection, l_query, p_scans)
             SQLite.__populate_profile_tags()
+            SQLite.__collapse_scans()
         except:
              Printer.print("Error inserting scans", Level.ERROR)
         finally:
@@ -351,6 +431,44 @@ class SQLite():
             SQLite.__execute_script(l_connection, l_query)
         except:
              Printer.print("Error inserting profile tags", Level.ERROR)
+        finally:
+            if l_connection:
+                l_connection.close()
+
+
+    @staticmethod
+    def __collapse_scans() -> None:
+        l_connection: sqlite3.Connection = None
+        try:
+            l_connection = SQLite.__connect_to_database(Mode.READ_WRITE)
+            Printer.print("Collapsing multi-profile scans", Level.INFO)
+            l_query = """
+                    CREATE TEMP TABLE tempScans AS
+                    SELECT 
+                        Scans.id,
+                        substr(ProfileTags.tag,6) AS profile_name,
+                        Scans.profile_id,
+                        Scans.initiated_date,
+                        Scans.vulnerability_count,
+                        Scans.website_id,
+                        Scans.target_url,
+                        Scans.is_compliant,
+                        Scans.tags
+                    FROM 
+                        Scans
+                        JOIN ProfileTags ON Scans.profile_id = ProfileTags.profile_id AND ProfileTags.tag LIKE 'App: %';
+
+                    DELETE FROM Scans
+                    WHERE id IN (SELECT id FROM tempScans);
+
+                    INSERT INTO Scans
+                    SELECT * FROM tempScans;
+
+                    DROP TABLE tempScans;
+            """
+            SQLite.__execute_script(l_connection, l_query)
+        except:
+             Printer.print("Error collapsing multi-profile scans", Level.ERROR)
         finally:
             if l_connection:
                 l_connection.close()
@@ -461,10 +579,15 @@ class SQLite():
             l_connection = SQLite.__connect_to_database(Mode.READ_WRITE)
             Printer.print("Querying for groups", Level.INFO)
             l_query = """
-                SELECT substr(group_name,6) as group_name 
-                FROM WebsiteGroups
-                WHERE group_name LIKE 'SDG:%'
-                GROUP BY group_name
+                SELECT 
+                    substr(group_name,instr(group_name,'(')+1,(instr(group_name,')')-instr(group_name,'('))-1) as group_code, 
+                    substr(group_name,6) as group_name 
+                FROM 
+                    WebsiteGroups
+                WHERE 
+                    group_name LIKE 'SDG:%'
+                GROUP BY 
+                    group_name;
             """
             return SQLite.__execute_query(l_connection, l_query)
         except:
@@ -589,54 +712,28 @@ class SQLite():
             l_connection = SQLite.__connect_to_database(Mode.READ_WRITE)
             Printer.print("Querying for scorecard results", Level.INFO)
             l_query = """
-                SELECT 
-                    WebsiteSDG.group_name,
-                    Scans.profile_name, 
-                    Scans.target_url, 
-                    TrackedIssues.name,
-                    TrackedIssues.cvss_value,
-                    TrackedIssues.cvss_severity,
-                    SUBSTR(DevSource.tag,13,100) as dev_source,
-                    SUBSTR(Scans.initiated_date,1,10) as scan_date,
-                    Scans.id as scan_id
-                FROM
-                    Scans
-                    JOIN WebsiteOnBsc ON Scans.website_id = WebsiteOnBsc.website_id
-                    JOIN TrackedIssues ON Scans.id = TrackedIssues.scan_id
-                    LEFT JOIN WebsiteSDG ON Scans.website_id = WebsiteSDG.website_id
-                    LEFT JOIN DevSource ON Scans.profile_id = DevSource.profile_id
-                    LEFT JOIN ExcludeFromReports ON Scans.profile_id = ExcludeFromReports.profile_id
-                WHERE 
-                    ExcludeFromReports.profile_id IS NULL
-                    AND Scans.profile_name NOT LIKE 'Product Test%'
-
-                UNION
-
-                SELECT 
-                    WebsiteSDG.group_name,
-                    Scans.profile_name, 
-                    Scans.target_url, 
-                    'Compliant' AS name,
-                    '' AS cvss_value,
-                    '' AS cvss_severity,
-                    SUBSTR(DevSource.tag,13,100) as dev_source,
-                    SUBSTR(Scans.initiated_date,1,10) as scan_date,
-                    Scans.id as scan_id
-                FROM
-                    Scans
-                    JOIN WebsiteOnBsc ON Scans.website_id = WebsiteOnBsc.website_id
-                    LEFT JOIN TrackedIssues ON Scans.id = TrackedIssues.scan_id
-                    LEFT JOIN WebsiteSDG ON Scans.website_id = WebsiteSDG.website_id
-                    LEFT JOIN DevSource ON Scans.profile_id = DevSource.profile_id
-                    LEFT JOIN ExcludeFromReports ON Scans.profile_id = ExcludeFromReports.profile_id
-                WHERE 
-                    TrackedIssues.scan_id IS NULL
-                    AND ExcludeFromReports.profile_id IS NULL
-                    AND Scans.profile_name NOT LIKE 'Product Test%'
-                    
-                ORDER BY WebsiteSDG.group_name, Scans.profile_name;
+                    SELECT * FROM ScorecardResults;
             """
             return SQLite.__execute_query(l_connection, l_query)
+        except:
+             Printer.print("Error querying for scorecard results", Level.ERROR)
+        finally:
+            if l_connection:
+                l_connection.close()
+
+    @staticmethod
+    def select_group_results(p_group: str) -> list:
+        l_connection: sqlite3.Connection = None
+        l_group = f"%{p_group}%"
+        try:
+            l_connection = SQLite.__connect_to_database(Mode.READ_WRITE)
+            Printer.print("Querying for scorecard results", Level.INFO)
+            l_query = """
+                    SELECT *
+                    FROM ScorecardResults
+                    WHERE group_name LIKE ?;
+            """
+            return SQLite.__execute_parameterized_query(l_connection, l_query, [l_group])
         except:
              Printer.print("Error querying for scorecard results", Level.ERROR)
         finally:

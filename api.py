@@ -1352,9 +1352,12 @@ class API:
 
     def __parse_teams_json_to_csv(self, p_json: list) -> list:
         try:
-            return [[
-                p_json["Name"], p_json["Members"], p_json["Id"],
-            ]]
+            l_teams: list = []
+            for l_team in p_json:
+                l_teams.append([
+                    l_team["Name"], l_team["Members"], l_team["Id"]
+                ])
+            return l_teams
         except Exception as e:
             self.__mPrinter.print("__parse_teams_json_to_csv() - {0}".format(str(e)), Level.ERROR)
 
@@ -1365,7 +1368,7 @@ class API:
                 l_teams: list = self.__parse_teams_json_to_csv(p_json)
                 self.__write_csv(l_header, l_teams)
             else:
-                self.__mPrinter.print("No teams are configured in NetSparker", Level.INFO)
+                self.__mPrinter.print("No teams are configured in Netsparker", Level.INFO)
 
         except Exception as e:
             self.__mPrinter.print("__print_teams_csv() - {0}".format(str(e)), Level.ERROR)
@@ -3803,20 +3806,18 @@ class API:
         except Exception as e:
             self.__mPrinter.print("__import_false_issues(): {0}".format(str(e)), Level.ERROR)
         finally:
-            if l_input_file:
+            if Parser.input_filename:
                 l_input_file.close()
 
     def __setup_database(self) -> None:
         if not SQLite.verify_database_exists(): 
             SQLite.create_database()
-            SQLite.empty_tables()
-        else:
-            SQLite.empty_tables()
+        SQLite.empty_tables()
 
     def report_bsc(self): 
         self.__setup_database()
         self.__save_websites()
-        self.__save_vulnerability_types()
+        self.__save_vulnerability_types() 
         self.__save_best_scans()
         self.__get_scans_missing_issues()
         self.__import_false_issues()
@@ -3824,3 +3825,10 @@ class API:
         
         l_results = SQLite.select_scorecard_results()
         self.__print_scorecard_csv(l_results)
+
+        l_filename = Parser.output_filename
+        l_groups = SQLite.select_groups()
+        for (l_code, l_name) in l_groups:
+            l_results = SQLite.select_group_results(l_code)
+            Parser.output_filename = f"{l_code}-{l_filename}"
+            self.__print_scorecard_csv(l_results)
