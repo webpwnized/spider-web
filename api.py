@@ -246,9 +246,10 @@ class API:
 
     __cTEAM_MEMBER_GET_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "members/get")
     __cTEAM_MEMBER_GETBYEMAIL_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "members/getbyemail")
-    __cTEAM_MEMBER_CREATE_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "members/newinvitation")
+    __cTEAM_MEMBER_CREATE_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "members/new")
     __cTEAM_MEMBERS_LIST_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "members/list")
     __cTEAM_MEMBER_DELETE_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "members/delete")
+    __cTEAM_MEMBER_UPDATE_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "members/update")
 
     __cTECHNOLOGIES_LIST_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "technologies/list")
     __cOBSOLETE_TECHNOLOGIES_LIST_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "technologies/outofdatetechnologies")
@@ -1348,14 +1349,16 @@ class API:
     # Teams Methods
     # ------------------------------------------------------------
     def __get_teams_header(self) -> list:
-        return ["Name","Members","Groups","Roles","Id"]
+        return ["Name","Member Count","Groups","Roles","Id"]
 
     def __parse_teams_json_to_csv(self, p_json: list) -> list:
         try:
             l_teams: list = []
             for l_team in p_json:
+                l_groups = list(set(map(lambda r: r["WebsiteGroupName"], l_team["RoleWebsiteGroupMappings"])))
+                l_roles = list(set(map(lambda r: r["RoleName"], l_team["RoleWebsiteGroupMappings"])))
                 l_teams.append([
-                    l_team["Name"], l_team["Members"], l_team["Id"]
+                    l_team["Name"], len(l_team["Members"]), "|".join(l_groups), "|".join(l_roles), l_team["Id"]
                 ])
             return l_teams
         except Exception as e:
@@ -1536,7 +1539,7 @@ class API:
             self.__set_teams()
         
         for l_team in self.__m_teams:
-            if p_group_name in l_team[0]:
+            if p_group_name.upper() in l_team[0]:
                 return l_team[1]
 
     def __build_team_member_create_json(self, p_name: str, p_email: str, p_sso_email: str, p_teams: list) -> str:
@@ -1546,13 +1549,15 @@ class API:
                 "PhoneNumber": "",
                 "Teams": p_teams,
                 "TimezoneId": "Eastern Standard Time",
-                "DateTimeFormat": "MM/dd/yyyy", 
+                "DateTimeFormat": "MM/dd/yyyy",
                 "Email": p_email, 
                 "AlternateLoginEmail": p_sso_email,
                 "Name": p_name,
                 "IsApiAccessEnabled": True,
                 "AllowedWebsiteLimit": 0,
-                "RoleWebsiteGroupMappings": []
+                "RoleWebsiteGroupMappings": [],
+                "AutoGeneratePassword": true,
+                "SendNotification": false
             }
 
             return l_json
@@ -1618,6 +1623,42 @@ class API:
             self.__delete_team_member()
         except Exception as e:
             self.__mPrinter.print("delete_team_member() - {0}".format(str(e)), Level.ERROR)
+
+    # ------------------------------------------------------------
+    # Disable Team Member Methods
+    # ------------------------------------------------------------
+    def __disable_team_member(self) -> None:
+        try:
+            self.__mPrinter.print("Disabling team member {}".format(Parser.team_member_id), Level.INFO)
+
+            # TODO: Get team member data, set State to Disabled, then update
+            l_member = self.__get_team_member()
+            l_member["State"] = "Disabled"
+
+            l_http_resposne: requests.Response = self.__post_data(self.__cTEAM_MEMBER_UPDATE_URL, "team member", None, l_member)
+
+            if l_http_resposne.status_code == 200:
+                l_message: str = "Disabled team member {}".format(Parser.team_member_id)
+                self.__mPrinter.print(l_message, Level.SUCCESS)
+            else:
+                if l_http_resposne.status_code == 400:
+                    l_message: str = "Bad request {}".format(l_http_resposne.reason)
+                elif l_http_resposne.status_code == 404:
+                    l_message: str = "Team member {} was not found".format(Parser.team_member_id)
+                else:
+                    l_message: str = "Could not disable team member {} - {} {}".format(Parser.team_member_id, l_http_resposne.status_code, l_http_resposne.reason)
+
+                self.__mPrinter.print(l_message, Level.ERROR)
+
+        except Exception as e:
+            self.__mPrinter.print("__disable_team_member() - {0}".format(str(e)), Level.ERROR)
+
+    def disable_team_member(self) -> None:
+        try:
+            self.__disable_team_member()
+        except Exception as e:
+            self.__mPrinter.print("disable_team_member() - {0}".format(str(e)), Level.ERROR)
+
 
     # ------------------------------------------------------------
     # Get Team Members Methods
@@ -3113,7 +3154,7 @@ class API:
         except Exception as e:
             self.__mPrinter.print("__print_scan_results_csv() - {0}".format(str(e)), Level.ERROR)
 
-    def ____get_scan_results(self, p_scan_id: str) -> list:
+    def __get_scan_results(self, p_scan_id: str) -> list:
         try:
             l_base_url = "{0}/{1}".format(
                 self.__cSCAN_RESULTS_URL, p_scan_id
@@ -3121,23 +3162,11 @@ class API:
             return self.__get_unpaged_data(l_base_url, "scan results")
 
         except Exception as e:
-            self.__mPrinter.print("____get_scan_results() - {0}".format(str(e)), Level.ERROR)
-
-    def __get_scan_results(self) -> list:
-        try:
-            return self.____get_scan_results(Parser.scan_id)
-        except Exception as e:
-            self.__mPrinter.print("__get_scan_results() - {0}".format(str(e)), Level.ERROR)
-
-    def __get_scan_results(self, p_scan_id: str) -> list:
-        try:
-            return self.____get_scan_results(p_scan_id)
-        except Exception as e:
             self.__mPrinter.print("__get_scan_results() - {0}".format(str(e)), Level.ERROR)
 
     def get_scan_results(self):
         try:
-            l_list: list = self.__get_scan_results()
+            l_list: list = self.__get_scan_results(Parser.scan_id)
 
             if self.__m_output_format == OutputFormat.JSON.value:
                 print(json.dumps(l_list))
@@ -3175,7 +3204,7 @@ class API:
         except Exception as e:
             self.__mPrinter.print("__print_scan_report_csv() - {0}".format(str(e)), Level.ERROR)
 
-    def ____get_scan_report(self, p_scan_id: str) -> list:
+    def __get_scan_report(self, p_scan_id: str) -> list:
         try:
             l_base_url = "{0}?id={1}&excludeResponseData=true&format=JSON&type=vulnerabilities".format(
                 self.__cSCAN_REPORT_URL, p_scan_id
@@ -3183,23 +3212,11 @@ class API:
             return self.__get_unpaged_data(l_base_url, "scan report")
 
         except Exception as e:
-            self.__mPrinter.print("____get_scan_report() - {0}".format(str(e)), Level.ERROR)
-
-    def __get_scan_report(self) -> list:
-        try:
-            return self.____get_scan_report(Parser.scan_id)
-        except Exception as e:
-            self.__mPrinter.print("__get_scan_report() - {0}".format(str(e)), Level.ERROR)
-
-    def __get_scan_report(self, p_scan_id: str) -> list:
-        try:
-            return self.____get_scan_report(p_scan_id)
-        except Exception as e:
             self.__mPrinter.print("__get_scan_report() - {0}".format(str(e)), Level.ERROR)
 
     def get_scan_report(self):
         try:
-            l_list: list = self.__get_scan_report()
+            l_list: list = self.__get_scan_report(Parser.scan_id)
 
             if self.__m_output_format == OutputFormat.JSON.value:
                 print(json.dumps(l_list))
@@ -3773,7 +3790,7 @@ class API:
 
     def __save_scan_issues(self, p_scan_id: str) -> None:
         try:
-            l_issues = self.____get_scan_report(p_scan_id)
+            l_issues = self.__get_scan_report(p_scan_id)
             l_list = self.__parse_scan_report_json_to_csv(l_issues)
             for l_issue in l_list:
                 l_issue.append(p_scan_id)

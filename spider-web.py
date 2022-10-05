@@ -9,7 +9,7 @@ import config as __config
 from argparse import RawTextHelpFormatter
 import argparse
 
-l_version = '1.1.6'
+l_version = '1.1.7'
 
 def print_version() -> None:
     if Parser.verbose:
@@ -60,7 +60,7 @@ def run_main_program():
         Parser.get_scan_results or Parser.upload_team_members or Parser.create_team_member or \
         Parser.get_roles or Parser.get_permissions or Parser.get_role or Parser.delete_team_member or \
         Parser.get_unused_accounts or Parser.get_teams or Parser.get_issues or Parser.download_issues or \
-        Parser.report_bsc or Parser.get_unpatched_issues:
+        Parser.report_bsc or Parser.get_unpatched_issues or Parser.disable_team_member:
             l_api = API(p_parser=Parser)
     else:
         lArgParser.print_usage()
@@ -150,6 +150,14 @@ def run_main_program():
             Printer.print("Requires -tmid, --team-member-id", Level.ERROR, Force.FORCE, LINES_BEFORE, LINES_AFTER)
             exit(0)
         l_api.delete_team_member()
+        exit(0)
+
+    if Parser.disable_team_member:
+        if not (Parser.team_member_id):
+            lArgParser.print_usage()
+            Printer.print("Requires -tmid, --team-member-id", Level.ERROR, Force.FORCE, LINES_BEFORE, LINES_AFTER)
+            exit(0)
+        l_api.disable_team_member()
         exit(0)
 
     if Parser.upload_team_members:
@@ -602,6 +610,9 @@ if __name__ == '__main__':
                                  action='store_true')
     l_team_member_group.add_argument('-tmdtm', '--delete-team-member',
                                  help='Delete a team member and exit. Requires -tmid, --team-member-id',
+                                 action='store_true')
+    l_team_member_group.add_argument('-tmdatm', '--disable-team-member',
+                                 help='Disable a team member and exit. Requires -tmid, --team-member-id',
                                  action='store_true')
 
     l_scan_profiles_options_group = lArgParser.add_argument_group(title="Team Member Endpoints Options", description=None)

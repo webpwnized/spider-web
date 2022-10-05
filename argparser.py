@@ -127,6 +127,7 @@ class Parser:
         Parser.create_team_member = p_args.create_team_member
         Parser.upload_team_members = p_args.upload_team_members
         Parser.delete_team_member = p_args.delete_team_member
+        Parser.disable_team_member = p_args.disable_team_member
 
         # Team Member Attributes
         Parser.team_member_id = p_args.team_member_id
