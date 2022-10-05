@@ -1556,8 +1556,8 @@ class API:
                 "IsApiAccessEnabled": True,
                 "AllowedWebsiteLimit": 0,
                 "RoleWebsiteGroupMappings": [],
-                "AutoGeneratePassword": true,
-                "SendNotification": false
+                "AutoGeneratePassword": True,
+                "SendNotification": False
             }
 
             return l_json
