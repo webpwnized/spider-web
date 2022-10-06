@@ -1630,10 +1630,11 @@ class API:
     def __disable_team_member(self) -> None:
         try:
             self.__mPrinter.print("Disabling team member {}".format(Parser.team_member_id), Level.INFO)
-
-            # TODO: Get team member data, set State to Disabled, then update
+            
             l_member = self.__get_team_member()
+            l_member["AutoGeneratePassword"] = True
             l_member["State"] = "Disabled"
+            l_member["Teams"] = list(map(lambda l_team: l_team["Id"], l_member["Teams"]))
 
             l_http_resposne: requests.Response = self.__post_data(self.__cTEAM_MEMBER_UPDATE_URL, "team member", None, l_member)
 
@@ -1659,6 +1660,41 @@ class API:
         except Exception as e:
             self.__mPrinter.print("disable_team_member() - {0}".format(str(e)), Level.ERROR)
 
+
+    # ------------------------------------------------------------
+    # Disable Team Members Methods
+    # ------------------------------------------------------------
+    def disable_team_members(self) -> None:
+        try:
+            l_members = self.__parse_disable_team_member_upload()
+            for l_member in l_members:
+                Parser.team_member_id = l_member
+                self.__disable_team_member()
+        except Exception as e:
+            self.__mPrinter.print("disable_team_members() - {0}".format(str(e)), Level.ERROR)
+
+    def __parse_disable_team_member_upload(self) -> list:
+        try:
+            self.__mPrinter.print("Opening file for reading {}".format(Parser.input_filename), Level.INFO)
+            with open(Parser.input_filename, FileMode.READ.value) as l_input_file:
+                l_csv_reader = csv.reader(l_input_file)
+
+                l_members: list = []
+                for l_row in l_csv_reader:
+                    if l_row:
+                        l_member_id = l_row[0]
+                        l_members.append(
+                            l_member_id
+                        )
+            return l_members
+        except FileNotFoundError as e:
+            self.__mPrinter.print("__parse_disable_team_member_upload(): Cannot find the input file {0} - {1}".format(Parser.input_filename, str(e)), Level.ERROR)
+            raise FileNotFoundError(e)
+        except Exception as e:
+            self.__mPrinter.print("__parse_disable_team_member_upload() - {0}:{1}".format(l_member_id, str(e)), Level.ERROR)
+        finally:
+            if l_input_file:
+                l_input_file.close()
 
     # ------------------------------------------------------------
     # Get Team Members Methods
