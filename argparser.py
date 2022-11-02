@@ -65,6 +65,9 @@ class Parser:
         Parser.get_agents = p_args.get_agents
         Parser.get_agent_groups = p_args.get_agent_groups
 
+        # Auto-onboard
+        Parser.auto_onboard = p_args.auto_onboard
+
         # Discovered Services
         Parser.get_discovered_services = p_args.get_discovered_services
         Parser.download_discovered_services = p_args.download_discovered_services
