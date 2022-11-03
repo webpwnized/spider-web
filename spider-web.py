@@ -9,7 +9,7 @@ import config as __config
 from argparse import RawTextHelpFormatter
 import argparse
 
-l_version = '1.1.9'
+l_version = '1.1.10'
 
 def print_version() -> None:
     if Parser.verbose:
@@ -60,7 +60,8 @@ def run_main_program():
         Parser.get_scan_results or Parser.upload_team_members or Parser.create_team_member or \
         Parser.get_roles or Parser.get_permissions or Parser.get_role or Parser.delete_team_member or \
         Parser.get_unused_accounts or Parser.get_teams or Parser.get_issues or Parser.download_issues or \
-        Parser.report_bsc or Parser.get_unpatched_issues or Parser.disable_team_member or Parser.disable_team_members:
+        Parser.report_bsc or Parser.get_unpatched_issues or Parser.disable_team_member or \
+        Parser.disable_team_members or Parser.auto_onboard:
             l_api = API(p_parser=Parser)
     else:
         lArgParser.print_usage()
@@ -363,6 +364,13 @@ def run_main_program():
         l_api.report_bsc()
         exit(0)
 
+    if Parser.auto_onboard:
+        if not Parser.input_filename:
+            lArgParser.print_usage()
+            Printer.print("Required argument --input-file not provided", Level.ERROR, Force.FORCE, LINES_BEFORE, LINES_AFTER)  
+        l_api.auto_onboard()
+        exit(0)
+
 if __name__ == '__main__':
     lArgParser = argparse.ArgumentParser(description="""
  _____       _     _             _    _      _     
@@ -466,6 +474,11 @@ if __name__ == '__main__':
     l_agents_group = lArgParser.add_argument_group(title="Agents Endpoint", description=None)
     l_agents_group.add_argument('-aga', '--get-agents',
                                  help='List agents and exit. Output fetched in pages.',
+                                 action='store_true')
+
+    l_auto_onboard = lArgParser.add_argument_group(title="Auto-Onboard", description=None)
+    l_agents_group.add_argument('-aob', '--auto-onboard',
+                                 help='Auto-onboard application, creating website and scan profile. Requires SMC bookmarklet json file. Include input file with -if, --input-filename',
                                  action='store_true')
 
     l_discovery_group = lArgParser.add_argument_group(title="Discovery Endpoint", description=None)

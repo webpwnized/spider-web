@@ -266,6 +266,7 @@ class API:
     __cVULNERABILITY_TEMPLATE_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "vulnerability/template")
     __cVULNERABILITY_TEMPLATE_TYPES_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "vulnerability/types")
 
+    __cSCAN_PROFILES_CREATE_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "scanprofiles/new")
     __cSCAN_PROFILES_LIST_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "scanprofiles/list")
     __cSCAN_PROFILES_LIST_BY_ID_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "scanprofiles/get")
     __cSCAN_PROFILES_LIST_BY_NAME_URL: str = "{}{}{}".format(__cBASE_URL, __cAPI_VERSION_1_URL, "scanprofiles/get")
@@ -794,7 +795,7 @@ class API:
 
             self.__mPrinter.print("Fetched {} information".format(p_endpoint_name), Level.SUCCESS)
             self.__mPrinter.print("Parsing {} information".format(p_endpoint_name), Level.INFO)
-            l_json: list = json.loads(l_http_response.text)
+            l_json: list = l_http_response.json()
             self.__mPrinter.print("Found {} {}".format(len(l_json), p_endpoint_name), Level.INFO)
             self.__mPrinter.print("Fetched {} information".format(p_endpoint_name), Level.INFO)
 
@@ -2203,7 +2204,7 @@ class API:
         # Change requested by TS to use domain name as site name instead of HS site name
         return self.__parse_domain_name_from_url(p_url)
 
-    def __upload_websites(self, p_websites: list) -> None:
+    def __upload_websites(self, p_websites: list) -> str:
         # Documentation: https://www.netsparkercloud.com/docs/index#/
         try:
             l_name: str = ""
@@ -2231,6 +2232,7 @@ class API:
 
                     if l_http_response:
                         self.__mPrinter.print("Uploaded website {0}".format(l_name), Level.INFO, Force.FORCE)
+                        return l_http_response.json()["Id"]
                     else:
                         raise ImportError("Unable to upload website {}".format(l_name))
 
@@ -2529,6 +2531,96 @@ class API:
                 raise ValueError("Looking up a Scan Profile requires that either Scan Profile ID or Scan Profile Name be provided.")
         except Exception as e:
             self.__mPrinter.print("get_scan_profile() - {0}".format(str(e)), Level.ERROR)
+
+
+    # ------------------------------------------------------------
+    # Upload Scan Profile
+    # ------------------------------------------------------------
+    def __upload_scan_profile(self, p_scan_profile: dict) -> str:
+        try: 
+            l_profile_id: str = ""
+            l_json = {
+                "Comments": p_scan_profile["comments"],
+                "CreateType": "Website",
+                "IsPrimary": True,
+                "IsShared": True,
+                "ProfileName": p_scan_profile["name"],
+                "ReportPolicyId": p_scan_profile["report_policy"],
+                "PolicyId": p_scan_profile["scan_policy"],
+                "TargetUri": p_scan_profile["url"],
+                "Tags": [
+                    p_scan_profile["dev_source"],
+                    "Contact: {}".format(p_scan_profile["notify_group"]),
+                    "AVS: {}".format(p_scan_profile["avs"])
+                ],
+                "FormAuthenticationSettingModel": {
+                    "Personas": [
+                        {
+                            "UserName": p_scan_profile["username"]
+                        }
+                    ] 
+                }
+            }
+            
+            self.__mPrinter.print("Creating scan profile", Level.INFO)
+            l_http_response = self.__connect_to_api(
+                p_url=self.__cSCAN_PROFILES_CREATE_URL,
+                p_method=HTTPMethod.POST.value,
+                p_data=None, p_json=l_json)
+            l_profile_id = l_http_response.json()["ProfileId"]
+            
+            return l_profile_id
+        except Exception as e:
+            self.__mPrinter.print("__upload_scan_profile() - {0}".format(str(e)), Level.ERROR)
+
+
+    # ------------------------------------------------------------
+    # Upload Scan Profile
+    # ------------------------------------------------------------
+    def __auto_onboard_website(self, p_website: dict) -> str:
+        try:
+            l_website_id: str = ""
+            Parser.query = p_website["name"]
+            l_website = self.__get_website_by_name_or_url()
+            if l_website:
+                l_website_id = l_website["Id"]
+                self.__mPrinter.print("Website already exists", Level.DEBUG)
+            else:
+                self.__mPrinter.print("Website doesn't exists", Level.DEBUG)
+                l_website_id = self.__upload_websites([[p_website["name"], p_website["url"], p_website["groups"]["str"]]])
+
+            return l_website_id
+        except Exception as e:
+            self.__mPrinter.print("__auto_onboard_website() - {0}".format(str(e)), Level.ERROR)
+
+    def __auto_onboard_scan_profile(self, p_scan_profile: dict) -> str:
+        try:
+            l_profile_id: str = ""
+            Parser.scan_profile_name = p_scan_profile["name"]
+            l_profile = self.____get_scan_profile_by_name()
+            if l_profile:
+                l_profile_id = l_profile["ProfileId"]
+                self.__mPrinter.print("Profile already exists", Level.DEBUG)
+            else:
+                self.__mPrinter.print("Profile doesn't exists", Level.DEBUG)
+                l_profile_id = self.__upload_scan_profile(p_scan_profile)
+            
+            return l_profile_id
+        except Exception as e:
+            self.__mPrinter.print("__auto_onboard_scan_profile() - {0}".format(str(e)), Level.ERROR)
+
+    def auto_onboard(self) -> None:
+        try:
+            # parse/validate json file (Parser.input_filename)
+            with open(Parser.input_filename, FileMode.READ.value) as l_file:
+                l_json = json.load(l_file)
+            l_website = self.__auto_onboard_website(l_json["website"])
+            l_scan_profile = self.__auto_onboard_scan_profile(l_json["scan_profile"])
+            if l_scan_profile:
+                self.__mPrinter.print(f"Scan profile - https://www.netsparkercloud.com/scans/new/?profileId={l_scan_profile}", Level.SUCCESS, Force.FORCE)
+                
+        except Exception as e:
+            self.__mPrinter.print("auto_onboard() - {0}".format(str(e)), Level.ERROR)
 
     # ------------------------------------------------------------
     # Get Scan Profiles
