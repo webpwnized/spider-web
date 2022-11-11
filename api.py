@@ -2536,9 +2536,9 @@ class API:
     # ------------------------------------------------------------
     # Upload Scan Profile
     # ------------------------------------------------------------
+
     def __upload_scan_profile(self, p_scan_profile: dict) -> str:
-        try: 
-            l_profile_id: str = ""
+        try:
             l_json = {
                 "Comments": p_scan_profile["comments"],
                 "CreateType": "Website",
@@ -2558,16 +2558,22 @@ class API:
                         {
                             "UserName": p_scan_profile["username"]
                         }
-                    ] 
+                    ]
                 }
             }
-            
+
             self.__mPrinter.print("Creating scan profile", Level.INFO)
-            l_http_response = self.__connect_to_api(
+            l_http_response = self.__post_data(
                 p_url=self.__cSCAN_PROFILES_CREATE_URL,
-                p_method=HTTPMethod.POST.value,
-                p_data=None, p_json=l_json)
-            l_profile_id = l_http_response.json()["ProfileId"]
+                p_endpoint_name="ScanProfile",
+                p_data=None, 
+                p_json=l_json)
+  
+            if l_http_response.status_code == 201:
+                l_profile_id = l_http_response.json()["ProfileId"]
+            else:
+                self.__mPrinter.print("Scan Profile not created", Level.ERROR)
+                raise Exception(l_http_response.text)
             
             return l_profile_id
         except Exception as e:
@@ -2584,9 +2590,9 @@ class API:
             l_website = self.__get_website_by_name_or_url()
             if l_website:
                 l_website_id = l_website["Id"]
-                self.__mPrinter.print("Website already exists", Level.DEBUG)
+                self.__mPrinter.print("Website already exists", Level.INFO)
             else:
-                self.__mPrinter.print("Website doesn't exists", Level.DEBUG)
+                self.__mPrinter.print("Website doesn't exist, creating website", Level.INFO)
                 l_website_id = self.__upload_websites([[p_website["name"], p_website["url"], p_website["groups"]["str"]]])
 
             return l_website_id
