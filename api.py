@@ -2537,9 +2537,18 @@ class API:
     # Upload Scan Profile
     # ------------------------------------------------------------
 
-    def __upload_scan_profile(self, p_scan_profile: dict) -> str:
+    def __upload_scan_profile(self, p_scan_profile: dict, p_website: dict) -> str:
+        l_segment = p_website["groups"]["segment"].replace("Segment: ", "")
+        l_agent_group_id: str = ""
+        l_agent_groups = self.__get_agent_groups()
+
+        for l_agent_group in l_agent_groups:
+            if l_segment in l_agent_group["Name"]:
+                l_agent_group_id = l_agent_group["Id"]
+
         try:
             l_json = {
+                "AgentGroupId ": l_agent_group_id,
                 "Comments": p_scan_profile["comments"],
                 "CreateType": "Website",
                 "IsPrimary": True,
@@ -2566,22 +2575,23 @@ class API:
             l_http_response = self.__post_data(
                 p_url=self.__cSCAN_PROFILES_CREATE_URL,
                 p_endpoint_name="ScanProfile",
-                p_data=None, 
+                p_data=None,
                 p_json=l_json)
-  
+
             if l_http_response.status_code == 201:
                 l_profile_id = l_http_response.json()["ProfileId"]
             else:
                 self.__mPrinter.print("Scan Profile not created", Level.ERROR)
                 raise Exception(l_http_response.text)
-            
+
             return l_profile_id
         except Exception as e:
-            self.__mPrinter.print("__upload_scan_profile() - {0}".format(str(e)), Level.ERROR)
+            self.__mPrinter.print(
+                "__upload_scan_profile() - {0}".format(str(e)), Level.ERROR)
 
 
     # ------------------------------------------------------------
-    # Upload Scan Profile
+    # Auto Onboard
     # ------------------------------------------------------------
     def __auto_onboard_website(self, p_website: dict) -> str:
         try:
@@ -2590,7 +2600,7 @@ class API:
             l_website = self.__get_website_by_name_or_url()
             if l_website:
                 l_website_id = l_website["Id"]
-                self.__mPrinter.print("Website already exists", Level.INFO)
+                self.__mPrinter.print("Website already exists", Level.INFO, Force.FORCE)
             else:
                 self.__mPrinter.print("Website doesn't exist, creating website", Level.INFO)
                 l_website_id = self.__upload_websites([[p_website["name"], p_website["url"], p_website["groups"]["str"]]])
@@ -2599,17 +2609,17 @@ class API:
         except Exception as e:
             self.__mPrinter.print("__auto_onboard_website() - {0}".format(str(e)), Level.ERROR)
 
-    def __auto_onboard_scan_profile(self, p_scan_profile: dict) -> str:
+    def __auto_onboard_scan_profile(self, p_scan_profile: dict, p_website: dict) -> str:
         try:
             l_profile_id: str = ""
             Parser.scan_profile_name = p_scan_profile["name"]
             l_profile = self.____get_scan_profile_by_name()
             if l_profile:
                 l_profile_id = l_profile["ProfileId"]
-                self.__mPrinter.print("Profile already exists", Level.DEBUG)
+                self.__mPrinter.print("Profile already exists", Level.INFO, Force.FORCE)
             else:
-                self.__mPrinter.print("Profile doesn't exists", Level.DEBUG)
-                l_profile_id = self.__upload_scan_profile(p_scan_profile)
+                self.__mPrinter.print("Profile doesn't exists", Level.INFO)
+                l_profile_id = self.__upload_scan_profile(p_scan_profile, p_website)
             
             return l_profile_id
         except Exception as e:
@@ -2620,10 +2630,10 @@ class API:
             # parse/validate json file (Parser.input_filename)
             with open(Parser.input_filename, FileMode.READ.value) as l_file:
                 l_json = json.load(l_file)
-            l_website = self.__auto_onboard_website(l_json["website"])
-            l_scan_profile = self.__auto_onboard_scan_profile(l_json["scan_profile"])
-            if l_scan_profile:
-                self.__mPrinter.print(f"Scan profile - https://www.netsparkercloud.com/scans/new/?profileId={l_scan_profile}", Level.SUCCESS, Force.FORCE)
+                l_website = self.__auto_onboard_website(l_json["website"])
+                l_scan_profile = self.__auto_onboard_scan_profile(l_json["scan_profile"], l_json["website"])
+                if l_scan_profile:
+                    self.__mPrinter.print(f"Scan profile - https://www.netsparkercloud.com/scans/new/?profileId={l_scan_profile}", Level.SUCCESS, Force.FORCE)
                 
         except Exception as e:
             self.__mPrinter.print("auto_onboard() - {0}".format(str(e)), Level.ERROR)
@@ -2632,9 +2642,11 @@ class API:
     # Get Scan Profiles
     # ------------------------------------------------------------
     def __parse_scan_profiles_json(self, p_json: list) -> list:
+        l_username = ""
         try:
             l_persona = p_json.get("FormAuthenticationSettingModel", {}).get("Personas", [])
-            l_username = l_persona[0].get("UserName", "")
+            if l_persona:
+                l_username = l_persona[0].get("UserName", "")
             return [
                 p_json["ProfileId"], p_json["ProfileName"], p_json["TargetUri"],
                 p_json["PolicyId"], p_json["ReportPolicyId"], p_json["UserId"],
@@ -2897,35 +2909,43 @@ class API:
                 l_site_is_up, l_site_is_interesting, l_status_code, l_reason = self.__handle_uncaught_exception(p_url, str(e))
 
         if self.__web_server_is_redirecting(p_url, l_status_code): # then careful analysis is needed to understand why
-            l_current_domain = self.__parse_domain_name_from_url(l_http_response.url)
-            l_redirect_url = l_http_response.next.url.lower()
-            l_redirect_path = urlparse(l_redirect_url).path
-            l_redirect_domain = self.__parse_domain_name_from_url(l_redirect_url)
-            self.__mPrinter.print("Server redirected from {} to {}".format(l_current_domain, l_redirect_url), Level.INFO)
+            try:
+                l_current_domain = self.__parse_domain_name_from_url(l_http_response.url)
+                l_redirect_url = l_http_response.next.url.lower()
 
-            if self.__is_authentication_domain(l_redirect_domain):
-                l_site_is_up = True
-                l_site_is_interesting = False
-                l_reason = "Server is redirecting to an authentication domain {}".format(l_redirect_domain)
-            elif l_current_domain == l_redirect_domain:
-                if self.__is_authentication_page(l_redirect_url):
+                l_redirect_path = urlparse(l_redirect_url).path
+                l_redirect_domain = self.__parse_domain_name_from_url(l_redirect_url)
+                self.__mPrinter.print("Server redirected from {} to {}".format(l_current_domain, l_redirect_url), Level.INFO)
+
+                if self.__is_authentication_domain(l_redirect_domain):
                     l_site_is_up = True
                     l_site_is_interesting = False
-                    l_reason = "Server is redirecting to login page {}".format(l_redirect_path)
+                    l_reason = "Server is redirecting to an authentication domain {}".format(l_redirect_domain)
+                elif l_current_domain == l_redirect_domain:
+                    if self.__is_authentication_page(l_redirect_url):
+                        l_site_is_up = True
+                        l_site_is_interesting = False
+                        l_reason = "Server is redirecting to login page {}".format(l_redirect_path)
+                    else:
+                        l_site_is_up = True
+                        l_site_is_interesting = True
+                        l_reason = "Server is redirecting within same domain to page {}. Make sure NetSparker is configured to scan the correct page. NetSparker should not redirect if already pointed to the correct starting URL. If the page is an authentication page, tell the developers so they can add this pattern into the configuration.".format(l_redirect_path)
+                else: # Redirecting to different domain
+                    if self.__is_authentication_page(l_redirect_url):
+                        l_site_is_up = True
+                        l_site_is_interesting = True
+                        l_reason = "Server is redirecting to different domain to login page {}. This could be an undocumented authentication domain that is not configured in config.py. Inform the programming team.".format(l_redirect_url)
+                    else:
+                        l_site_is_up = False
+                        l_site_is_interesting = True
+                        l_reason = "Domain may be black-holed. Server is redirecting to a different domain to page {}. Otherwise NetSparker is misconfigured with the wrong starting URL.".format(
+                            l_redirect_url)
+            except AttributeError as e:
+                if e.name == "url":
+                    l_reason = "302 Redirect without Location header"
+                    l_site_is_up, l_site_is_interesting, l_status_code, l_reason = self.__handle_site_connection_failure(p_url, l_reason)
                 else:
-                    l_site_is_up = True
-                    l_site_is_interesting = True
-                    l_reason = "Server is redirecting within same domain to page {}. Make sure NetSparker is configured to scan the correct page. NetSparker should not redirect if already pointed to the correct starting URL. If the page is an authentication page, tell the developers so they can add this pattern into the configuration.".format(l_redirect_path)
-            else: # Redirecting to different domain
-                if self.__is_authentication_page(l_redirect_url):
-                    l_site_is_up = True
-                    l_site_is_interesting = True
-                    l_reason = "Server is redirecting to different domain to login page {}. This could be an undocumented authentication domain that is not configured in config.py. Inform the programming team.".format(l_redirect_url)
-                else:
-                    l_site_is_up = False
-                    l_site_is_interesting = True
-                    l_reason = "Domain may be black-holed. Server is redirecting to a different domain to page {}. Otherwise NetSparker is misconfigured with the wrong starting URL.".format(
-                        l_redirect_url)
+                    l_site_is_up, l_site_is_interesting, l_status_code, l_reason = self.__handle_site_connection_failure(p_url, str(e))
 
         return l_site_is_up, l_site_is_interesting, l_status_code, l_reason
 

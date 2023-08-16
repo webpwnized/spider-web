@@ -108,7 +108,7 @@ class SQLite():
         l_query: str = "SELECT name FROM sqlite_master WHERE type='table' AND name=?;"
         l_rows: list = SQLite.__execute_parameterized_query(p_connection, l_query, [p_table_name])
         if not l_rows:
-            Printer.print("Table {} not found in database".format(p_table_name), Level.ERROR)
+            Printer.print("Table {} not found in database".format(p_table_name), Level.INFO)
         return bool(l_rows)
 
     @staticmethod
