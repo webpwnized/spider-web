@@ -9,7 +9,7 @@ import config as __config
 from argparse import RawTextHelpFormatter
 import argparse
 
-l_version = '1.1.11'
+l_version = '1.1.12'
 
 def print_version() -> None:
     if Parser.verbose:
@@ -98,7 +98,7 @@ def run_main_program():
     if Parser.download_issues:
         if not Parser.output_filename:
             lArgParser.print_usage()
-            Printer.print("Required argument --output-file not provided", Level.ERROR, Force.FORCE, LINES_BEFORE, LINES_AFTER)
+            Printer.print("Required argument -of, --output-file not provided", Level.ERROR, Force.FORCE, LINES_BEFORE, LINES_AFTER)
             exit(0)
         l_api.download_issues()
         exit(0)
@@ -164,7 +164,7 @@ def run_main_program():
     if Parser.disable_team_members:
         if not Parser.input_filename:
             lArgParser.print_usage()
-            Printer.print("Required argument --input-file not provided", Level.ERROR, Force.FORCE, LINES_BEFORE, LINES_AFTER)
+            Printer.print("Required argument -if, --input-file not provided", Level.ERROR, Force.FORCE, LINES_BEFORE, LINES_AFTER)
             exit(0)
         l_api.disable_team_members()
         exit(0)
@@ -172,7 +172,7 @@ def run_main_program():
     if Parser.upload_team_members:
         if not Parser.input_filename:
             lArgParser.print_usage()
-            Printer.print("Required argument --input-file not provided", Level.ERROR, Force.FORCE, LINES_BEFORE, LINES_AFTER)
+            Printer.print("Required argument -if, --input-file not provided", Level.ERROR, Force.FORCE, LINES_BEFORE, LINES_AFTER)
             exit(0)
         l_api.upload_team_members()
         exit(0)
@@ -216,7 +216,7 @@ def run_main_program():
     if Parser.upload_website_groups:
         if not Parser.input_filename:
             lArgParser.print_usage()
-            Printer.print("Required argument --input-file not provided", Level.ERROR, Force.FORCE, LINES_BEFORE, LINES_AFTER)
+            Printer.print("Required argument -if, --input-file not provided", Level.ERROR, Force.FORCE, LINES_BEFORE, LINES_AFTER)
             exit(0)
         l_api.upload_website_groups()
         exit(0)
@@ -228,7 +228,7 @@ def run_main_program():
     if Parser.download_discovered_services:
         if not Parser.output_filename:
             lArgParser.print_usage()
-            Printer.print("Required argument --output-file not provided", Level.ERROR, Force.FORCE, LINES_BEFORE, LINES_AFTER)
+            Printer.print("Required argument -of, --output-file not provided", Level.ERROR, Force.FORCE, LINES_BEFORE, LINES_AFTER)
             exit(0)
         l_api.download_discovered_services()
         exit(0)
@@ -280,7 +280,7 @@ def run_main_program():
     if Parser.upload_websites:
         if not Parser.input_filename:
             lArgParser.print_usage()
-            Printer.print("Required argument --input-file not provided", Level.ERROR, Force.FORCE, LINES_BEFORE, LINES_AFTER)
+            Printer.print("Required argument -if, --input-file not provided", Level.ERROR, Force.FORCE, LINES_BEFORE, LINES_AFTER)
             exit(0)
         l_api.upload_websites()
         exit(0)
@@ -309,7 +309,7 @@ def run_main_program():
     if Parser.ping_sites_in_file:
         if not Parser.input_filename:
             lArgParser.print_usage()
-            Printer.print("Required argument --input-file not provided", Level.ERROR, Force.FORCE, LINES_BEFORE, LINES_AFTER)
+            Printer.print("Required argument -if, --input-file not provided", Level.ERROR, Force.FORCE, LINES_BEFORE, LINES_AFTER)
             exit(0)
         l_api.ping_sites_in_file()
         exit(0)
@@ -361,13 +361,16 @@ def run_main_program():
         exit(0)
 
     if Parser.report_bsc:
+        if not Parser.input_filename and not Parser.output_filename:
+            lArgParser.print_usage()
+            Printer.print("Required arguments -if, --input-file and -of, --output-file not provided", Level.ERROR, Force.FORCE, LINES_BEFORE, LINES_AFTER)
         l_api.report_bsc()
         exit(0)
 
     if Parser.auto_onboard:
         if not Parser.input_filename:
             lArgParser.print_usage()
-            Printer.print("Required argument --input-file not provided", Level.ERROR, Force.FORCE, LINES_BEFORE, LINES_AFTER)  
+            Printer.print("Required argument -if, --input-file not provided", Level.ERROR, Force.FORCE, LINES_BEFORE, LINES_AFTER)  
         l_api.auto_onboard()
         exit(0)
 
