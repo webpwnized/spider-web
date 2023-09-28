@@ -1995,7 +1995,7 @@ class API:
                                        l_technology["IssueCriticalCount"], l_technology["IssueHighCount"],
                                        l_technology["IssueMediumCount"], l_technology["IssueLowCount"],
                                        l_technology["IssueInfoCount"], l_technology["LatestVersion"],
-                                       l_technology["LastSeenDate"], l_technology["Id"], l_technology["WebsiteId"],
+                                       self.__format_datetime_string(l_technology["LastSeenDate"]), l_technology["Id"], l_technology["WebsiteId"],
                                        l_technology["ScanTaskId"]
                 ])
             return l_technologies
@@ -3335,7 +3335,9 @@ class API:
     # ------------------------------------------------------------
     def __get_scan_report_header(self) -> list:
         return ["Issue Type", "Title", "Severity", "Affected URL", 
-                "State", "First Seen Date", "Last Seen Date"]
+                "State", "First Seen Date", "Last Seen Date", "Remedial Procedure", 
+                "Remedial Actions", "Lookup Id",
+            ]
 
     def __parse_scan_report_json_to_csv(self, p_json: list) -> list:
         try:
@@ -3343,7 +3345,8 @@ class API:
             for l_scan_result in p_json["Vulnerabilities"]:
                 l_scan_results.append([
                     l_scan_result["Type"], l_scan_result["Name"], l_scan_result["Severity"], l_scan_result["Url"], 
-                    l_scan_result["State"], l_scan_result["FirstSeenDate"], l_scan_result["LastSeenDate"]
+                    l_scan_result["State"], self.__format_datetime_string(l_scan_result["FirstSeenDate"]), self.__format_datetime_string(l_scan_result["LastSeenDate"]),
+                    l_scan_result["RemedialProcedure"], l_scan_result["RemedialActions"], l_scan_result["LookupId"]
                 ])
             return l_scan_results
         except Exception as e:
@@ -3406,8 +3409,8 @@ class API:
             for l_scan_result in p_json:
                 l_cvss_score = self.__parse_scan_vuln_cvss(l_scan_result["Classification"])
                 l_scan_results.append([
-                    l_scan_result["Type"], l_scan_result["Name"], l_scan_result["FirstSeenDate"], 
-                    l_scan_result["LastSeenDate"], l_scan_result["Severity"], l_cvss_score, 
+                    l_scan_result["Type"], l_scan_result["Name"], self.__format_datetime_string(l_scan_result["FirstSeenDate"]), 
+                    self.__format_datetime_string(l_scan_result["LastSeenDate"]), l_scan_result["Severity"], l_cvss_score, 
                     l_scan_result["LookupId"], p_scan_id
                 ])
             return l_scan_results
@@ -3926,6 +3929,15 @@ class API:
             self.__write_csv(l_header, p_rows)
         except Exception as e:
             self.__mPrinter.print("__print_scorecard_csv() - {0}".format(str(e)), Level.ERROR)
+            
+    def __print_scorecard_all_issues_csv(self, p_rows: dict) -> None:
+        try:
+            self.__mPrinter.print("Printing all issues results in CSV format", Level.INFO)
+            l_header: list = self.__get_scorecard_header()
+            l_header.extend(["AVS", "State", "First Seen Date", "Remedial Actions", "Remedial Procedure", "Lookup Id"])
+            self.__write_csv(l_header, p_rows)
+        except Exception as e:
+            self.__mPrinter.print("__print_scorecard_all_issues_csv() - {0}".format(str(e)), Level.ERROR)
 
     def __save_best_scans(self) -> None:
         l_best_scans = self.__get_best_scans()
@@ -3992,7 +4004,12 @@ class API:
         self.__save_best_scans()
         self.__get_scans_missing_issues()
         self.__import_false_issues()
-        SQLite.create_views()
+        SQLite.create_views() 
+
+        if Parser.report_bsc_all_issues:
+            l_results = SQLite.select_all_issues()
+            self.__print_scorecard_all_issues_csv(l_results)
+            return
         
         l_results = SQLite.select_scorecard_results()
         self.__print_scorecard_csv(l_results)

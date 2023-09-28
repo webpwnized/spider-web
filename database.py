@@ -239,6 +239,15 @@ class SQLite():
                             AND Issues.state NOT LIKE '%FalsePositive%'
                             AND FalsePositiveImport.issue_name IS NULL;
 
+                    DROP VIEW IF EXISTS AllIssues;
+                    CREATE VIEW AllIssues AS
+                    SELECT Scans.profile_name, Issues.*, VulnerabilityTypes.cvss_value, VulnerabilityTypes.cvss_severity
+                    FROM Issues
+                        JOIN VulnerabilityTypes ON Issues.name = VulnerabilityTypes.title AND Issues.type = VulnerabilityTypes.id
+                        JOIN Scans ON Issues.scan_id = Scans.id
+                        LEFT JOIN FalsePositiveImport ON Issues.name = FalsePositiveImport.issue_name AND Scans.profile_name = FalsePositiveImport.profile_name
+                    WHERE FalsePositiveImport.issue_name IS NULL;
+
                     DROP VIEW IF EXISTS WebsiteSegment;
                     CREATE VIEW WebsiteSegment AS
                     SELECT * FROM WebsiteGroups
@@ -270,7 +279,10 @@ class SQLite():
                             TrackedIssues.cvss_severity,
                             SUBSTR(DevSource.tag,13,100) as dev_source,
                             SUBSTR(max(Scans.initiated_date),1,10) as scan_date,
-                            max(Scans.id) as scan_id
+                            max(Scans.id) as scan_id,
+							ProfileAVS.avs_code,
+							TrackedIssues.state,
+							SUBSTR(TrackedIssues.first_seen,1,10) as first_seen
                         FROM
                             Scans
                             JOIN WebsiteOnBsc ON Scans.website_id = WebsiteOnBsc.website_id
@@ -278,6 +290,7 @@ class SQLite():
                             LEFT JOIN WebsiteSDG ON Scans.website_id = WebsiteSDG.website_id
                             LEFT JOIN DevSource ON Scans.profile_id = DevSource.profile_id
                             LEFT JOIN ExcludeFromReports ON Scans.profile_id = ExcludeFromReports.profile_id
+							LEFT JOIN ProfileAVS ON Scans.profile_id = ProfileAVS.profile_id
                         WHERE 
                             ExcludeFromReports.profile_id IS NULL
                             AND Scans.profile_name NOT LIKE 'Product Test%'
@@ -301,7 +314,10 @@ class SQLite():
                             '' AS cvss_severity,
                             SUBSTR(DevSource.tag,13,100) as dev_source,
                             SUBSTR(max(Scans.initiated_date),1,10) as scan_date,
-                            max(Scans.id) as scan_id
+                            max(Scans.id) as scan_id,
+							ProfileAVS.avs_code,
+							'' AS state,
+							'' AS first_seen
                         FROM
                             Scans
                             JOIN WebsiteOnBsc ON Scans.website_id = WebsiteOnBsc.website_id
@@ -309,6 +325,7 @@ class SQLite():
                             LEFT JOIN WebsiteSDG ON Scans.website_id = WebsiteSDG.website_id
                             LEFT JOIN DevSource ON Scans.profile_id = DevSource.profile_id
                             LEFT JOIN ExcludeFromReports ON Scans.profile_id = ExcludeFromReports.profile_id
+							LEFT JOIN ProfileAVS ON Scans.profile_id = ProfileAVS.profile_id
                         WHERE 
                             TrackedIssues.scan_id IS NULL
                             AND ExcludeFromReports.profile_id IS NULL
@@ -427,6 +444,10 @@ class SQLite():
                 CREATE VIEW IF NOT EXISTS "ExcludeFromReports" AS SELECT profile_id, tag
                 FROM ProfileTags
                 WHERE tag = "Not for BSC";
+
+                CREATE VIEW IF NOT EXISTS ProfileAVS AS 
+                SELECT profile_id, SUBSTR(tag,6,100) AS avs_code FROM ProfileTags
+                WHERE tag LIKE 'AVS:%';
             """
             SQLite.__execute_script(l_connection, l_query)
         except:
@@ -615,6 +636,9 @@ class SQLite():
                         "state" TEXT,
                         "first_seen"    TEXT,
                         "last_seen" TEXT,
+                        "remedial_procedure" TEXT,
+                        "remedial_actions"  TEXT,
+                        "lookup_id" TEXT,
                         "scan_id"	TEXT,
                         PRIMARY KEY("type","name","scan_id")
                     );
@@ -634,7 +658,7 @@ class SQLite():
             if not SQLite.__verify_table_exists(l_connection, "Issues"): 
                 SQLite.__create_issues_table()
             Printer.print("Inserting issues", Level.INFO)
-            l_query = "INSERT OR IGNORE INTO Issues VALUES(?,?,?,?,?,?,?,?);"
+            l_query = "INSERT OR IGNORE INTO Issues VALUES(?,?,?,?,?,?,?,?,?,?,?);"
             SQLite.__execute_parameterized_queries(l_connection, l_query, p_scans)
         except:
              Printer.print("Error inserting issues", Level.ERROR)
@@ -653,6 +677,46 @@ class SQLite():
                 FROM Scans
                 WHERE Scans.is_compliant = 0
                 GROUP BY Scans.id
+            """
+            return SQLite.__execute_query(l_connection, l_query)
+        except:
+             Printer.print("Error querying for missing issues", Level.ERROR)
+        finally:
+            if l_connection:
+                l_connection.close()
+
+    @staticmethod
+    def select_all_issues() -> list:
+        l_connection: sqlite3.Connection = None
+        try:
+            l_connection = SQLite.__connect_to_database(Mode.READ_WRITE)
+            Printer.print("Querying for missing issues", Level.INFO)
+            l_query = """
+                SELECT 
+                    WebsiteSDG.group_name,
+                    Scans.profile_name, 
+                    Scans.target_url, 
+                    AllIssues.name,
+                    AllIssues.cvss_value,
+                    AllIssues.cvss_severity,
+                    SUBSTR(DevSource.tag,13,100) as dev_source,
+                    SUBSTR(Scans.initiated_date,1,10) as scan_date,
+                    Scans.id as scan_id,
+                    ProfileAVS.avs_code,
+                    AllIssues.state,
+                    SUBSTR(AllIssues.first_seen,1,10) as first_seen,
+                    AllIssues.remedial_actions,
+                    AllIssues.remedial_procedure,
+                    AllIssues.lookup_id
+                FROM
+                    Scans
+                    JOIN AllIssues ON Scans.id = AllIssues.scan_id
+                    LEFT JOIN WebsiteSDG ON Scans.website_id = WebsiteSDG.website_id
+                    LEFT JOIN DevSource ON Scans.profile_id = DevSource.profile_id
+                    LEFT JOIN ExcludeFromReports ON Scans.profile_id = ExcludeFromReports.profile_id
+                    LEFT JOIN ProfileAVS ON Scans.profile_id = ProfileAVS.profile_id
+                WHERE 
+                    ExcludeFromReports.profile_id IS NULL
             """
             return SQLite.__execute_query(l_connection, l_query)
         except:
