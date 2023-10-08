@@ -9,7 +9,7 @@ import config as __config
 from argparse import RawTextHelpFormatter
 import argparse
 
-l_version = '1.1.12'
+l_version = '1.1.13'
 
 def print_version() -> None:
     if Parser.verbose:
@@ -766,13 +766,16 @@ if __name__ == '__main__':
                                  help='Report balanced scorecard data and exit.',
                                  action='store_true')
 
-    l_vulnerability_options_group = lArgParser.add_argument_group(title="Reports Endpoint Options", description=None)
-    l_vulnerability_options_group.add_argument('-ribc', '--report-issues-by-cvss',
+    l_report_options_group = lArgParser.add_argument_group(title="Reports Endpoint Options", description=None)
+    l_report_options_group.add_argument('-ribc', '--report-issues-by-cvss',
                                  help='Report the count of issues by CVSS category',
                                  action='store_true')
-    l_vulnerability_options_group.add_argument('-ribi', '--report-issues-by-issue',
+    l_report_options_group.add_argument('-ribi', '--report-issues-by-issue',
                                  help='Report the count of issues by issue',
                                  action='store_true')
+    l_report_options_group.add_argument('-rbai', '--report-bsc-all-issues',
+                                 help='Report all issues including status and remedy',
+                                 action='store_const', const=True)
 
     Parser.parse_configuration(p_args=lArgParser.parse_args(), p_config=__config)
     run_main_program()

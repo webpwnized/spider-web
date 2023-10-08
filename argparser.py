@@ -220,3 +220,4 @@ class Parser:
 
         # Report BSC
         Parser.report_bsc = p_args.report_bsc
+        Parser.report_bsc_all_issues = p_args.report_bsc_all_issues or False

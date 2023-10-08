@@ -368,7 +368,10 @@ class ExampleUsage:
         ----------------------------------------------------------------
         Reports: Balanced Scorecard
         ----------------------------------------------------------------        
-        spider-web -rbsc
-        spider-web --report-bsc
+        spider-web -rbsc -if false.csv -of report.csv
+        spider-web --report-bsc --input-file false.csv --output-file report.csv
+        
+        spider-web -rbsc -rbai -if false.csv -of report.csv
+        spider-web --report-bsc --report-bsc-all-issues --input-file false.csv --output-file report.csv
     """)
 
