@@ -1088,10 +1088,10 @@ class API:
             for l_issue in p_json:
                 l_cvss_score: str = ""
                 try:
-                    l_cvss_score: str = l_issue["CvssVector"]["Temporal"]["Score"]["Value"]
+                    l_cvss_score: str = l_issue["CvssVector"]["Temporal"]["Value"]
                 except KeyError as e:
                     try:
-                        l_cvss_score: str = l_issue["CvssVector"]["Base"]["Score"]["Value"]
+                        l_cvss_score: str = l_issue["CvssVector"]["Base"]["Value"]
                     except KeyError as e:
                         pass
 
@@ -3021,23 +3021,23 @@ class API:
                 l_cvssv3: str = "0.0"
 
                 try:
-                    l_cvssv3 = l_template["Cvss31Vector"]["Temporal"]["Score"]["Value"]
+                    l_cvssv3 = l_template["Cvss31Vector"]["Temporal"]["Value"]
                     if not l_cvssv3:
                         raise ValueError()
                 except:
                     try:
-                        l_cvssv3 = l_template["CvssVector"]["Temporal"]["Score"]["Value"]
+                        l_cvssv3 = l_template["CvssVector"]["Temporal"]["Value"]
                     except:
                         pass
                     
                 if l_cvssv3 == "0.0":   
                     try:
-                        l_cvssv3 = l_template["Cvss31Vector"]["Base"]["Score"]["Value"]
+                        l_cvssv3 = l_template["Cvss31Vector"]["Base"]["Value"]
                         if not l_cvssv3:
                             raise ValueError()
                     except:
                         try:
-                            l_cvssv3 = l_template["CvssVector"]["Base"]["Score"]["Value"]
+                            l_cvssv3 = l_template["CvssVector"]["Base"]["Value"]
                         except:
                             pass
                 
@@ -3092,12 +3092,12 @@ class API:
             l_dict: dict = p_json[0]
             l_cvssv3: str = "0.0"
             try:
-                l_cvssv3 = str(l_dict["Cvss31Vector"]["Base"]["Score"]["Value"])
+                l_cvssv3 = str(l_dict["Cvss31Vector"]["Base"]["Value"])
                 if not l_cvssv3:
                     raise ValueError()
             except:
                 try:
-                    l_cvssv3 = str(l_dict["CvssVector"]["Base"]["Score"]["Value"])
+                    l_cvssv3 = str(l_dict["CvssVector"]["Base"]["Value"])
                 except:
                     pass
 
