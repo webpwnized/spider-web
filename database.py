@@ -639,6 +639,8 @@ class SQLite():
                         "remedial_procedure" TEXT,
                         "remedial_actions"  TEXT,
                         "lookup_id" TEXT,
+                        "description" TEXT,
+                        "impact" TEXT,
                         "scan_id"	TEXT,
                         PRIMARY KEY("type","name","scan_id")
                     );
@@ -658,7 +660,7 @@ class SQLite():
             if not SQLite.__verify_table_exists(l_connection, "Issues"): 
                 SQLite.__create_issues_table()
             Printer.print("Inserting issues", Level.INFO)
-            l_query = "INSERT OR IGNORE INTO Issues VALUES(?,?,?,?,?,?,?,?,?,?,?);"
+            l_query = "INSERT OR IGNORE INTO Issues VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?);"
             SQLite.__execute_parameterized_queries(l_connection, l_query, p_scans)
         except:
              Printer.print("Error inserting issues", Level.ERROR)
@@ -707,7 +709,10 @@ class SQLite():
                     SUBSTR(MIN(AllIssues.first_seen),1,10) as first_seen,
                     AllIssues.remedial_actions,
                     AllIssues.remedial_procedure,
-                    AllIssues.lookup_id
+                    AllIssues.lookup_id,
+                    AllIssues.description,
+                    AllIssues.impact,
+                    SUBSTR(MIN(AllIssues.last_seen),1,10) as last_seen
                 FROM
                     Scans
                     JOIN AllIssues ON Scans.id = AllIssues.scan_id

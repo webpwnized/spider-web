@@ -3336,7 +3336,7 @@ class API:
     def __get_scan_report_header(self) -> list:
         return ["Issue Type", "Title", "Severity", "Affected URL", 
                 "State", "First Seen Date", "Last Seen Date", "Remedial Procedure", 
-                "Remedial Actions", "Lookup Id",
+                "Remedial Actions", "Lookup Id", "Description", "Impact",
             ]
 
     def __parse_scan_report_json_to_csv(self, p_json: list) -> list:
@@ -3346,7 +3346,8 @@ class API:
                 l_scan_results.append([
                     l_scan_result["Type"], l_scan_result["Name"], l_scan_result["Severity"], l_scan_result["Url"], 
                     l_scan_result["State"], self.__format_datetime_string(l_scan_result["FirstSeenDate"]), self.__format_datetime_string(l_scan_result["LastSeenDate"]),
-                    l_scan_result["RemedialProcedure"], l_scan_result["RemedialActions"], l_scan_result["LookupId"]
+                    l_scan_result["RemedialProcedure"], l_scan_result["RemedialActions"], l_scan_result["LookupId"],
+                    l_scan_result["Description"], l_scan_result["Impact"]
                 ])
             return l_scan_results
         except Exception as e:
@@ -3934,7 +3935,8 @@ class API:
         try:
             self.__mPrinter.print("Printing all issues results in CSV format", Level.INFO)
             l_header: list = self.__get_scorecard_header()
-            l_header.extend(["AVS", "State", "First Seen Date", "Remedial Actions", "Remedial Procedure", "Lookup Id"])
+            l_header.extend(["AVS", "State", "First Seen Date", "Remedial Actions", "Remedial Procedure", "Lookup Id",
+                             "Description", "Impact", "Last Seen Date",])
             self.__write_csv(l_header, p_rows)
         except Exception as e:
             self.__mPrinter.print("__print_scorecard_all_issues_csv() - {0}".format(str(e)), Level.ERROR)
