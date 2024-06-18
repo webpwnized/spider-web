@@ -639,6 +639,8 @@ class SQLite():
                         "remedial_procedure" TEXT,
                         "remedial_actions"  TEXT,
                         "lookup_id" TEXT,
+                        "description" TEXT,
+                        "impact" TEXT,
                         "scan_id"	TEXT,
                         PRIMARY KEY("type","name","scan_id")
                     );
@@ -658,7 +660,7 @@ class SQLite():
             if not SQLite.__verify_table_exists(l_connection, "Issues"): 
                 SQLite.__create_issues_table()
             Printer.print("Inserting issues", Level.INFO)
-            l_query = "INSERT OR IGNORE INTO Issues VALUES(?,?,?,?,?,?,?,?,?,?,?);"
+            l_query = "INSERT OR IGNORE INTO Issues VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?);"
             SQLite.__execute_parameterized_queries(l_connection, l_query, p_scans)
         except:
              Printer.print("Error inserting issues", Level.ERROR)
@@ -690,7 +692,7 @@ class SQLite():
         l_connection: sqlite3.Connection = None
         try:
             l_connection = SQLite.__connect_to_database(Mode.READ_WRITE)
-            Printer.print("Querying for missing issues", Level.INFO)
+            Printer.print("Querying for all issues", Level.INFO)
             l_query = """
                 SELECT 
                     WebsiteSDG.group_name,
@@ -700,14 +702,17 @@ class SQLite():
                     AllIssues.cvss_value,
                     AllIssues.cvss_severity,
                     SUBSTR(DevSource.tag,13,100) as dev_source,
-                    SUBSTR(Scans.initiated_date,1,10) as scan_date,
-                    Scans.id as scan_id,
+                    SUBSTR(MAX(Scans.initiated_date),1,10) as scan_date,
+                    MAX(Scans.id) as scan_id,
                     ProfileAVS.avs_code,
                     AllIssues.state,
-                    SUBSTR(AllIssues.first_seen,1,10) as first_seen,
+                    SUBSTR(MIN(AllIssues.first_seen),1,10) as first_seen,
                     AllIssues.remedial_actions,
                     AllIssues.remedial_procedure,
-                    AllIssues.lookup_id
+                    AllIssues.lookup_id,
+                    AllIssues.description,
+                    AllIssues.impact,
+                    SUBSTR(MIN(AllIssues.last_seen),1,10) as last_seen
                 FROM
                     Scans
                     JOIN AllIssues ON Scans.id = AllIssues.scan_id
@@ -717,10 +722,23 @@ class SQLite():
                     LEFT JOIN ProfileAVS ON Scans.profile_id = ProfileAVS.profile_id
                 WHERE 
                     ExcludeFromReports.profile_id IS NULL
+                GROUP BY 
+                    WebsiteSDG.group_name,
+                    Scans.profile_name, 
+                    Scans.target_url, 
+                    AllIssues.name,
+                    AllIssues.cvss_value,
+                    AllIssues.cvss_severity,
+                    DevSource.tag,
+                    ProfileAVS.avs_code,
+                    AllIssues.state,
+                    AllIssues.remedial_actions,
+                    AllIssues.remedial_procedure,
+                    AllIssues.lookup_id
             """
             return SQLite.__execute_query(l_connection, l_query)
         except:
-             Printer.print("Error querying for missing issues", Level.ERROR)
+             Printer.print("Error querying for all issues", Level.ERROR)
         finally:
             if l_connection:
                 l_connection.close()

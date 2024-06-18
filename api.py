@@ -1088,10 +1088,10 @@ class API:
             for l_issue in p_json:
                 l_cvss_score: str = ""
                 try:
-                    l_cvss_score: str = l_issue["CvssVector"]["Temporal"]["Score"]["Value"]
+                    l_cvss_score: str = l_issue["CvssVector"]["Temporal"]["Value"]
                 except KeyError as e:
                     try:
-                        l_cvss_score: str = l_issue["CvssVector"]["Base"]["Score"]["Value"]
+                        l_cvss_score: str = l_issue["CvssVector"]["Base"]["Value"]
                     except KeyError as e:
                         pass
 
@@ -3021,23 +3021,23 @@ class API:
                 l_cvssv3: str = "0.0"
 
                 try:
-                    l_cvssv3 = l_template["Cvss31Vector"]["Temporal"]["Score"]["Value"]
+                    l_cvssv3 = l_template["Cvss31Vector"]["Temporal"]["Value"]
                     if not l_cvssv3:
                         raise ValueError()
                 except:
                     try:
-                        l_cvssv3 = l_template["CvssVector"]["Temporal"]["Score"]["Value"]
+                        l_cvssv3 = l_template["CvssVector"]["Temporal"]["Value"]
                     except:
                         pass
                     
                 if l_cvssv3 == "0.0":   
                     try:
-                        l_cvssv3 = l_template["Cvss31Vector"]["Base"]["Score"]["Value"]
+                        l_cvssv3 = l_template["Cvss31Vector"]["Base"]["Value"]
                         if not l_cvssv3:
                             raise ValueError()
                     except:
                         try:
-                            l_cvssv3 = l_template["CvssVector"]["Base"]["Score"]["Value"]
+                            l_cvssv3 = l_template["CvssVector"]["Base"]["Value"]
                         except:
                             pass
                 
@@ -3092,12 +3092,12 @@ class API:
             l_dict: dict = p_json[0]
             l_cvssv3: str = "0.0"
             try:
-                l_cvssv3 = str(l_dict["Cvss31Vector"]["Base"]["Score"]["Value"])
+                l_cvssv3 = str(l_dict["Cvss31Vector"]["Base"]["Value"])
                 if not l_cvssv3:
                     raise ValueError()
             except:
                 try:
-                    l_cvssv3 = str(l_dict["CvssVector"]["Base"]["Score"]["Value"])
+                    l_cvssv3 = str(l_dict["CvssVector"]["Base"]["Value"])
                 except:
                     pass
 
@@ -3336,7 +3336,7 @@ class API:
     def __get_scan_report_header(self) -> list:
         return ["Issue Type", "Title", "Severity", "Affected URL", 
                 "State", "First Seen Date", "Last Seen Date", "Remedial Procedure", 
-                "Remedial Actions", "Lookup Id",
+                "Remedial Actions", "Lookup Id", "Description", "Impact",
             ]
 
     def __parse_scan_report_json_to_csv(self, p_json: list) -> list:
@@ -3346,7 +3346,8 @@ class API:
                 l_scan_results.append([
                     l_scan_result["Type"], l_scan_result["Name"], l_scan_result["Severity"], l_scan_result["Url"], 
                     l_scan_result["State"], self.__format_datetime_string(l_scan_result["FirstSeenDate"]), self.__format_datetime_string(l_scan_result["LastSeenDate"]),
-                    l_scan_result["RemedialProcedure"], l_scan_result["RemedialActions"], l_scan_result["LookupId"]
+                    l_scan_result["RemedialProcedure"], l_scan_result["RemedialActions"], l_scan_result["LookupId"],
+                    l_scan_result["Description"], l_scan_result["Impact"]
                 ])
             return l_scan_results
         except Exception as e:
@@ -3934,7 +3935,8 @@ class API:
         try:
             self.__mPrinter.print("Printing all issues results in CSV format", Level.INFO)
             l_header: list = self.__get_scorecard_header()
-            l_header.extend(["AVS", "State", "First Seen Date", "Remedial Actions", "Remedial Procedure", "Lookup Id"])
+            l_header.extend(["AVS", "State", "First Seen Date", "Remedial Actions", "Remedial Procedure", "Lookup Id",
+                             "Description", "Impact", "Last Seen Date",])
             self.__write_csv(l_header, p_rows)
         except Exception as e:
             self.__mPrinter.print("__print_scorecard_all_issues_csv() - {0}".format(str(e)), Level.ERROR)
