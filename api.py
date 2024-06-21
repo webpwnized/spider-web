@@ -462,6 +462,7 @@ class API:
         self.__m_proxy_url = Parser.proxy_url
         self.__m_proxy_port = Parser.proxy_port
         self.__m_use_proxy_authentication = Parser.use_proxy_authentication
+        self.__m_use_proxy_https = Parser.use_proxy_https
         self.__m_proxy_username = Parser.proxy_username
         self.__m_proxy_password = Parser.proxy_password
         self.__mPrinter.verbose = Parser.verbose
@@ -642,6 +643,8 @@ class API:
                 self.__m_proxy_port if self.__m_proxy_port else ''
             )
             l_https_proxy_url = l_http_proxy_url.replace('http://', 'https://')
+            if not self.__m_use_proxy_https:
+                l_https_proxy_url = l_http_proxy_url
             l_password_mask = '*' * len(self.__m_proxy_password)
             l_proxy_handlers = {'http':l_http_proxy_url, 'https':l_https_proxy_url}
             self.__mPrinter.print("Building proxy handlers: {},{}".format(
@@ -3999,15 +4002,7 @@ class API:
             SQLite.create_database()
         SQLite.empty_tables()
 
-    def report_bsc(self): 
-        self.__setup_database()
-        self.__save_websites()
-        self.__save_vulnerability_types() 
-        self.__save_best_scans()
-        self.__get_scans_missing_issues()
-        self.__import_false_issues()
-        SQLite.create_views() 
-
+    def __print_bsc_report(self):
         if Parser.report_bsc_all_issues:
             l_results = SQLite.select_all_issues()
             self.__print_scorecard_all_issues_csv(l_results)
@@ -4022,3 +4017,19 @@ class API:
             l_results = SQLite.select_group_results(l_code)
             Parser.output_filename = f"{l_code}-{l_filename}"
             self.__print_scorecard_csv(l_results)
+
+
+    def report_bsc(self): 
+        if Parser.report_bsc_local_only:
+            self.__print_bsc_report()
+            return
+
+        self.__setup_database()
+        self.__save_websites()
+        self.__save_vulnerability_types() 
+        self.__save_best_scans()
+        self.__get_scans_missing_issues()
+        self.__import_false_issues()
+        SQLite.create_views() 
+
+        self.__print_bsc_report()

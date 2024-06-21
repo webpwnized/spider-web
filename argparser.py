@@ -47,6 +47,7 @@ class Parser:
         Parser.use_proxy_authentication = p_config.USE_PROXY_AUTHENTICATION
         Parser.proxy_username = p_config.PROXY_USERNAME
         Parser.proxy_password = p_config.PROXY_PASSWORD
+        Parser.use_proxy_https = p_config.USE_PROXY_HTTPS
 
         Parser.show_examples = p_args.examples
         Parser.show_usage = p_args.usage
@@ -221,3 +222,4 @@ class Parser:
         # Report BSC
         Parser.report_bsc = p_args.report_bsc
         Parser.report_bsc_all_issues = p_args.report_bsc_all_issues or False
+        Parser.report_bsc_local_only = p_args.report_bsc_local_only or False

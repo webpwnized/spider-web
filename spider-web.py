@@ -9,7 +9,7 @@ import config as __config
 from argparse import RawTextHelpFormatter
 import argparse
 
-l_version = '1.1.15'
+l_version = '1.1.16'
 
 def print_version() -> None:
     if Parser.verbose:
@@ -364,6 +364,7 @@ def run_main_program():
         if not Parser.input_filename and not Parser.output_filename:
             lArgParser.print_usage()
             Printer.print("Required arguments -if, --input-file and -of, --output-file not provided", Level.ERROR, Force.FORCE, LINES_BEFORE, LINES_AFTER)
+            exit(0)
         l_api.report_bsc()
         exit(0)
 
@@ -375,7 +376,7 @@ def run_main_program():
         exit(0)
 
 if __name__ == '__main__':
-    lArgParser = argparse.ArgumentParser(description="""
+    lArgParser = argparse.ArgumentParser(description=r"""
  _____       _     _             _    _      _     
 /  ___|     (_)   | |           | |  | |    | |    
 \ `--. _ __  _  __| | ___ _ __  | |  | | ___| |__  
@@ -775,6 +776,9 @@ if __name__ == '__main__':
                                  action='store_true')
     l_report_options_group.add_argument('-rbai', '--report-bsc-all-issues',
                                  help='Report all issues including status and remedy',
+                                 action='store_const', const=True)
+    l_report_options_group.add_argument('-rblo', '--report-bsc-local-only',
+                                 help='Using existing data in db file, report balanced scorecard data',
                                  action='store_const', const=True)
 
     Parser.parse_configuration(p_args=lArgParser.parse_args(), p_config=__config)
