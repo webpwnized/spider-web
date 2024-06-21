@@ -462,6 +462,7 @@ class API:
         self.__m_proxy_url = Parser.proxy_url
         self.__m_proxy_port = Parser.proxy_port
         self.__m_use_proxy_authentication = Parser.use_proxy_authentication
+        self.__m_use_proxy_https = Parser.use_proxy_https
         self.__m_proxy_username = Parser.proxy_username
         self.__m_proxy_password = Parser.proxy_password
         self.__mPrinter.verbose = Parser.verbose
@@ -642,6 +643,8 @@ class API:
                 self.__m_proxy_port if self.__m_proxy_port else ''
             )
             l_https_proxy_url = l_http_proxy_url.replace('http://', 'https://')
+            if not self.__m_use_proxy_https:
+                l_https_proxy_url = l_http_proxy_url
             l_password_mask = '*' * len(self.__m_proxy_password)
             l_proxy_handlers = {'http':l_http_proxy_url, 'https':l_https_proxy_url}
             self.__mPrinter.print("Building proxy handlers: {},{}".format(

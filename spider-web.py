@@ -9,7 +9,7 @@ import config as __config
 from argparse import RawTextHelpFormatter
 import argparse
 
-l_version = '1.1.15'
+l_version = '1.1.16'
 
 def print_version() -> None:
     if Parser.verbose:
@@ -376,7 +376,7 @@ def run_main_program():
         exit(0)
 
 if __name__ == '__main__':
-    lArgParser = argparse.ArgumentParser(description="""
+    lArgParser = argparse.ArgumentParser(description=r"""
  _____       _     _             _    _      _     
 /  ___|     (_)   | |           | |  | |    | |    
 \ `--. _ __  _  __| | ___ _ __  | |  | | ___| |__  
