@@ -221,3 +221,4 @@ class Parser:
         # Report BSC
         Parser.report_bsc = p_args.report_bsc
         Parser.report_bsc_all_issues = p_args.report_bsc_all_issues or False
+        Parser.report_bsc_local_only = p_args.report_bsc_local_only or False
